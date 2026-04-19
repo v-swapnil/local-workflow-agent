@@ -18,16 +18,9 @@ export function Sidebar() {
   return (
     <aside className="relative flex w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-950">
       <div className="px-5 pb-4 pt-6">
-        <div className="font-serif text-2xl italic leading-none text-ink-100">
-          Autonomous
-          <br />
-          <span className="text-amber">Software</span>
-          <br />
-          Engineer<span className="text-amber">.</span>
-        </div>
+        <div className="font-serif text-2xl leading-none text-amber">[ASE]</div>
         <p className="mt-3 max-w-[180px] font-mono text-[10px] uppercase leading-relaxed tracking-widest2 text-ink-400">
-          plan · write · run · test ·{' '}
-          <span className="text-ink-200">iterate</span>
+          plan · write · run · test · <span className="text-ink-200">iterate</span>
         </p>
       </div>
 
@@ -50,12 +43,7 @@ export function Sidebar() {
             {({ isActive }) => (
               <>
                 <span className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'text-[10px]',
-                      isActive ? 'text-amber' : 'text-ink-500',
-                    )}
-                  >
+                  <span className={cn('text-[10px]', isActive ? 'text-amber' : 'text-ink-500')}>
                     {isActive ? '▸' : '·'}
                   </span>
                   <span>/{item.label}</span>
@@ -69,15 +57,9 @@ export function Sidebar() {
 
       <div className="mt-auto px-5 pb-5">
         <div className="hair mb-4 h-px" />
-        <div className="font-mono text-[10px] uppercase tracking-widest2 text-ink-500">
-          ipc
-        </div>
+        <div className="font-mono text-[10px] uppercase tracking-widest2 text-ink-500">ipc</div>
         <div className="mt-1 font-mono text-[11px] text-ink-300">
-          {ping.isLoading
-            ? '…'
-            : ping.data
-              ? `${ping.data.pong} · ok`
-              : 'offline'}
+          {ping.isLoading ? '…' : ping.data ? `${ping.data.pong} · ok` : 'offline'}
         </div>
       </div>
     </aside>
