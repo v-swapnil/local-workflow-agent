@@ -2,9 +2,8 @@ import { contextBridge } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
 import { exposeElectronTRPC } from 'electron-trpc/main';
 
-process.once('loaded', () => {
-  exposeElectronTRPC();
-});
+// Expose TRPC bridge eagerly so renderer imports can use it immediately.
+exposeElectronTRPC();
 
 if (process.contextIsolated) {
   try {

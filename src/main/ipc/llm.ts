@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
 import { getProvider } from '../services/llm/index.js';
+import { OllamaProvider } from '../services/llm/ollama.js';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import { DEFAULT_MODEL } from '@shared/constants';
 import type { PullProgress } from '../services/llm/provider.js';
@@ -14,8 +15,18 @@ const messageSchema = z.object({
 export const llmRouter = router({
   health: publicProcedure.query(async () => {
     const p = getProvider('ollama');
+    if (p instanceof OllamaProvider) {
+      const details = await p.pingDetails();
+      return {
+        provider: p.id,
+        label: p.label,
+        ok: details.ok,
+        url: details.url,
+        attempts: details.attempts,
+      };
+    }
     const ok = await p.ping();
-    return { provider: p.id, ok, label: p.label };
+    return { provider: p.id, ok, label: p.label, url: null, attempts: [] };
   }),
 
   listModels: publicProcedure.query(async () => {

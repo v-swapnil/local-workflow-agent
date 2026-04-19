@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { trpc } from '../trpc';
+import { OLLAMA_URL } from '@shared/constants';
 
 interface PullState {
   status: string;
@@ -48,7 +49,12 @@ export function ModelManager() {
     },
   );
 
-  const ollamaOk = health.data?.ok;
+  const ollamaOk = health.data?.ok === true;
+  const ollamaState = health.isLoading
+    ? 'checking'
+    : ollamaOk
+      ? 'online'
+      : 'offline';
 
   return (
     <div className="space-y-6">
@@ -59,16 +65,30 @@ export function ModelManager() {
               provider
             </div>
             <div className="mt-1 font-serif text-lg text-ink-50">Ollama</div>
-            <div className="font-mono text-[10px] text-ink-500">{health.data && 'http://localhost:11434'}</div>
+            <div className="font-mono text-[10px] text-ink-500">
+              {health.data?.url ?? OLLAMA_URL}
+            </div>
           </div>
-          <Pill ok={ollamaOk} label={ollamaOk ? 'online' : 'offline'} />
+          <Pill ok={health.isLoading ? undefined : ollamaOk} label={ollamaState} />
         </div>
-        {!ollamaOk && (
+        {!ollamaOk && !health.isLoading && (
           <div className="rounded border border-ink-700 bg-ink-950 px-4 py-3 font-mono text-[11px] text-ink-300">
             <div className="mb-1 text-amber">Ollama not detected.</div>
             Install from{' '}
             <span className="text-ink-100">ollama.com/download</span>, then run{' '}
             <code className="text-amber">ollama serve</code>. ASE will pick it up automatically.
+            {health.error?.message && (
+              <div className="mt-2 text-signal-err">query error: {health.error.message}</div>
+            )}
+            {health.data?.attempts?.length ? (
+              <div className="mt-2 space-y-1">
+                {health.data.attempts.map((a, idx) => (
+                  <div key={`${a.url}-${idx}`} className="text-ink-500">
+                    {a.url}  {a.ok ? 'ok' : a.status ? `status ${a.status}` : a.error ?? 'failed'}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

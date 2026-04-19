@@ -11,21 +11,17 @@ import { sessionRouter, taskRouter } from './session.js';
 import { approvalRouter } from './approval.js';
 import { skillRouter } from './skill.js';
 import { gitRouter } from './git.js';
+import { getProvider } from '../services/llm/index.js';
 
 async function checkOllama(): Promise<AppHealth['ollama']> {
+  const provider = getProvider('ollama');
+  const ok = await provider.ping();
+  if (!ok) return { ok: false, url: OLLAMA_URL };
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/tags`, {
-      signal: AbortSignal.timeout(1500),
-    });
-    if (!res.ok) return { ok: false, url: OLLAMA_URL };
-    const data = (await res.json()) as { models?: { name: string }[] };
-    return {
-      ok: true,
-      url: OLLAMA_URL,
-      models: data.models?.map((m) => m.name) ?? [],
-    };
+    const models = await provider.listModels();
+    return { ok: true, url: OLLAMA_URL, models: models.map((m) => m.name) };
   } catch {
-    return { ok: false, url: OLLAMA_URL };
+    return { ok: true, url: OLLAMA_URL, models: [] };
   }
 }
 
