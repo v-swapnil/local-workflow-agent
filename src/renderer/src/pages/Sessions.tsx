@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
@@ -21,11 +22,12 @@ type TaskEvent =
 export function Sessions() {
   const { workspaceId } = useActiveWorkspace();
   const utils = trpc.useUtils();
+  const [searchParams, setSearchParams] = useSearchParams();
   const sessionsQ = trpc.session.list.useQuery(
     { workspaceId: workspaceId ?? undefined },
     { enabled: !!workspaceId },
   );
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(searchParams.get('id'));
   const create = trpc.session.create.useMutation({
     onSuccess: async (s) => {
       await utils.session.list.invalidate();
@@ -38,6 +40,14 @@ export function Sessions() {
       setSessionId(null);
     },
   });
+
+  useEffect(() => {
+    // Clear the ?id= param after consuming it so it doesn't stick around
+    if (searchParams.has('id')) {
+      searchParams.delete('id');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!sessionId && sessionsQ.data?.length) setSessionId(sessionsQ.data[0]!.id);
