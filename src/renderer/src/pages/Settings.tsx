@@ -26,6 +26,7 @@ export function Settings() {
   const setAutoBranch = trpc.git.setAutoBranch.useMutation({
     onSuccess: () => utils.git.autoBranch.invalidate(),
   });
+  const activeProvider = trpc.llm.activeProvider.useQuery();
 
   return (
     <PageShell
@@ -127,6 +128,7 @@ export function Settings() {
             <Rows
               rows={[
                 ['app.version', health.data?.app.version ?? '...'],
+                ['provider', activeProvider.data ?? '...'],
                 ['db.path', health.data?.db.path ?? '...'],
                 ['logs.path', openLogs.data?.path ?? '...'],
                 ['ollama.url', health.data?.ollama.url ?? '...'],

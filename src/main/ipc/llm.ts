@@ -3,8 +3,10 @@ import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
 import { getProvider } from '../services/llm/index.js';
 import { OllamaProvider } from '../services/llm/ollama.js';
+import { getCopilotService } from '../services/llm/copilot.js';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
-import { DEFAULT_MODEL } from '@shared/constants';
+import { DEFAULT_MODEL, DEFAULT_COPILOT_MODEL, COPILOT_CLI_URL } from '@shared/constants';
+import type { ProviderId } from '@shared/constants';
 import type { PullProgress } from '../services/llm/provider.js';
 
 const messageSchema = z.object({
@@ -135,5 +137,50 @@ export const llmRouter = router({
         })();
         return () => ctrl.abort();
       });
+    }),
+
+  activeProvider: publicProcedure.query(async () => {
+    return ((await getSetting(SETTING_KEYS.ACTIVE_PROVIDER)) ?? 'ollama') as ProviderId;
+  }),
+
+  setActiveProvider: publicProcedure
+    .input(z.object({ provider: z.enum(['ollama', 'copilot']) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.ACTIVE_PROVIDER, input.provider);
+      return { ok: true };
+    }),
+
+  copilotHealth: publicProcedure.query(async () => {
+    const ok = await getCopilotService().ping();
+    const url = (await getSetting(SETTING_KEYS.COPILOT_CLI_URL)) ?? COPILOT_CLI_URL;
+    return { provider: 'copilot' as const, ok, label: 'GitHub Copilot', url };
+  }),
+
+  copilotModels: publicProcedure.query(async () => {
+    return getCopilotService().listModels();
+  }),
+
+  copilotCliUrl: publicProcedure.query(async () => {
+    return (await getSetting(SETTING_KEYS.COPILOT_CLI_URL)) ?? COPILOT_CLI_URL;
+  }),
+
+  setCopilotCliUrl: publicProcedure
+    .input(z.object({ url: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.COPILOT_CLI_URL, input.url);
+      // Force reconnect on next use
+      getCopilotService().disconnect().catch(() => {});
+      return { ok: true };
+    }),
+
+  activeCopilotModel: publicProcedure.query(async () => {
+    return (await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL;
+  }),
+
+  setActiveCopilotModel: publicProcedure
+    .input(z.object({ name: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.COPILOT_MODEL, input.name);
+      return { ok: true };
     }),
 });

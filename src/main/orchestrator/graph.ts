@@ -1,9 +1,11 @@
 import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import type { RunnableConfig } from '@langchain/core/runnables';
+import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { fileTree } from '../services/workspaces.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
+import { workspaceStatus } from '../services/git.js';
 import { extractJson } from '../util/json.js';
 import { readdir } from 'node:fs/promises';
 import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
@@ -15,6 +17,7 @@ import {
   CRITIC_SYSTEM,
   criticUser,
 } from './prompts.js';
+import type { EnvironmentContext } from './prompts.js';
 import type {
   Plan,
   Observation,
@@ -197,6 +200,38 @@ async function llmWithTools(
   return { done: true };
 }
 
+async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
+  let git: EnvironmentContext['git'] = {
+    isRepo: false,
+    branch: null,
+    clean: true,
+    staged: [],
+    modified: [],
+    untracked: [],
+  };
+  try {
+    const status = await workspaceStatus(ctx.workspaceId);
+    git = {
+      isRepo: status.isRepo,
+      branch: status.branch,
+      clean: status.clean,
+      staged: status.staged,
+      modified: status.modified,
+      untracked: status.not_added,
+    };
+  } catch {
+    // git info is best-effort; swallow errors
+  }
+  return {
+    os: platform(),
+    shell: process.env.SHELL ?? null,
+    nodeVersion: process.version,
+    workspacePath: ctx.workspacePath,
+    model: ctx.model,
+    git,
+  };
+}
+
 async function workspaceSummary(workspaceId: string, workspacePath: string): Promise<string> {
   try {
     const tree = await fileTree(workspaceId, '', 2);
@@ -279,11 +314,12 @@ async function plannerNode(
   try {
     const summary = await workspaceSummary(ctx.workspaceId, ctx.workspacePath);
     const catalog = await skillCatalog();
+    const env = await gatherEnvContext(ctx);
     const plan = await llmJson<Plan>(
       ctx,
       'planner',
       PLANNER_SYSTEM,
-      plannerUser(state.prompt, summary, catalog),
+      plannerUser(state.prompt, summary, catalog, env),
     );
     if (!plan?.steps?.length) throw new Error('planner returned empty plan');
     plan.steps = plan.steps.map((s, i) => ({
@@ -322,6 +358,7 @@ async function executorNode(
   ctx.hint = undefined;
 
   const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
+  const env = await gatherEnvContext(ctx);
 
   for (const planStep of plan.steps) {
     let stepBudget = EXECUTOR_BUDGET_PER_STEP;
@@ -334,7 +371,7 @@ async function executorNode(
         ctx,
         'executor',
         EXECUTOR_SYSTEM,
-        executorUser(state.prompt, plan, planStep.id, histForLLM, skills, stepHint),
+        executorUser(state.prompt, plan, planStep.id, histForLLM, skills, env, stepHint),
       );
       stepHint = undefined;
 

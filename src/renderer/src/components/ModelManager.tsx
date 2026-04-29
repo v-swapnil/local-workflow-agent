@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { trpc } from '../trpc';
 import { OLLAMA_URL } from '@shared/constants';
+import type { ProviderId } from '@shared/constants';
 
 interface PullState {
   status: string;
@@ -11,6 +12,49 @@ interface PullState {
 }
 
 export function ModelManager() {
+  const utils = trpc.useUtils();
+  const activeProvider = trpc.llm.activeProvider.useQuery();
+  const setActiveProvider = trpc.llm.setActiveProvider.useMutation({
+    onSuccess: () => {
+      utils.llm.activeProvider.invalidate();
+    },
+  });
+
+  const provider: ProviderId = activeProvider.data ?? 'ollama';
+
+  return (
+    <div className="space-y-6">
+      {/* Provider toggle */}
+      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
+        <div className="mb-3 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+          active provider
+        </div>
+        <div className="flex items-center gap-2">
+          {(['ollama', 'copilot'] as const).map((id) => (
+            <button
+              key={id}
+              className={`rounded border px-4 py-2 font-mono text-ui-sm uppercase tracking-widest2 transition-colors ${
+                provider === id
+                  ? 'border-amber-700/60 bg-amber-950/30 text-amber'
+                  : 'border-ink-700 text-ink-300 hover:border-ink-600'
+              }`}
+              onClick={() => setActiveProvider.mutate({ provider: id })}
+              disabled={setActiveProvider.isPending}
+            >
+              {id === 'ollama' ? 'Ollama (local)' : 'Copilot CLI'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {provider === 'ollama' ? <OllamaPanel /> : <CopilotPanel />}
+    </div>
+  );
+}
+
+/* ---------- Ollama Panel ---------- */
+
+function OllamaPanel() {
   const utils = trpc.useUtils();
   const health = trpc.llm.health.useQuery(undefined, { refetchInterval: 5000 });
   const models = trpc.llm.listModels.useQuery(undefined, { refetchInterval: 8000 });
@@ -57,7 +101,7 @@ export function ModelManager() {
       : 'offline';
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
@@ -193,7 +237,149 @@ export function ModelManager() {
           </button>
         </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+/* ---------- Copilot Panel ---------- */
+
+function CopilotPanel() {
+  const utils = trpc.useUtils();
+  const copilotHealth = trpc.llm.copilotHealth.useQuery(undefined, { refetchInterval: 5000 });
+  const copilotModels = trpc.llm.copilotModels.useQuery(undefined, {
+    refetchInterval: 15000,
+  });
+  const activeModel = trpc.llm.activeCopilotModel.useQuery();
+  const setActiveModel = trpc.llm.setActiveCopilotModel.useMutation({
+    onSuccess: () => utils.llm.activeCopilotModel.invalidate(),
+  });
+  const cliUrl = trpc.llm.copilotCliUrl.useQuery();
+  const setCliUrl = trpc.llm.setCopilotCliUrl.useMutation({
+    onSuccess: () => {
+      utils.llm.copilotCliUrl.invalidate();
+      utils.llm.copilotHealth.invalidate();
+      utils.llm.copilotModels.invalidate();
+    },
+  });
+  const [urlDraft, setUrlDraft] = useState('');
+  const [editing, setEditing] = useState(false);
+
+  const ok = copilotHealth.data?.ok === true;
+  const state = copilotHealth.isLoading ? 'checking' : ok ? 'online' : 'offline';
+
+  return (
+    <>
+      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+              provider
+            </div>
+            <div className="mt-1 font-serif text-lg text-ink-50">GitHub Copilot</div>
+            <div className="font-mono text-ui-xs text-ink-500">
+              {editing ? (
+                <form
+                  className="mt-1 flex items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (urlDraft.trim()) {
+                      setCliUrl.mutate({ url: urlDraft.trim() });
+                      setEditing(false);
+                    }
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={urlDraft}
+                    onChange={(e) => setUrlDraft(e.target.value)}
+                    className="w-40 rounded border border-ink-700 bg-ink-950 px-2 py-0.5 font-mono text-ui-xs text-ink-100 focus:border-amber focus:outline-none"
+                    placeholder="localhost:49393"
+                  />
+                  <button
+                    type="submit"
+                    className="font-mono text-ui-xs text-amber hover:underline"
+                  >
+                    save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="font-mono text-ui-xs text-ink-500 hover:underline"
+                  >
+                    cancel
+                  </button>
+                </form>
+              ) : (
+                <>
+                  {copilotHealth.data?.url ?? cliUrl.data ?? '...'}{' '}
+                  <button
+                    onClick={() => {
+                      setUrlDraft(cliUrl.data ?? '');
+                      setEditing(true);
+                    }}
+                    className="text-amber hover:underline"
+                  >
+                    edit
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <Pill ok={copilotHealth.isLoading ? undefined : ok} label={state} />
+        </div>
+        {!ok && !copilotHealth.isLoading && (
+          <div className="rounded border border-ink-700 bg-ink-950 px-4 py-3 font-mono text-ui-sm text-ink-300">
+            <div className="mb-1 text-amber">Copilot CLI not reachable.</div>
+            Start the server with{' '}
+            <code className="text-amber">copilot --stdio=false</code>, then check the URL above
+            matches the port.
+          </div>
+        )}
+      </div>
+
+      <div className="rounded border border-ink-800 bg-ink-900/40">
+        <div className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
+          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+            available models
+          </div>
+          <div className="font-mono text-ui-xs text-ink-500">
+            active: <span className="text-amber">{activeModel.data ?? '—'}</span>
+          </div>
+        </div>
+        {!ok ? (
+          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">—</div>
+        ) : copilotModels.data && copilotModels.data.length === 0 ? (
+          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">
+            no models returned — check authentication
+          </div>
+        ) : (
+          <ul>
+            {copilotModels.data?.map((m) => {
+              const isActive = m.name === activeModel.data;
+              return (
+                <li
+                  key={m.name}
+                  className="flex items-center justify-between border-b border-ink-800/60 px-5 py-2.5 last:border-b-0"
+                >
+                  <div className="font-mono text-ui-base text-ink-100">
+                    {m.name}
+                    {isActive && <span className="ml-2 text-amber">●</span>}
+                  </div>
+                  {!isActive && (
+                    <button
+                      onClick={() => setActiveModel.mutate({ name: m.name })}
+                      className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber hover:border-amber"
+                    >
+                      use
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </>
   );
 }
 

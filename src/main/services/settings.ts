@@ -24,6 +24,9 @@ export async function deleteSetting(key: string): Promise<void> {
 export const SETTING_KEYS = {
   ACTIVE_WORKSPACE: 'activeWorkspaceId',
   ACTIVE_MODEL: 'activeModel',
+  ACTIVE_PROVIDER: 'activeProvider',
+  COPILOT_MODEL: 'copilotModel',
+  COPILOT_CLI_URL: 'copilotCliUrl',
   GIT_AUTO_BRANCH: 'gitAutoBranch',
   UI_THEME: 'uiTheme',
   QUEUE_CONCURRENCY: 'queueConcurrency',

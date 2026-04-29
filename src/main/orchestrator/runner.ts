@@ -14,6 +14,7 @@ import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
 import { createBranch, commitAll } from '../services/git.js';
 import { buildGraph, type RunCtx, type AgentState } from './graph.js';
+import { runTaskViaCopilot } from './copilot-runner.js';
 import type { TaskResult } from '@shared/agent';
 
 const log = logger.child({ mod: 'runner' });
@@ -118,34 +119,42 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   };
 
   try {
-    const graph = buildGraph();
-    const initial: Partial<AgentState> = {
-      prompt: task.prompt,
-      maxIterations: task.maxIterations,
-    };
-    // Cap recursion: planner + (executor+tester+critic) * maxIterations + slack
-    const recursionLimit = 4 + task.maxIterations * 4;
-    const final = (await graph.invoke(initial, {
-      configurable: { runCtx: ctx },
-      recursionLimit,
-      signal: ctrl.signal,
-    })) as AgentState;
+    // Dispatch based on active provider
+    const provider = (await getSetting(SETTING_KEYS.ACTIVE_PROVIDER)) ?? 'ollama';
 
-    const testsRan = !!final.testReport?.ran;
-    const testsOk = !testsRan || !!final.testReport?.ok;
-    const succeeded = !!final.verdict?.done && testsOk;
-    const result: TaskResult = {
-      status: succeeded ? 'succeeded' : 'failed',
-      iterations: final.iteration,
-      plan: final.plan,
-      testReport: final.testReport,
-      verdict: final.verdict,
-      reason: succeeded
-        ? final.verdict?.reason
-        : final.verdict?.reason ?? 'iteration cap reached',
-    };
+    let result: TaskResult;
+    if (provider === 'copilot') {
+      result = await runTaskViaCopilot(taskId, session, ctrl.signal);
+    } else {
+      const graph = buildGraph();
+      const initial: Partial<AgentState> = {
+        prompt: task.prompt,
+        maxIterations: task.maxIterations,
+      };
+      // Cap recursion: planner + (executor+tester+critic) * maxIterations + slack
+      const recursionLimit = 4 + task.maxIterations * 4;
+      const final = (await graph.invoke(initial, {
+        configurable: { runCtx: ctx },
+        recursionLimit,
+        signal: ctrl.signal,
+      })) as AgentState;
 
-    if (succeeded && branchName) {
+      const testsRan = !!final.testReport?.ran;
+      const testsOk = !testsRan || !!final.testReport?.ok;
+      const succeeded = !!final.verdict?.done && testsOk;
+      result = {
+        status: succeeded ? 'succeeded' : 'failed',
+        iterations: final.iteration,
+        plan: final.plan,
+        testReport: final.testReport,
+        verdict: final.verdict,
+        reason: succeeded
+          ? final.verdict?.reason
+          : final.verdict?.reason ?? 'iteration cap reached',
+      };
+    }
+
+    if (result.status === 'succeeded' && branchName) {
       try {
         const r = await commitAll(
           session.workspaceId,

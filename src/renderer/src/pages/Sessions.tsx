@@ -410,7 +410,7 @@ function TaskView({ taskId }: { taskId: string }) {
         </Panel>
       </aside>
 
-      {pendingApprovals.length > 0 && pendingApprovals[0] && (
+      {/* {pendingApprovals.length > 0 && pendingApprovals[0] && (
         <ApprovalModal
           req={pendingApprovals[0]}
           remaining={pendingApprovals.length - 1}
@@ -418,7 +418,7 @@ function TaskView({ taskId }: { taskId: string }) {
             decide.mutate({ id: pendingApprovals[0]!.id, decision: d })
           }
         />
-      )}
+      )} */}
     </div>
   );
 }
