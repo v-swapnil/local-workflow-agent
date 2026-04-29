@@ -1,4 +1,5 @@
 import { request as httpRequest } from 'node:http';
+import { Ollama } from 'ollama';
 import { OLLAMA_URL } from '@shared/constants';
 import { logger } from '../logger.js';
 import type {
@@ -7,17 +8,8 @@ import type {
   LLMProvider,
   ModelInfo,
   PullProgress,
+  ToolCallResult,
 } from './provider.js';
-
-interface OllamaChatChunk {
-  model: string;
-  created_at: string;
-  message?: { role: string; content: string };
-  done: boolean;
-  total_duration?: number;
-  prompt_eval_count?: number;
-  eval_count?: number;
-}
 
 export interface OllamaPingAttempt {
   url: string;
@@ -42,11 +34,20 @@ export class OllamaProvider implements LLMProvider {
     this.baseUrls = candidateBaseUrls(baseUrl);
   }
 
+  /** Get an Ollama client for the preferred (or given) base URL. */
+  private client(baseUrl?: string): Ollama {
+    return new Ollama({ host: baseUrl ?? this.preferredBaseUrl ?? this.baseUrls[0] });
+  }
+
   async ping(): Promise<boolean> {
     const details = await this.pingDetails();
     return details.ok;
   }
 
+  /**
+   * Ping using raw node:http so we bypass HTTP_PROXY env vars that can
+   * misroute loopback requests.  Falls through candidate URLs.
+   */
   async pingDetails(): Promise<OllamaPingDetails> {
     const attempts: OllamaPingAttempt[] = [];
     for (const baseUrl of this.orderedBaseUrls()) {
@@ -69,46 +70,47 @@ export class OllamaProvider implements LLMProvider {
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    const { res } = await this.fetchWithFallback('/api/tags');
-    if (!res.ok) throw new Error(`ollama listModels failed: ${res.status}`);
-    const data = (await res.json()) as {
-      models?: { name: string; size?: number; modified_at?: string }[];
-    };
+    const ol = await this.clientWithFallback();
+    const data = await ol.list();
     return (data.models ?? []).map((m) => ({
       name: m.name,
       sizeBytes: m.size,
-      modifiedAt: m.modified_at,
+      modifiedAt: m.modified_at?.toISOString(),
     }));
   }
 
   async chat(opts: ChatOptions): Promise<ChatResult> {
-    const { res } = await this.fetchWithFallback('/api/chat', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: opts.model,
-        messages: opts.messages,
-        stream: true,
-        options: {
-          temperature: opts.temperature ?? 0.2,
-        },
-      }),
-      signal: opts.signal,
+    const ol = await this.clientWithFallback();
+    const response = await ol.chat({
+      model: opts.model,
+      messages: opts.messages,
+      stream: true,
+      tools: opts.tools as import('ollama').Tool[] | undefined,
+      options: {
+        temperature: opts.temperature ?? 0.2,
+      },
     });
-    if (!res.ok || !res.body) {
-      throw new Error(`ollama chat failed: ${res.status} ${await res.text().catch(() => '')}`);
-    }
 
     let content = '';
     let model = opts.model;
     let totalDurationMs: number | undefined;
     let promptTokens: number | undefined;
     let completionTokens: number | undefined;
+    let toolCalls: ToolCallResult[] | undefined;
 
-    for await (const chunk of jsonLines<OllamaChatChunk>(res.body)) {
+    for await (const chunk of response) {
       if (chunk.message?.content) {
         content += chunk.message.content;
         opts.onDelta?.(chunk.message.content);
+      }
+      if (chunk.message?.tool_calls?.length) {
+        toolCalls ??= [];
+        for (const tc of chunk.message.tool_calls) {
+          toolCalls.push({
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          });
+        }
       }
       if (chunk.done) {
         model = chunk.model;
@@ -121,6 +123,7 @@ export class OllamaProvider implements LLMProvider {
     return {
       content,
       model,
+      toolCalls,
       usage: { promptTokens, completionTokens, totalDurationMs },
     };
   }
@@ -130,28 +133,23 @@ export class OllamaProvider implements LLMProvider {
     onProgress: (p: PullProgress) => void,
     signal?: AbortSignal,
   ): Promise<void> {
-    const { res } = await this.fetchWithFallback('/api/pull', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      signal,
-      body: JSON.stringify({ name, stream: true }),
-    });
-    if (!res.ok || !res.body) {
-      throw new Error(`ollama pull failed: ${res.status} ${await res.text().catch(() => '')}`);
-    }
-    for await (const chunk of jsonLines<PullProgress>(res.body)) {
-      onProgress(chunk);
+    const ol = await this.clientWithFallback();
+    const response = await ol.pull({ model: name, stream: true });
+    for await (const chunk of response) {
+      if (signal?.aborted) throw new Error('aborted');
+      onProgress({
+        status: chunk.status,
+        digest: chunk.digest,
+        total: chunk.total,
+        completed: chunk.completed,
+      });
       if (chunk.status === 'success') return;
     }
   }
 
   async deleteModel(name: string): Promise<void> {
-    const { res } = await this.fetchWithFallback('/api/delete', {
-      method: 'DELETE',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name }),
-    });
-    if (!res.ok) throw new Error(`ollama delete failed: ${res.status}`);
+    const ol = await this.clientWithFallback();
+    await ol.delete({ model: name });
   }
 
   private orderedBaseUrls(): string[] {
@@ -162,13 +160,15 @@ export class OllamaProvider implements LLMProvider {
     ];
   }
 
-  private async fetchWithFallback(path: string, init?: RequestInit): Promise<{ res: Response; baseUrl: string }> {
+  /** Try each candidate URL until one responds, then cache the working client. */
+  private async clientWithFallback(): Promise<Ollama> {
     let lastErr: unknown = null;
     for (const baseUrl of this.orderedBaseUrls()) {
       try {
-        const res = await fetch(`${baseUrl}${path}`, init);
+        const ol = this.client(baseUrl);
+        await ol.list();            // lightweight connectivity check
         this.preferredBaseUrl = baseUrl;
-        return { res, baseUrl };
+        return ol;
       } catch (err) {
         lastErr = err;
       }
@@ -232,34 +232,4 @@ function rawHttpPing(url: string, timeoutMs: number): Promise<RawPingResult> {
       done({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   });
-}
-
-async function* jsonLines<T>(body: ReadableStream<Uint8Array>): AsyncGenerator<T> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf('\n')) >= 0) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (!line) continue;
-        try {
-          yield JSON.parse(line) as T;
-        } catch {
-          /* skip malformed line */
-        }
-      }
-    }
-    const tail = buf.trim();
-    if (tail) {
-      try { yield JSON.parse(tail) as T; } catch { /* ignore */ }
-    }
-  } finally {
-    reader.releaseLock();
-  }
 }

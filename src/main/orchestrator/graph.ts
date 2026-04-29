@@ -1,11 +1,12 @@
 import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { getProvider } from '../services/llm/index.js';
-import { invokeTool } from '../services/tools/registry.js';
+import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { fileTree } from '../services/workspaces.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
 import { extractJson } from '../util/json.js';
 import { readdir } from 'node:fs/promises';
+import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
 import {
   PLANNER_SYSTEM,
   plannerUser,
@@ -16,7 +17,6 @@ import {
 } from './prompts.js';
 import type {
   Plan,
-  ExecutorAction,
   Observation,
   TestReport,
   Verdict,
@@ -115,6 +115,86 @@ async function llmJson<T>(
   });
 
   return extractJson<T>(text);
+}
+
+interface ToolCallResponse {
+  toolCalls: ToolCallResult[];
+  done: false;
+}
+interface DoneResponse {
+  toolCalls?: undefined;
+  done: true;
+}
+
+/**
+ * LLM call with native Ollama tool calling.
+ * Returns either the first tool call from the model or a "done" signal
+ * (model replied with text containing `{"done": true}` or no tool calls).
+ */
+async function llmWithTools(
+  ctx: RunCtx,
+  agent: string,
+  system: string,
+  user: string,
+  temperature = 0.2,
+): Promise<ToolCallResponse | DoneResponse> {
+  const provider = getProvider('ollama');
+  const tools = listToolsForLLM();
+  const buf: string[] = [];
+  const t0 = Date.now();
+  const messages: ChatMessage[] = [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ];
+  const result = await provider.chat({
+    model: ctx.model,
+    temperature,
+    signal: ctx.signal,
+    messages,
+    tools,
+    onDelta: (d) => {
+      buf.push(d);
+      taskBus.emit(ctx.taskId, {
+        type: 'llm.delta',
+        taskId: ctx.taskId,
+        ts: Date.now(),
+        agent,
+        content: d,
+      });
+    },
+  });
+  const text = result.content || buf.join('');
+
+  taskBus.emit(ctx.taskId, {
+    type: 'llm.call',
+    taskId: ctx.taskId,
+    ts: Date.now(),
+    agent,
+    model: ctx.model,
+    messages,
+    response: text.slice(0, 100_000),
+    durationMs: Date.now() - t0,
+  });
+
+  // If the model returned native tool calls, use them.
+  if (result.toolCalls?.length) {
+    return { toolCalls: result.toolCalls, done: false };
+  }
+
+  // Fallback: model replied with text — check for {"done": true} signal or
+  // try to parse a legacy JSON action (backwards-compat for models without tool support).
+  try {
+    const parsed = extractJson<{ done?: boolean; action?: { tool: string; args: Record<string, unknown> } }>(text);
+    if (parsed.done) return { done: true };
+    if (parsed.action) {
+      return {
+        toolCalls: [{ name: parsed.action.tool, arguments: parsed.action.args }],
+        done: false,
+      };
+    }
+  } catch { /* not valid JSON, treat as done */ }
+
+  return { done: true };
 }
 
 async function workspaceSummary(workspaceId: string, workspacePath: string): Promise<string> {
@@ -250,7 +330,7 @@ async function executorNode(
       if (ctx.signal.aborted) throw new Error('aborted');
 
       const histForLLM = state.history.concat(newObs).filter((o) => o.stepId === planStep.id || true);
-      const action = await llmJson<ExecutorAction>(
+      const response = await llmWithTools(
         ctx,
         'executor',
         EXECUTOR_SYSTEM,
@@ -258,9 +338,11 @@ async function executorNode(
       );
       stepHint = undefined;
 
-      if (action.done || !action.action) break;
+      if (response.done || !response.toolCalls?.length) break;
 
-      const { tool, args } = action.action;
+      const tc = response.toolCalls[0]!;
+      const tool = tc.name as ToolName;
+      const args = tc.arguments;
       const { stepId } = emitStepStarted(ctx, 'executor', tool, { planStepId: planStep.id, args });
 
       const result = await invokeTool(tool, args, {

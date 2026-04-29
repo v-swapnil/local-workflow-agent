@@ -12,6 +12,7 @@ import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { requestApproval } from '../approvals.js';
 import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
+import type { ChatToolDef } from '../llm/provider.js';
 
 const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_file: readFileTool as Tool<unknown, unknown>,
@@ -33,6 +34,21 @@ export function listTools(): { name: ToolName; description: string; needsApprova
     description: t.description,
     needsApproval: t.needsApproval,
     argsSchema: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
+  }));
+}
+
+/**
+ * Returns tool definitions in the format expected by the Ollama chat API
+ * (and the ChatToolDef interface used by the provider).
+ */
+export function listToolsForLLM(): ChatToolDef[] {
+  return Object.values(REGISTRY).map((t) => ({
+    type: 'function' as const,
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
+    },
   }));
 }
 

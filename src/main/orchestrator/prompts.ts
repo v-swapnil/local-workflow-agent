@@ -1,16 +1,5 @@
-import { listTools } from '../services/tools/registry.js';
 import type { SkillCatalogEntry } from '../services/skills.js';
 import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
-
-/**
- * Static tool catalog string handed to the executor.
- * We rebuild it per-call so newly-registered tools are picked up automatically.
- */
-function toolCatalog(): string {
-  return listTools()
-    .map((t) => `- ${t.name}: ${t.description}\n  args: ${JSON.stringify(t.argsSchema)}`)
-    .join('\n');
-}
 
 /* ───────── Planner ───────── */
 
@@ -65,26 +54,19 @@ You will be given:
 - The full plan
 - The CURRENT step you must complete
 - A history of prior tool calls and their observations
-- The list of available tools
 - Optional SKILLS — domain instructions you must follow when relevant
 
-On each turn, output ONE JSON object describing the next single tool call, OR declare the step done.
+On each turn you MUST either:
+1. Call exactly ONE tool using the native tool-calling interface, OR
+2. Reply with a text message containing ONLY the JSON: {"done": true} to declare the step complete.
 
 Rules:
-- Output ONLY JSON. No prose, no markdown fences.
 - Prefer reading and listing before writing. Verify assumptions.
 - Use \`apply_patch\` for edits to existing files; use \`write_file\` for new files.
-- After making changes that satisfy the current step's goal, set "done": true and "action": null.
+- After making changes that satisfy the current step's goal, respond with {"done": true}.
 - Do not run tests here — the TESTER agent does that after all steps.
 - Keep file contents minimal and correct.
-- Apply SKILL guidance when the current step falls within that skill's domain.
-
-Schema:
-{
-  "thought": "one short sentence of reasoning",
-  "action": { "tool": "<tool_name>", "args": { ... } } | null,
-  "done": <true|false>
-}`;
+- Apply SKILL guidance when the current step falls within that skill's domain.`;
 
 export function executorUser(
   goal: string,
@@ -120,13 +102,10 @@ ${hint ? `\nHINT FROM CRITIC: ${hint}\n` : ''}
 SKILLS:
 ${skillsStr}
 
-TOOLS AVAILABLE:
-${toolCatalog()}
-
 OBSERVATIONS SO FAR:
 ${histStr}
 
-Choose the next single action.`;
+Call a tool or respond with {"done": true}.`;
 }
 
 /* ───────── Critic ───────── */
