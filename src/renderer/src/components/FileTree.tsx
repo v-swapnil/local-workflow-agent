@@ -21,7 +21,7 @@ export function FileTree({ root, activePath, onOpen }: Props) {
   );
 }
 
-function Node({
+export function Node({
   node,
   depth,
   activePath,

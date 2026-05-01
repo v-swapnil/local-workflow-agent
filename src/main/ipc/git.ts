@@ -3,6 +3,8 @@ import { router, publicProcedure } from './trpc.js';
 import {
   workspaceStatus,
   workspaceDiff,
+  showFileAtHead,
+  fileDiff,
   currentBranch,
   createBranch,
   commitAll,
@@ -18,6 +20,12 @@ export const gitRouter = router({
   diff: publicProcedure
     .input(workspaceIn.extend({ staged: z.boolean().optional() }))
     .query(({ input }) => workspaceDiff(input.workspaceId, !!input.staged)),
+  showFileAtHead: publicProcedure
+    .input(workspaceIn.extend({ path: z.string().min(1) }))
+    .query(({ input }) => showFileAtHead(input.workspaceId, input.path)),
+  fileDiff: publicProcedure
+    .input(workspaceIn.extend({ path: z.string().min(1), staged: z.boolean().optional() }))
+    .query(({ input }) => fileDiff(input.workspaceId, input.path, !!input.staged)),
   currentBranch: publicProcedure
     .input(workspaceIn)
     .query(({ input }) => currentBranch(input.workspaceId)),

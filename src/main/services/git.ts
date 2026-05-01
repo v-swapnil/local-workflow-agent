@@ -1,10 +1,17 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
+import { simpleGit, StatusResultRenamed, type SimpleGit, type StatusResult } from 'simple-git';
 import { getWorkspace } from './workspaces.js';
 import { logger } from './logger.js';
 
 const log = logger.child({ mod: 'git' });
+
+export interface GitFileStatus {
+  path: string;
+  index: string;
+  working_dir: string;
+  from?: string;
+}
 
 export interface GitStatus {
   isRepo: boolean;
@@ -12,10 +19,13 @@ export interface GitStatus {
   ahead: number;
   behind: number;
   staged: string[];
-  modified: string[];
   not_added: string[];
+  created: string[];
+  modified: string[];
+  renamed: StatusResultRenamed[];
   deleted: string[];
   conflicted: string[];
+  files: GitFileStatus[];
   clean: boolean;
 }
 
@@ -61,8 +71,11 @@ export async function workspaceStatus(workspaceId: string): Promise<GitStatus> {
       staged: [],
       modified: [],
       not_added: [],
+      created: [],
+      renamed: [],
       deleted: [],
       conflicted: [],
+      files: [],
       clean: true,
     };
   }
@@ -73,10 +86,18 @@ export async function workspaceStatus(workspaceId: string): Promise<GitStatus> {
     ahead: s.ahead,
     behind: s.behind,
     staged: s.staged,
+    created: s.created,
+    renamed: s.renamed,
     modified: s.modified,
     not_added: s.not_added,
     deleted: s.deleted,
     conflicted: s.conflicted,
+    files: s.files.map((f) => ({
+      path: f.path,
+      index: f.index,
+      working_dir: f.working_dir,
+      from: f.from,
+    })),
     clean: s.isClean(),
   };
 }
@@ -105,6 +126,49 @@ export async function workspaceDiff(workspaceId: string, staged = false): Promis
     }
   }
   return { isRepo: true, unifiedDiff: tracked + untracked, staged };
+}
+
+export async function showFileAtHead(workspaceId: string, filePath: string): Promise<string | null> {
+  const ws = await getWorkspace(workspaceId);
+  if (!(await isRepo(ws.path))) return null;
+
+  const g = gitFor(ws.path);
+  try {
+    return await g.show([`HEAD:${filePath}`]);
+    // return await g.raw(['show', '--no-patch', '--pretty=', `HEAD:${filePath}`]);
+  } catch {
+    // New/untracked files and paths absent in HEAD should return null.
+    return null;
+  }
+}
+
+export async function fileDiff(
+  workspaceId: string,
+  filePath: string,
+  staged = false,
+): Promise<string> {
+  const ws = await getWorkspace(workspaceId);
+  if (!(await isRepo(ws.path))) return '';
+
+  const g = gitFor(ws.path);
+  if (staged) {
+    return g.diff(['--cached', '--', filePath]);
+  }
+
+  const status = await g.status();
+  const f = status.files.find((entry) => entry.path === filePath);
+  const isUntracked = f?.working_dir === '?' || status.not_added.includes(filePath);
+  if (isUntracked) {
+    try {
+      return await g.raw(['diff', '--no-index', '--', '/dev/null', filePath]);
+    } catch (err) {
+      // Exit code 1 for differences is expected for --no-index.
+      const e = err as { git?: string; message?: string };
+      return e.git ?? e.message ?? '';
+    }
+  }
+
+  return g.diff(['--', filePath]);
 }
 
 export async function createBranch(workspaceId: string, name: string): Promise<{ branch: string }> {
