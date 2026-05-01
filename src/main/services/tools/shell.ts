@@ -33,6 +33,11 @@ interface RunTestsResult extends SandboxResult {
   detected: string;
 }
 
+interface TestRunnerChoice {
+  cmd: string;
+  args: string[];
+}
+
 export const runTestsTool: Tool<
   { cmd?: string; args?: string[]; timeoutMs?: number },
   RunTestsResult
@@ -48,7 +53,7 @@ export const runTestsTool: Tool<
   needsApproval: true,
   run: async ({ cmd, args, timeoutMs }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
-    let chosen: { cmd: string; args: string[] };
+    let chosen: TestRunnerChoice;
     let detected: string;
     if (cmd) {
       chosen = { cmd, args: args ?? [] };
@@ -69,7 +74,18 @@ export const runTestsTool: Tool<
   },
 };
 
-async function detectTestRunner(root: string): Promise<{ cmd: string; args: string[] }> {
+export async function hasTestsConfigured(root: string): Promise<boolean> {
+  return (await detectConfiguredTestRunner(root)) != null;
+}
+
+async function detectTestRunner(root: string): Promise<TestRunnerChoice> {
+  const configured = await detectConfiguredTestRunner(root);
+  if (configured) return configured;
+  // Last resort
+  return { cmd: 'npm', args: ['test'] };
+}
+
+async function detectConfiguredTestRunner(root: string): Promise<TestRunnerChoice | null> {
   const pkgPath = join(root, 'package.json');
   if (await exists(pkgPath)) {
     try {
@@ -90,8 +106,7 @@ async function detectTestRunner(root: string): Promise<{ cmd: string; args: stri
   if (await exists(join(root, 'pyproject.toml')) || await exists(join(root, 'pytest.ini'))) {
     return { cmd: 'pytest', args: [] };
   }
-  // Last resort
-  return { cmd: 'npm', args: ['test'] };
+  return null;
 }
 
 async function exists(p: string): Promise<boolean> {

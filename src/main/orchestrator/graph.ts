@@ -3,6 +3,7 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
+import { hasTestsConfigured } from '../services/tools/shell.js';
 import { fileTree } from '../services/workspaces.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
 import { workspaceStatus } from '../services/git.js';
@@ -62,6 +63,7 @@ const StateAnnotation = Annotation.Root({
   }),
   iteration: Annotation<number>({ reducer: (_, n) => n, default: () => 0 }),
   maxIterations: Annotation<number>({ reducer: (_, n) => n, default: () => 6 }),
+  testsConfigured: Annotation<boolean>({ reducer: (_, n) => n, default: () => false }),
   testReport: Annotation<TestReport | null>({
     reducer: (_, n) => n,
     default: () => null,
@@ -359,6 +361,7 @@ async function executorNode(
 
   const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
   const env = await gatherEnvContext(ctx);
+  const testsConfigured = await hasTestsConfigured(ctx.workspacePath);
 
   for (const planStep of plan.steps) {
     let stepBudget = EXECUTOR_BUDGET_PER_STEP;
@@ -419,7 +422,7 @@ async function executorNode(
     }
   }
 
-  return { history: newObs };
+  return { history: newObs, testsConfigured };
 }
 
 async function testerNode(
@@ -489,11 +492,16 @@ async function criticNode(
     iteration: state.iteration,
   });
   try {
+    const testReport = state.testReport ?? {
+      ran: false,
+      ok: true,
+      log: 'tests skipped: no test setup detected',
+    };
     const verdict = await llmJson<Verdict>(
       ctx,
       'critic',
       CRITIC_SYSTEM,
-      criticUser(state.prompt, state.plan!, state.history, state.testReport!),
+      criticUser(state.prompt, state.plan!, state.history, testReport),
     );
     emitStepFinished(ctx, stepId, true, verdict);
     taskBus.emit(ctx.taskId, {
@@ -519,6 +527,10 @@ function routeAfterCritic(state: AgentState): 'executor' | typeof END {
   return 'executor';
 }
 
+function routeAfterExecutor(state: AgentState): 'tester' | 'critic' {
+  return state.testsConfigured ? 'tester' : 'critic';
+}
+
 /* ───────── Graph factory ───────── */
 
 export function buildGraph() {
@@ -529,7 +541,10 @@ export function buildGraph() {
     .addNode('critic', criticNode)
     .addEdge(START, 'planner')
     .addEdge('planner', 'executor')
-    .addEdge('executor', 'tester')
+    .addConditionalEdges('executor', routeAfterExecutor, {
+      tester: 'tester',
+      critic: 'critic',
+    })
     .addEdge('tester', 'critic')
     .addConditionalEdges('critic', routeAfterCritic, {
       executor: 'executor',

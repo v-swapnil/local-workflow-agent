@@ -130,7 +130,7 @@ function SessionDetail({ sessionId }: { sessionId: string }) {
   const utils = trpc.useUtils();
   const session = trpc.session.get.useQuery({ id: sessionId });
   const tasks = trpc.task.list.useQuery({ sessionId }, { refetchInterval: 2000 });
-  const [prompt, setPrompt] = useState('Create a hello.js that prints "Hello" and a passing vitest for it.');
+  const [prompt, setPrompt] = useState('');
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const create = trpc.task.create.useMutation({
     onSuccess: async (t) => {
