@@ -8,16 +8,69 @@ import { useUI } from '../store/ui';
 
 type TaskEvent =
   | { type: 'task.started'; taskId: string; ts: number }
-  | { type: 'task.finished'; taskId: string; ts: number; status: 'succeeded' | 'failed' | 'cancelled'; result?: unknown; error?: string }
+  | {
+      type: 'task.finished';
+      taskId: string;
+      ts: number;
+      status: 'succeeded' | 'failed' | 'cancelled';
+      result?: unknown;
+      error?: string;
+    }
   | { type: 'task.iteration'; taskId: string; ts: number; iteration: number }
-  | { type: 'plan'; taskId: string; ts: number; plan: { summary: string; steps: { id: string; goal: string }[]; selectedSkills?: string[] } }
-  | { type: 'step.started'; taskId: string; ts: number; stepId: string; agent: string; tool?: string; input?: unknown }
-  | { type: 'step.finished'; taskId: string; ts: number; stepId: string; ok: boolean; output?: unknown; error?: string }
-  | { type: 'log'; taskId: string; ts: number; stream: 'stdout' | 'stderr'; text: string; stepId?: string }
+  | {
+      type: 'plan';
+      taskId: string;
+      ts: number;
+      plan: { summary: string; steps: { id: string; goal: string }[]; selectedSkills?: string[] };
+    }
+  | {
+      type: 'step.started';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      agent: string;
+      tool?: string;
+      input?: unknown;
+    }
+  | {
+      type: 'step.finished';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      ok: boolean;
+      output?: unknown;
+      error?: string;
+    }
+  | {
+      type: 'log';
+      taskId: string;
+      ts: number;
+      stream: 'stdout' | 'stderr';
+      text: string;
+      stepId?: string;
+    }
   | { type: 'llm.delta'; taskId: string; ts: number; agent: string; content: string }
-  | { type: 'critic'; taskId: string; ts: number; verdict: { done: boolean; reason: string; nextHint?: string } }
-  | { type: 'approval.requested'; taskId: string; ts: number; approvalId: string; tool: string; args: unknown }
-  | { type: 'approval.decided'; taskId: string; ts: number; approvalId: string; decision: 'approve' | 'approve_session' | 'deny' };
+  | {
+      type: 'critic';
+      taskId: string;
+      ts: number;
+      verdict: { done: boolean; reason: string; nextHint?: string };
+    }
+  | {
+      type: 'approval.requested';
+      taskId: string;
+      ts: number;
+      approvalId: string;
+      tool: string;
+      args: unknown;
+    }
+  | {
+      type: 'approval.decided';
+      taskId: string;
+      ts: number;
+      approvalId: string;
+      decision: 'approve' | 'approve_session' | 'deny';
+    };
 
 export function Sessions() {
   const { workspaceId } = useActiveWorkspace();
@@ -313,9 +366,7 @@ function TaskView({ taskId }: { taskId: string }) {
   // Refresh git diff when files likely changed.
   const fileTouched = useMemo(() => {
     return events.filter(
-      (e) =>
-        e.type === 'step.finished' ||
-        (e.type === 'log' && e.text.startsWith('[git]')),
+      (e) => e.type === 'step.finished' || (e.type === 'log' && e.text.startsWith('[git]')),
     ).length;
   }, [events]);
 
@@ -360,9 +411,7 @@ function TaskView({ taskId }: { taskId: string }) {
           ref={logRef}
           className="flex-1 overflow-y-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-snug"
         >
-          {events.length === 0 && (
-            <div className="text-ink-500">waiting for events…</div>
-          )}
+          {events.length === 0 && <div className="text-ink-500">waiting for events…</div>}
           {events.map((ev, i) => (
             <EventRow key={i} ev={ev} />
           ))}
@@ -404,11 +453,9 @@ function TaskView({ taskId }: { taskId: string }) {
               <div className={verdict.done ? 'text-emerald-400' : 'text-amber-400'}>
                 {verdict.done ? '✔ done' : '↻ continue'}
               </div>
-        <DiffPanel touchedKey={fileTouched} />
+              <DiffPanel touchedKey={fileTouched} />
               <div className="text-ink-300">{verdict.reason}</div>
-              {verdict.nextHint && (
-                <div className="text-ink-500">hint: {verdict.nextHint}</div>
-              )}
+              {verdict.nextHint && <div className="text-ink-500">hint: {verdict.nextHint}</div>}
             </div>
           ) : (
             <div className="font-mono text-ui-sm text-ink-500">no verdict yet</div>
@@ -472,7 +519,7 @@ function ApprovalModal({
           </div>
         </div>
         <pre className="max-h-[40vh] overflow-y-auto px-4 py-3 font-mono text-ui-sm leading-snug text-ink-100">
-{argsPretty}
+          {argsPretty}
         </pre>
         <div className="flex items-center justify-end gap-2 border-t border-ink-800 px-4 py-3">
           <button
@@ -540,17 +587,24 @@ function EventRow({ ev }: { ev: TaskEvent }) {
       return <Line tone="amber">{ts} ▶ task started</Line>;
     case 'task.finished':
       return (
-        <Line tone={ev.status === 'succeeded' ? 'emerald' : ev.status === 'cancelled' ? 'ink' : 'rose'}>
+        <Line
+          tone={ev.status === 'succeeded' ? 'emerald' : ev.status === 'cancelled' ? 'ink' : 'rose'}
+        >
           {ts} ■ task {ev.status}
           {ev.error ? ` · ${ev.error.slice(0, 200)}` : ''}
         </Line>
       );
     case 'plan':
-      return <Line tone="ink">{ts} ▣ plan: {ev.plan.summary}</Line>;
+      return (
+        <Line tone="ink">
+          {ts} ▣ plan: {ev.plan.summary}
+        </Line>
+      );
     case 'step.started':
       return (
         <Line tone="ink">
-          {ts} → {ev.agent}{ev.tool ? `:${ev.tool}` : ''}
+          {ts} → {ev.agent}
+          {ev.tool ? `:${ev.tool}` : ''}
         </Line>
       );
     case 'step.finished':
@@ -562,7 +616,7 @@ function EventRow({ ev }: { ev: TaskEvent }) {
     case 'log':
       return (
         <Line tone={ev.stream === 'stderr' ? 'rose' : 'ink'} dim>
-          {ts}   {ev.text.replace(/\n+$/, '')}
+          {ts} {ev.text.replace(/\n+$/, '')}
         </Line>
       );
     case 'critic':
@@ -572,7 +626,11 @@ function EventRow({ ev }: { ev: TaskEvent }) {
         </Line>
       );
     case 'approval.requested':
-      return <Line tone="amber">{ts} ⚑ approval requested · {ev.tool}</Line>;
+      return (
+        <Line tone="amber">
+          {ts} ⚑ approval requested · {ev.tool}
+        </Line>
+      );
     case 'approval.decided':
       return (
         <Line tone={ev.decision === 'deny' ? 'rose' : 'emerald'}>
@@ -582,7 +640,11 @@ function EventRow({ ev }: { ev: TaskEvent }) {
     case 'llm.delta':
       return null;
     case 'task.iteration':
-      return <Line tone="amber">{ts} ↻ iteration {ev.iteration}</Line>;
+      return (
+        <Line tone="amber">
+          {ts} ↻ iteration {ev.iteration}
+        </Line>
+      );
     default:
       return null;
   }
@@ -639,8 +701,8 @@ function DiffPanel({ touchedKey }: { touchedKey: number }) {
     return (
       <Panel title="git diff">
         <div className="font-mono text-ui-sm text-ink-500">
-          not a git repo — toggle <span className="text-ink-300">auto-branch per task</span>{' '}
-          in Settings to initialise on next run.
+          not a git repo — toggle <span className="text-ink-300">auto-branch per task</span> in
+          Settings to initialise on next run.
         </div>
       </Panel>
     );

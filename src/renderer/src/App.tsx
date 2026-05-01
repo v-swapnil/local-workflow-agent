@@ -12,8 +12,19 @@ import { Tools } from './pages/Tools';
 import { Settings } from './pages/Settings';
 import { trpc } from './trpc';
 import { useUI } from './store/ui';
+import { Changes } from './pages/Changes';
 
-const NAV_ROUTES = ['/sessions', '/board', '/editor', '/skills', '/agents', '/schedules', '/tools', '/settings'];
+const NAV_ROUTES = [
+  '/sessions',
+  '/board',
+  '/changes',
+  '/editor',
+  '/skills',
+  '/agents',
+  '/schedules',
+  '/tools',
+  '/settings',
+];
 
 export function App() {
   const navigate = useNavigate();
@@ -95,6 +106,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/sessions" replace />} />
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/board" element={<KanbanBoard />} />
+            <Route path="/changes" element={<Changes />} />
             <Route path="/editor" element={<Editor />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/agents" element={<Agents />} />

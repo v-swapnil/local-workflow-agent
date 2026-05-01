@@ -17,7 +17,7 @@ const EXT_TO_LANG: Record<string, string> = {
   yaml: 'yaml', yml: 'yaml', toml: 'ini', sql: 'sql',
 };
 
-function langFor(path: string): string {
+export function langFor(path: string): string {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   return EXT_TO_LANG[ext] ?? 'plaintext';
 }
