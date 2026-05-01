@@ -296,6 +296,16 @@ interface ApprovalReq {
   ts: number;
 }
 
+const getEvents = (previousEvents: TaskEvent[], currentEvent: TaskEvent) => {
+  const lastEvent = previousEvents[previousEvents.length - 1];
+  if (lastEvent?.type === 'llm.delta' && currentEvent.type === 'llm.delta') {
+    return previousEvents
+      .slice(0, -1)
+      .concat({ ...lastEvent, content: lastEvent.content + currentEvent.content });
+  }
+  return previousEvents.concat(currentEvent);
+};
+
 function TaskView({ taskId }: { taskId: string }) {
   const utils = trpc.useUtils();
   const task = trpc.task.get.useQuery({ id: taskId }, { refetchInterval: 1500 });
@@ -311,18 +321,13 @@ function TaskView({ taskId }: { taskId: string }) {
   const [events, setEvents] = useState<TaskEvent[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalReq[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
-  const seenRef = useRef(new Set<string>());
 
   trpc.task.events.useSubscription(
     { taskId },
     {
       onData: (ev) => {
         const e = ev as TaskEvent;
-        const key = `${e.type}:${e.ts}:${'stepId' in e ? e.stepId : ''}${'approvalId' in e ? e.approvalId : ''}`;
-        if (seenRef.current.has(key)) return;
-        seenRef.current.add(key);
-
-        setEvents((prev) => [...prev, e]);
+        setEvents((prev) => getEvents(prev, e));
         if (e.type === 'approval.requested') {
           setPendingApprovals((prev) => [
             ...prev,
@@ -407,6 +412,7 @@ function TaskView({ taskId }: { taskId: string }) {
             )}
           </div>
         </div>
+
         <div
           ref={logRef}
           className="flex-1 overflow-y-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-snug"
@@ -638,7 +644,11 @@ function EventRow({ ev }: { ev: TaskEvent }) {
         </Line>
       );
     case 'llm.delta':
-      return null;
+      return (
+        <Line tone="emerald" dim>
+          {ts} ← {ev.content}
+        </Line>
+      );
     case 'task.iteration':
       return (
         <Line tone="amber">
