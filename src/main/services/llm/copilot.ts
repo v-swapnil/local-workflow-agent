@@ -22,12 +22,21 @@ export class CopilotService {
     // Reconnect if the URL changed
     if (this.client && this.lastUrl === url) return this.client;
     if (this.connecting) {
-      await this.connecting;
-      return this.client!;
+      try {
+        await this.connecting;
+      } catch {
+        // Ignore prior failure and allow a fresh connect attempt below.
+      }
+      if (this.client && this.lastUrl === url) return this.client;
     }
     this.connecting = this.doConnect(url);
-    await this.connecting;
-    return this.client!;
+    try {
+      await this.connecting;
+    } finally {
+      this.connecting = null;
+    }
+    if (!this.client) throw new Error('copilot: client unavailable after connect');
+    return this.client;
   }
 
   private async doConnect(url: string): Promise<void> {
@@ -36,11 +45,16 @@ export class CopilotService {
       cliUrl: url,
       logLevel: 'warning',
     });
-    await client.start();
-    this.client = client;
-    this.lastUrl = url;
-    this.connecting = null;
-    log.info({ url }, 'connected to Copilot CLI server');
+    try {
+      await client.start();
+      this.client = client;
+      this.lastUrl = url;
+      log.info({ url }, 'connected to Copilot CLI server');
+    } catch (err) {
+      this.client = null;
+      this.lastUrl = null;
+      throw err;
+    }
   }
 
   async ping(): Promise<boolean> {

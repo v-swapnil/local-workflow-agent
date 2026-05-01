@@ -160,6 +160,13 @@ export const llmRouter = router({
     return getCopilotService().listModels();
   }),
 
+  copilotRetry: publicProcedure.mutation(async () => {
+    const service = getCopilotService();
+    await service.disconnect();
+    const ok = await service.ping();
+    return { ok };
+  }),
+
   copilotCliUrl: publicProcedure.query(async () => {
     return (await getSetting(SETTING_KEYS.COPILOT_CLI_URL)) ?? COPILOT_CLI_URL;
   }),
