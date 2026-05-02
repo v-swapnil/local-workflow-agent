@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { stat } from 'node:fs/promises';
+import { stat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runSandboxed, type SandboxResult } from '../sandbox.js';
 import { getWorkspace } from '../workspaces.js';
@@ -89,7 +89,7 @@ async function detectConfiguredTestRunner(root: string): Promise<TestRunnerChoic
   const pkgPath = join(root, 'package.json');
   if (await exists(pkgPath)) {
     try {
-      const raw = await import('node:fs/promises').then((m) => m.readFile(pkgPath, 'utf8'));
+      const raw = await readFile(pkgPath, 'utf8');
       const pkg = JSON.parse(raw) as {
         scripts?: Record<string, string>;
         devDependencies?: Record<string, string>;
@@ -103,7 +103,7 @@ async function detectConfiguredTestRunner(root: string): Promise<TestRunnerChoic
       /* fall through */
     }
   }
-  if (await exists(join(root, 'pyproject.toml')) || await exists(join(root, 'pytest.ini'))) {
+  if ((await exists(join(root, 'pyproject.toml'))) || (await exists(join(root, 'pytest.ini')))) {
     return { cmd: 'pytest', args: [] };
   }
   return null;

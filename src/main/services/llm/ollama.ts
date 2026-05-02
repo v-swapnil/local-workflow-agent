@@ -85,7 +85,7 @@ export class OllamaProvider implements LLMProvider {
       model: opts.model,
       messages: opts.messages,
       stream: true,
-      tools: opts.tools as import('ollama').Tool[] | undefined,
+      tools: opts.tools,
       options: {
         temperature: opts.temperature ?? 0.2,
       },
@@ -154,10 +154,7 @@ export class OllamaProvider implements LLMProvider {
 
   private orderedBaseUrls(): string[] {
     if (!this.preferredBaseUrl) return this.baseUrls;
-    return [
-      this.preferredBaseUrl,
-      ...this.baseUrls.filter((url) => url !== this.preferredBaseUrl),
-    ];
+    return [this.preferredBaseUrl, ...this.baseUrls.filter((url) => url !== this.preferredBaseUrl)];
   }
 
   /** Try each candidate URL until one responds, then cache the working client. */
@@ -166,7 +163,7 @@ export class OllamaProvider implements LLMProvider {
     for (const baseUrl of this.orderedBaseUrls()) {
       try {
         const ol = this.client(baseUrl);
-        await ol.list();            // lightweight connectivity check
+        await ol.list(); // lightweight connectivity check
         this.preferredBaseUrl = baseUrl;
         return ol;
       } catch (err) {

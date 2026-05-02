@@ -2,7 +2,6 @@
  * Run a task using GitHub Copilot CLI as the agentic runtime,
  * bypassing the local LangGraph loop entirely.
  */
-import { nanoid } from 'nanoid';
 import { getCopilotService } from '../services/llm/copilot.js';
 import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
@@ -10,11 +9,8 @@ import { requestApproval } from '../services/approvals.js';
 import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult } from '@shared/agent';
-import type {
-  SessionEvent,
-  PermissionRequest,
-  PermissionRequestResult,
-} from '@github/copilot-sdk';
+import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
+import { getTask } from '../services/store.js';
 
 const log = logger.child({ mod: 'copilot-runner' });
 
@@ -26,8 +22,7 @@ export async function runTaskViaCopilot(
   const service = getCopilotService();
   const client = await service.getClient();
 
-  const model =
-    (await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL;
+  const model = (await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL;
 
   let iterationCount = 0;
 
@@ -36,16 +31,15 @@ export async function runTaskViaCopilot(
     request: PermissionRequest,
   ): Promise<PermissionRequestResult> => {
     const toolName = describePermission(request);
-    const decision = await requestApproval(
-      taskId,
-      toolName as any,
-      request,
-      signal,
-    );
+    const decision = await requestApproval(taskId, toolName as any, request, signal);
     if (decision === 'approve' || decision === 'approve_session') {
       return { kind: 'approve-once' };
     }
     return { kind: 'no-result' };
+  };
+
+  const onUserInputRequest = async () => {
+    return { answer: '', wasFreeform: true };
   };
 
   const session = await client.createSession({
@@ -53,6 +47,7 @@ export async function runTaskViaCopilot(
     workingDirectory: workspace.workspacePath,
     streaming: true,
     onPermissionRequest,
+    onUserInputRequest,
     onEvent: (event: SessionEvent) => {
       bridgeEvent(taskId, event);
       if (event.type === 'tool.execution_complete') {
@@ -64,13 +59,8 @@ export async function runTaskViaCopilot(
   const sessionId = (session as any).sessionId ?? (session as any).id;
 
   try {
-    const task = await import('../services/store.js').then((m) =>
-      m.getTask(taskId),
-    );
-    const result = await session.sendAndWait(
-      { prompt: task.prompt },
-      10 * 60 * 1000,
-    );
+    const task = await getTask(taskId);
+    const result = await session.sendAndWait({ prompt: task.prompt }, 10 * 60 * 1000);
 
     const succeeded = !!result;
     return {
@@ -78,9 +68,7 @@ export async function runTaskViaCopilot(
       iterations: iterationCount,
       plan: null,
       testReport: null,
-      verdict: succeeded
-        ? { done: true, reason: 'Copilot completed the task' }
-        : null,
+      verdict: succeeded ? { done: true, reason: 'Copilot completed the task' } : null,
       reason: succeeded ? undefined : 'Copilot session ended without response',
     };
   } catch (err) {
@@ -97,7 +85,7 @@ export async function runTaskViaCopilot(
     };
   } finally {
     try {
-      if (sessionId) await client.deleteSession(sessionId);
+      if (sessionId) await session.disconnect();
     } catch {
       // Best-effort cleanup
     }
