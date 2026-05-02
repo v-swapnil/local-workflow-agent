@@ -22,13 +22,9 @@ export function PageShell({
             <span className="mx-1 text-ink-600">/</span>
             <span className="text-amber">{path}</span>
           </div>
-          <h1 className="mt-3 font-serif text-4xl leading-tight text-ink-50">
-            {title}
-          </h1>
+          <h1 className="mt-3 font-serif text-4xl leading-tight text-ink-50">{title}</h1>
           {subtitle && (
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-300">
-              {subtitle}
-            </p>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-300">{subtitle}</p>
           )}
         </div>
         {actions}

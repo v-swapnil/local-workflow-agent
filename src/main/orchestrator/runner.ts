@@ -1,12 +1,7 @@
 import { getWorkspace } from '../services/workspaces.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { taskBus } from '../services/events.js';
-import {
-  getTask,
-  updateTask,
-  setSessionKanbanLane,
-  type Task,
-} from '../services/store.js';
+import { getTask, updateTask, setSessionKanbanLane, type Task } from '../services/store.js';
 import { getDb } from '../db/index.js';
 import { sessions, tasks as tasksTable } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
@@ -166,7 +161,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
         verdict: final.verdict,
         reason: succeeded
           ? final.verdict?.reason
-          : final.verdict?.reason ?? 'iteration cap reached',
+          : (final.verdict?.reason ?? 'iteration cap reached'),
       };
     }
 

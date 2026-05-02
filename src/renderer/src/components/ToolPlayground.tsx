@@ -4,17 +4,22 @@ import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { cn } from '../lib/utils';
 
 type ToolName =
-  | 'read_file' | 'write_file' | 'apply_patch' | 'list_dir' | 'grep'
-  | 'run_shell' | 'run_tests';
+  | 'read_file'
+  | 'write_file'
+  | 'apply_patch'
+  | 'list_dir'
+  | 'grep'
+  | 'run_shell'
+  | 'run_tests';
 
 const PRESETS: Record<ToolName, string> = {
-  read_file:   `{\n  "path": "README.md"\n}`,
-  write_file:  `{\n  "path": "hello.txt",\n  "content": "hello from ase\\n"\n}`,
+  read_file: `{\n  "path": "README.md"\n}`,
+  write_file: `{\n  "path": "hello.txt",\n  "content": "hello from ase\\n"\n}`,
   apply_patch: `{\n  "patch": "--- a/hello.txt\\n+++ b/hello.txt\\n@@ -1 +1,2 @@\\n hello from ase\\n+second line\\n"\n}`,
-  list_dir:    `{\n  "path": "",\n  "depth": 2\n}`,
-  grep:        `{\n  "pattern": "TODO",\n  "isRegex": false\n}`,
-  run_shell:   `{\n  "cmd": "node",\n  "args": ["-e", "console.log('hi from sandbox', process.cwd())"],\n  "timeoutMs": 5000\n}`,
-  run_tests:   `{\n  "timeoutMs": 60000\n}`,
+  list_dir: `{\n  "path": "",\n  "depth": 2\n}`,
+  grep: `{\n  "pattern": "TODO",\n  "isRegex": false\n}`,
+  run_shell: `{\n  "cmd": "node",\n  "args": ["-e", "console.log('hi from sandbox', process.cwd())"],\n  "timeoutMs": 5000\n}`,
+  run_tests: `{\n  "timeoutMs": 60000\n}`,
 };
 
 const STREAMING: ToolName[] = ['run_shell', 'run_tests'];
@@ -172,9 +177,7 @@ export function ToolPlayground() {
                 {duration}ms
               </span>
             )}
-            {error && (
-              <span className="font-mono text-ui-sm text-signal-err">{error}</span>
-            )}
+            {error && <span className="font-mono text-ui-sm text-signal-err">{error}</span>}
           </div>
         </div>
 
@@ -184,9 +187,7 @@ export function ToolPlayground() {
               live log
             </div>
             <div className="h-48 overflow-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-relaxed">
-              {logs.length === 0 && (
-                <div className="text-ink-500">// no output yet</div>
-              )}
+              {logs.length === 0 && <div className="text-ink-500">// no output yet</div>}
               {logs.map((l, i) => (
                 <span
                   key={i}

@@ -2,15 +2,7 @@ import { app, shell } from 'electron';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { join, basename, resolve } from 'node:path';
-import {
-  readdir,
-  readFile,
-  writeFile,
-  mkdir,
-  stat,
-  rm,
-  cp,
-} from 'node:fs/promises';
+import { readdir, readFile, writeFile, mkdir, stat, rm, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import matter from 'gray-matter';
 import { getDb } from '../db/index.js';
@@ -30,11 +22,11 @@ export interface SkillFrontmatter {
 export interface Skill {
   id: string;
   name: string;
-  path: string;          // absolute path to the skill folder
+  path: string; // absolute path to the skill folder
   description: string;
   whenToUse: string;
   tags: string[];
-  body: string;          // markdown body (without frontmatter)
+  body: string; // markdown body (without frontmatter)
   enabled: boolean;
   builtin: boolean;
   updatedAt: number;
@@ -217,11 +209,7 @@ export async function getSkillByName(name: string): Promise<Skill | null> {
 }
 
 export async function setSkillEnabled(name: string, enabled: boolean): Promise<void> {
-  getDb()
-    .update(skillsTable)
-    .set({ enabled })
-    .where(eq(skillsTable.name, name))
-    .run();
+  getDb().update(skillsTable).set({ enabled }).where(eq(skillsTable.name, name)).run();
 }
 
 export async function createSkill(input: {
@@ -300,7 +288,9 @@ export async function skillCatalog(): Promise<SkillCatalogEntry[]> {
 }
 
 /** Resolve selected skill names to their bodies (skipping unknown ones). */
-export async function resolveSkillBodies(names: string[]): Promise<{ name: string; body: string }[]> {
+export async function resolveSkillBodies(
+  names: string[],
+): Promise<{ name: string; body: string }[]> {
   if (!names?.length) return [];
   const all = await listSkills();
   const out: { name: string; body: string }[] = [];

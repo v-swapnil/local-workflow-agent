@@ -13,12 +13,10 @@ export const settingsRouter = router({
     return themeSchema.catch('dark').parse(saved ?? 'dark');
   }),
 
-  setTheme: publicProcedure
-    .input(z.object({ value: themeSchema }))
-    .mutation(async ({ input }) => {
-      await setSetting(SETTING_KEYS.UI_THEME, input.value);
-      return { ok: true as const };
-    }),
+  setTheme: publicProcedure.input(z.object({ value: themeSchema })).mutation(async ({ input }) => {
+    await setSetting(SETTING_KEYS.UI_THEME, input.value);
+    return { ok: true as const };
+  }),
 
   textSize: publicProcedure.query(async () => {
     const saved = await getSetting(SETTING_KEYS.UI_TEXT_SIZE);

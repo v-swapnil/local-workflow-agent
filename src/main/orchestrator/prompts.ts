@@ -4,9 +4,9 @@ import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
 /* ───────── Environment context ───────── */
 
 export interface EnvironmentContext {
-  os: string;              // e.g. "darwin", "linux", "win32"
-  shell: string | null;    // e.g. "/bin/zsh"
-  nodeVersion: string;     // e.g. "v20.11.0"
+  os: string; // e.g. "darwin", "linux", "win32"
+  shell: string | null; // e.g. "/bin/zsh"
+  nodeVersion: string; // e.g. "v20.11.0"
   workspacePath: string;
   model: string;
   git: {
@@ -77,9 +77,7 @@ export function plannerUser(
   env: EnvironmentContext,
 ): string {
   const skillsStr = skills.length
-    ? skills
-        .map((s) => `- ${s.name}: ${s.description}\n  when_to_use: ${s.when_to_use}`)
-        .join('\n')
+    ? skills.map((s) => `- ${s.name}: ${s.description}\n  when_to_use: ${s.when_to_use}`).join('\n')
     : '(none enabled)';
   return `USER GOAL:
 ${prompt}

@@ -87,8 +87,12 @@ body {
   background-image:
     radial-gradient(rgb(var(--amber) / 0.05) 1px, transparent 1px),
     radial-gradient(rgb(var(--ink-50) / 0.025) 1px, transparent 1px);
-  background-size: 32px 32px, 7px 7px;
-  background-position: 0 0, 0 0;
+  background-size:
+    32px 32px,
+    7px 7px;
+  background-position:
+    0 0,
+    0 0;
 }
 
 /* draggable titlebar region (macOS hiddenInset) */

@@ -87,35 +87,39 @@ if (provider === 'copilot') {
 
 ## Files Changed
 
-| Action | File | Description |
-|--------|------|-------------|
-| Create | `src/main/services/llm/copilot.ts` | CopilotService singleton |
-| Create | `src/main/orchestrator/copilot-runner.ts` | Task execution via Copilot SDK |
-| Modify | `src/main/services/llm/index.ts` | Add copilot to provider registry |
-| Modify | `src/main/services/settings.ts` | Add ACTIVE_PROVIDER, COPILOT_MODEL |
-| Modify | `src/shared/constants.ts` | Add DEFAULT_COPILOT_MODEL |
-| Modify | `src/main/orchestrator/runner.ts` | Dispatch by provider |
-| Modify | `src/main/ipc/llm.ts` | Provider-aware health/models |
-| Modify | `src/main/ipc/settings.ts` | Provider get/set endpoints |
-| Modify | `src/main/index.ts` | Cleanup CopilotService on quit |
+| Action | File                                      | Description                        |
+| ------ | ----------------------------------------- | ---------------------------------- |
+| Create | `src/main/services/llm/copilot.ts`        | CopilotService singleton           |
+| Create | `src/main/orchestrator/copilot-runner.ts` | Task execution via Copilot SDK     |
+| Modify | `src/main/services/llm/index.ts`          | Add copilot to provider registry   |
+| Modify | `src/main/services/settings.ts`           | Add ACTIVE_PROVIDER, COPILOT_MODEL |
+| Modify | `src/shared/constants.ts`                 | Add DEFAULT_COPILOT_MODEL          |
+| Modify | `src/main/orchestrator/runner.ts`         | Dispatch by provider               |
+| Modify | `src/main/ipc/llm.ts`                     | Provider-aware health/models       |
+| Modify | `src/main/ipc/settings.ts`                | Provider get/set endpoints         |
+| Modify | `src/main/index.ts`                       | Cleanup CopilotService on quit     |
 
 ## Phases
 
 ### Phase 1 — Foundation
+
 - Install `@github/copilot-sdk`
 - CopilotService + provider registry
 - Settings keys
 
 ### Phase 2 — Runner
+
 - copilot-runner.ts with event bridging
 - Runner dispatch
 
 ### Phase 3 — IPC + UI
+
 - Provider-aware health/models/settings endpoints
 - Settings page provider toggle
 - Model picker for Copilot models
 
 ### Phase 4 — Polish
+
 - Graceful fallback if Copilot CLI missing
 - Cleanup on app quit
 - Error handling for auth failures

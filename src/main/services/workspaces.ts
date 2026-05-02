@@ -31,7 +31,11 @@ export async function getWorkspace(id: string): Promise<Workspace> {
 
 export async function createManagedWorkspace(name: string): Promise<Workspace> {
   const id = nanoid(10);
-  const safe = name.trim().replace(/[^a-zA-Z0-9_\- ]/g, '').slice(0, 64) || 'workspace';
+  const safe =
+    name
+      .trim()
+      .replace(/[^a-zA-Z0-9_\- ]/g, '')
+      .slice(0, 64) || 'workspace';
   const dir = join(workspacesRoot(), `${safe}-${id}`);
   await mkdir(dir, { recursive: true });
   const ws: Workspace = {
@@ -41,13 +45,16 @@ export async function createManagedWorkspace(name: string): Promise<Workspace> {
     managed: true,
     createdAt: Date.now(),
   };
-  getDb().insert(workspaces).values({
-    id: ws.id,
-    name: ws.name,
-    path: ws.path,
-    managed: ws.managed,
-    createdAt: ws.createdAt,
-  }).run();
+  getDb()
+    .insert(workspaces)
+    .values({
+      id: ws.id,
+      name: ws.name,
+      path: ws.path,
+      managed: ws.managed,
+      createdAt: ws.createdAt,
+    })
+    .run();
   return ws;
 }
 
@@ -62,13 +69,16 @@ export async function attachExistingWorkspace(path: string): Promise<Workspace> 
     managed: false,
     createdAt: Date.now(),
   };
-  getDb().insert(workspaces).values({
-    id: ws.id,
-    name: ws.name,
-    path: ws.path,
-    managed: ws.managed,
-    createdAt: ws.createdAt,
-  }).run();
+  getDb()
+    .insert(workspaces)
+    .values({
+      id: ws.id,
+      name: ws.name,
+      path: ws.path,
+      managed: ws.managed,
+      createdAt: ws.createdAt,
+    })
+    .run();
   return ws;
 }
 
@@ -84,7 +94,7 @@ export async function deleteWorkspace(id: string, alsoDeleteFiles: boolean): Pro
 
 export interface FileNode {
   name: string;
-  path: string;            // workspace-relative, posix-style
+  path: string; // workspace-relative, posix-style
   isDir: boolean;
   size?: number;
   children?: FileNode[];
@@ -98,7 +108,13 @@ export async function fileTree(workspaceId: string, relPath = '', depth = 4): Pr
 
 async function walk(root: string, abs: string, depth: number): Promise<FileNode> {
   const s = await stat(abs);
-  const rel = abs === root ? '' : abs.slice(root.length + 1).split(sep).join('/');
+  const rel =
+    abs === root
+      ? ''
+      : abs
+          .slice(root.length + 1)
+          .split(sep)
+          .join('/');
   const name = abs === root ? basename(root) : basename(abs);
   if (!s.isDirectory()) {
     return { name, path: rel, isDir: false, size: s.size };
@@ -139,7 +155,9 @@ export async function readWorkspaceFile(
   if (s.isDirectory()) throw new Error('is a directory');
   const truncated = s.size > MAX_FILE_BYTES;
   const buf = await readFile(abs);
-  const content = truncated ? buf.subarray(0, MAX_FILE_BYTES).toString('utf8') : buf.toString('utf8');
+  const content = truncated
+    ? buf.subarray(0, MAX_FILE_BYTES).toString('utf8')
+    : buf.toString('utf8');
   return { content, size: s.size, truncated };
 }
 

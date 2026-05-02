@@ -3,18 +3,21 @@
 ## Current State
 
 ### Backend (`src/main/services/git.ts`)
+
 - `workspaceStatus()` → returns `GitStatus` with: `staged`, `not_added`, `created`, `modified`, `renamed` (array of `{from, to}`), `deleted`, `conflicted`, `clean`
 - `workspaceDiff()` → returns a **single unified diff string** for the entire workspace (not per-file)
 - No per-file diff endpoint exists
 - No way to get a file's original content at HEAD (needed for DiffEditor)
 
 ### Frontend (`src/renderer/src/pages/Changes.tsx`)
+
 - Skeleton `DiffPanel` with two placeholder comments for Staged/Untracked sections
 - `DiffPanelEditor` uses `DiffEditor` but passes `modified: ''` — backwards (original should be HEAD content, modified should be working copy)
 - Sidebar is empty — no file list rendered
 - No status icons, no rename handling, no file click wiring
 
 ### Available Dependencies
+
 - `@monaco-editor/react` — already used, has `DiffEditor` component
 - `simple-git` — already used for git operations
 - `diff` npm package — already a dependency (used in `util/patch.ts`)
@@ -44,6 +47,7 @@ files: GitFileStatus[];
 ```
 
 In `workspaceStatus()`, map `s.files` into the response:
+
 ```ts
 files: s.files.map(f => ({ path: f.path, index: f.index, working_dir: f.working_dir, from: f.from })),
 ```
@@ -52,18 +56,24 @@ files: s.files.map(f => ({ path: f.path, index: f.index, working_dir: f.working_
 
 ```ts
 // Returns the content of a file at HEAD (the "original" for diff)
-export async function showFileAtHead(workspaceId: string, filePath: string): Promise<string | null>
+export async function showFileAtHead(workspaceId: string, filePath: string): Promise<string | null>;
 
 // Returns unified diff for a single file
-export async function fileDiff(workspaceId: string, filePath: string, staged?: boolean): Promise<string>
+export async function fileDiff(
+  workspaceId: string,
+  filePath: string,
+  staged?: boolean,
+): Promise<string>;
 ```
 
 **`showFileAtHead`** implementation:
+
 - Uses `git.show('HEAD:<filePath>')` via simple-git
 - Returns `null` for new/untracked files (no HEAD version exists)
 - Catches errors gracefully (file may not exist in HEAD)
 
 **`fileDiff`** implementation:
+
 - For tracked modified files: `git diff -- <filePath>` (or `git diff --cached -- <filePath>` for staged)
 - For untracked/new files: `git diff --no-index -- /dev/null <filePath>`
 - Returns the unified diff string for just that file
@@ -96,7 +106,7 @@ Parse `GitStatus` into a structured list with change types:
 type ChangeKind = 'modified' | 'created' | 'deleted' | 'renamed' | 'conflicted' | 'untracked';
 
 interface ChangedFile {
-  path: string;          // display path (new name for renames)
+  path: string; // display path (new name for renames)
   originalPath?: string; // only for renamed files (the "from" path)
   kind: ChangeKind;
   section: 'staged' | 'working'; // which sidebar section
@@ -104,6 +114,7 @@ interface ChangedFile {
 ```
 
 Build two lists from `StatusResult.files`:
+
 - **Staged:** files where `file.index !== ' ' && file.index !== '?'` — the `index` char is the kind (`M`, `A`, `D`, `R`, `C`)
 - **Working (Unstaged/Untracked):** files where `file.working_dir !== ' '` — includes `?` for untracked, `M` for modified, `D` for deleted, etc.
 - A single file can appear in **both** lists (e.g. staged + further working-dir modifications)
@@ -112,20 +123,21 @@ Build two lists from `StatusResult.files`:
 
 #### 2b. Status icons
 
-| Kind | Icon | Color | Label |
-|------|------|-------|-------|
-| modified | `M` | `text-amber` | Modified |
-| created | `A` | `text-signal-ok` (green) | Added |
-| deleted | `D` | `text-signal-err` (red) | Deleted |
-| renamed | `R` | `text-purple-400` | Renamed |
-| conflicted | `C` | `text-signal-warn` (yellow) | Conflicted |
-| untracked | `?` | `text-ink-400` (gray) | Untracked |
+| Kind       | Icon | Color                       | Label      |
+| ---------- | ---- | --------------------------- | ---------- |
+| modified   | `M`  | `text-amber`                | Modified   |
+| created    | `A`  | `text-signal-ok` (green)    | Added      |
+| deleted    | `D`  | `text-signal-err` (red)     | Deleted    |
+| renamed    | `R`  | `text-purple-400`           | Renamed    |
+| conflicted | `C`  | `text-signal-warn` (yellow) | Conflicted |
+| untracked  | `?`  | `text-ink-400` (gray)       | Untracked  |
 
 Use single-letter badges in a monospace font, consistent with git conventions.
 
 #### 2c. Renamed file display
 
 For renamed files:
+
 - Show the **new** filename as the list item label
 - The status icon `R` gets a **tooltip** showing `renamed: oldName → newName`
 - Use the `title` attribute on the icon span for the native tooltip (simple, no library needed)
@@ -143,6 +155,7 @@ function ChangedFileList({
 ```
 
 Each item is a clickable row with:
+
 - Status icon badge (left)
 - Filename (truncated, showing just the basename + parent dir for context)
 - Active state highlight when selected
@@ -170,6 +183,7 @@ Wire into the sidebar:
 #### Approach: Monaco DiffEditor (inline mode)
 
 Monaco's `DiffEditor` supports an **inline diff** mode that shows only the changes with full syntax highlighting. This is the best option because:
+
 - Syntax highlighting for the file's language (not just raw diff syntax)
 - Inline mode (`renderSideBySide: false`) shows a compact view of just the changes
 - Can toggle between side-by-side and inline
@@ -178,8 +192,13 @@ Monaco's `DiffEditor` supports an **inline diff** mode that shows only the chang
 #### Fix `DiffPanelEditor`:
 
 ```tsx
-function DiffPanelEditor({ workspaceId, path, kind, originalFilePath }: { 
-  workspaceId: string; 
+function DiffPanelEditor({
+  workspaceId,
+  path,
+  kind,
+  originalFilePath,
+}: {
+  workspaceId: string;
   path: string;
   kind: ChangeKind;
   originalFilePath?: string; // for renamed files — the old path
@@ -192,24 +211,17 @@ function DiffPanelEditor({ workspaceId, path, kind, originalFilePath }: {
   // Original content from HEAD (null for new files)
   const original = trpc.git.showFileAtHead.useQuery(
     { workspaceId, path: originalPath },
-    { enabled: kind !== 'created' && kind !== 'untracked' }
+    { enabled: kind !== 'created' && kind !== 'untracked' },
   );
 
   // Current working copy (read from new path, even for renames)
-  const current = trpc.file.read.useQuery(
-    { workspaceId, path },
-    { enabled: kind !== 'deleted' }
-  );
+  const current = trpc.file.read.useQuery({ workspaceId, path }, { enabled: kind !== 'deleted' });
 
   // For new/untracked files, original is empty
-  const originalText = kind === 'created' || kind === 'untracked' 
-    ? '' 
-    : (original.data ?? '');
+  const originalText = kind === 'created' || kind === 'untracked' ? '' : (original.data ?? '');
 
   // For deleted files, modified is empty
-  const modifiedText = kind === 'deleted' 
-    ? '' 
-    : (current.data?.content ?? '');
+  const modifiedText = kind === 'deleted' ? '' : (current.data?.content ?? '');
 
   return (
     <DiffEditor
@@ -219,7 +231,7 @@ function DiffPanelEditor({ workspaceId, path, kind, originalFilePath }: {
       theme={theme === 'dark' ? 'vs-dark' : 'vs'}
       options={{
         readOnly: true,
-        renderSideBySide: false,  // inline diff — shows only changes
+        renderSideBySide: false, // inline diff — shows only changes
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         fontFamily: 'JetBrains Mono, ui-monospace, monospace',
@@ -233,6 +245,7 @@ function DiffPanelEditor({ workspaceId, path, kind, originalFilePath }: {
 #### Inline-only mode explanation
 
 Setting `renderSideBySide: false` on DiffEditor gives an **inline diff** view:
+
 - Shows the file with full syntax highlighting
 - Deleted lines shown in red background, added lines in green background
 - Unchanged context lines shown normally
@@ -247,6 +260,7 @@ A toggle button in the toolbar can switch between inline (`renderSideBySide: fal
 #### 4a. Connect file click to diff viewer
 
 When a file is clicked in the sidebar:
+
 1. `setActivePath(file.path)` + store the `ChangeKind`
 2. `DiffPanelEditor` loads original (HEAD) and modified (working) content
 3. Renders the inline diff
@@ -264,6 +278,7 @@ Add `refetchInterval: 5000` (or similar) to the `git.status` query so the sideba
 #### 4d. Header bar
 
 Keep the existing workspace name header. Add a summary line:
+
 ```
 branch: main  |  3M · 1A · 2?
 ```
@@ -272,10 +287,10 @@ branch: main  |  3M · 1A · 2?
 
 ## File Change Summary
 
-| File | Action |
-|------|--------|
-| `src/main/services/git.ts` | Add `showFileAtHead()` and `fileDiff()` functions |
-| `src/main/ipc/git.ts` | Add `showFileAtHead` and `fileDiff` tRPC procedures |
+| File                                 | Action                                                               |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `src/main/services/git.ts`           | Add `showFileAtHead()` and `fileDiff()` functions                    |
+| `src/main/ipc/git.ts`                | Add `showFileAtHead` and `fileDiff` tRPC procedures                  |
 | `src/renderer/src/pages/Changes.tsx` | Rewrite: sidebar with file lists, fix DiffEditor, add icons/tooltips |
 
 No new files or dependencies needed. Everything builds on existing infrastructure.

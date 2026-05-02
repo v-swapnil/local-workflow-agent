@@ -17,9 +17,9 @@ import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 
 export const workspaceRouter = router({
   list: publicProcedure.query(() => listWorkspaces()),
-  get: publicProcedure.input(z.object({ id: z.string() })).query(({ input }) =>
-    getWorkspace(input.id),
-  ),
+  get: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(({ input }) => getWorkspace(input.id)),
   create: publicProcedure
     .input(z.object({ name: z.string().min(1).max(64) }))
     .mutation(({ input }) => createManagedWorkspace(input.name)),
@@ -44,17 +44,21 @@ export const workspaceRouter = router({
     const id = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
     return id ?? null;
   }),
-  setActive: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
-      await setSetting(SETTING_KEYS.ACTIVE_WORKSPACE, input.id);
-      return { ok: true };
-    }),
+  setActive: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    await setSetting(SETTING_KEYS.ACTIVE_WORKSPACE, input.id);
+    return { ok: true };
+  }),
 });
 
 export const fileRouter = router({
   tree: publicProcedure
-    .input(z.object({ workspaceId: z.string(), path: z.string().default(''), depth: z.number().int().min(1).max(8).default(4) }))
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        path: z.string().default(''),
+        depth: z.number().int().min(1).max(8).default(4),
+      }),
+    )
     .query(({ input }) => fileTree(input.workspaceId, input.path, input.depth)),
   read: publicProcedure
     .input(z.object({ workspaceId: z.string(), path: z.string() }))

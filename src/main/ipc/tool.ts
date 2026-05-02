@@ -5,7 +5,13 @@ import { invokeTool, listTools } from '../services/tools/registry.js';
 import type { ToolName } from '../services/tools/types.js';
 
 const TOOL_NAMES = [
-  'read_file', 'write_file', 'apply_patch', 'list_dir', 'grep', 'run_shell', 'run_tests',
+  'read_file',
+  'write_file',
+  'apply_patch',
+  'list_dir',
+  'grep',
+  'run_shell',
+  'run_tests',
 ] as const satisfies readonly ToolName[];
 
 export const toolRouter = router({

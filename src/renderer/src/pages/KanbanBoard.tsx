@@ -56,9 +56,7 @@ export function KanbanBoard() {
     return map;
   }, [kanbanQ.data]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   function handleDragStart(event: DragStartEvent) {
     const card = (event.active.data.current as { card: KanbanCard } | undefined)?.card ?? null;

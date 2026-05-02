@@ -49,9 +49,13 @@ async function drain(): Promise<void> {
     while (queue.length > 0) {
       const concurrency = await getConcurrency();
       const batch = queue.splice(0, concurrency);
-      await Promise.all(batch.map((id) => runTask(id).catch((err) => {
-        log.error({ taskId: id, err }, 'task crashed');
-      })));
+      await Promise.all(
+        batch.map((id) =>
+          runTask(id).catch((err) => {
+            log.error({ taskId: id, err }, 'task crashed');
+          }),
+        ),
+      );
     }
   } finally {
     running = false;

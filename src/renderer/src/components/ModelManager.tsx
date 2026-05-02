@@ -94,11 +94,7 @@ function OllamaPanel() {
   );
 
   const ollamaOk = health.data?.ok === true;
-  const ollamaState = health.isLoading
-    ? 'checking'
-    : ollamaOk
-      ? 'online'
-      : 'offline';
+  const ollamaState = health.isLoading ? 'checking' : ollamaOk ? 'online' : 'offline';
 
   return (
     <>
@@ -118,8 +114,7 @@ function OllamaPanel() {
         {!ollamaOk && !health.isLoading && (
           <div className="rounded border border-ink-700 bg-ink-950 px-4 py-3 font-mono text-ui-sm text-ink-300">
             <div className="mb-1 text-amber">Ollama not detected.</div>
-            Install from{' '}
-            <span className="text-ink-100">ollama.com/download</span>, then run{' '}
+            Install from <span className="text-ink-100">ollama.com/download</span>, then run{' '}
             <code className="text-amber">ollama serve</code>. ASE will pick it up automatically.
             {health.error?.message && (
               <div className="mt-2 text-signal-err">query error: {health.error.message}</div>
@@ -128,7 +123,7 @@ function OllamaPanel() {
               <div className="mt-2 space-y-1">
                 {health.data.attempts.map((a, idx) => (
                   <div key={`${a.url}-${idx}`} className="text-ink-500">
-                    {a.url}  {a.ok ? 'ok' : a.status ? `status ${a.status}` : a.error ?? 'failed'}
+                    {a.url} {a.ok ? 'ok' : a.status ? `status ${a.status}` : (a.error ?? 'failed')}
                   </div>
                 ))}
               </div>
@@ -204,7 +199,11 @@ function OllamaPanel() {
           <input
             value={pullName}
             onChange={(e) => setPullName(e.target.value)}
-            disabled={!ollamaOk || pullState?.status === 'starting' || (pullState?.status !== undefined && !pullState.done && pullState.status !== 'error')}
+            disabled={
+              !ollamaOk ||
+              pullState?.status === 'starting' ||
+              (pullState?.status !== undefined && !pullState.done && pullState.status !== 'error')
+            }
             className="flex-1 rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-base text-ink-100 placeholder:text-ink-500 focus:border-amber focus:outline-none disabled:opacity-50"
             placeholder="qwen2.5-coder:7b"
           />
@@ -224,15 +223,24 @@ function OllamaPanel() {
         {pullState && <PullProgressBar state={pullState} />}
         <div className="mt-3 font-mono text-ui-xs text-ink-500">
           tip: try{' '}
-          <button onClick={() => setPullName('qwen2.5-coder:7b')} className="text-amber underline-offset-2 hover:underline">
+          <button
+            onClick={() => setPullName('qwen2.5-coder:7b')}
+            className="text-amber underline-offset-2 hover:underline"
+          >
             qwen2.5-coder:7b
           </button>
           {' · '}
-          <button onClick={() => setPullName('llama3.1:8b')} className="text-amber underline-offset-2 hover:underline">
+          <button
+            onClick={() => setPullName('llama3.1:8b')}
+            className="text-amber underline-offset-2 hover:underline"
+          >
             llama3.1:8b
           </button>
           {' · '}
-          <button onClick={() => setPullName('phi3.5')} className="text-amber underline-offset-2 hover:underline">
+          <button
+            onClick={() => setPullName('phi3.5')}
+            className="text-amber underline-offset-2 hover:underline"
+          >
             phi3.5
           </button>
         </div>
@@ -301,10 +309,7 @@ function CopilotPanel() {
                     className="w-40 rounded border border-ink-700 bg-ink-950 px-2 py-0.5 font-mono text-ui-xs text-ink-100 focus:border-amber focus:outline-none"
                     placeholder="localhost:49393"
                   />
-                  <button
-                    type="submit"
-                    className="font-mono text-ui-xs text-amber hover:underline"
-                  >
+                  <button type="submit" className="font-mono text-ui-xs text-amber hover:underline">
                     save
                   </button>
                   <button
@@ -336,9 +341,8 @@ function CopilotPanel() {
         {!ok && !copilotHealth.isLoading && (
           <div className="rounded border border-ink-700 bg-ink-950 px-4 py-3 font-mono text-ui-sm text-ink-300">
             <div className="mb-1 text-amber">Copilot CLI not reachable.</div>
-            Start the server with{' '}
-            <code className="text-amber">copilot --stdio=false</code>, then check the URL above
-            matches the port.
+            Start the server with <code className="text-amber">copilot --stdio=false</code>, then
+            check the URL above matches the port.
             <div className="mt-2">
               <button
                 type="button"
@@ -402,12 +406,7 @@ function CopilotPanel() {
 function PullProgressBar({ state }: { state: PullState }) {
   const pct =
     state.completed && state.total ? Math.min(100, (state.completed / state.total) * 100) : null;
-  const bg =
-    state.status === 'error'
-      ? 'bg-signal-err'
-      : state.done
-        ? 'bg-signal-ok'
-        : 'bg-amber';
+  const bg = state.status === 'error' ? 'bg-signal-err' : state.done ? 'bg-signal-ok' : 'bg-amber';
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between font-mono text-ui-xs uppercase tracking-widest2">
@@ -432,9 +431,15 @@ function PullProgressBar({ state }: { state: PullState }) {
 
 function Pill({ ok, label }: { ok?: boolean; label: string }) {
   const color =
-    ok === undefined ? 'border-ink-700 text-ink-400' : ok ? 'border-signal-ok text-signal-ok' : 'border-signal-err text-signal-err';
+    ok === undefined
+      ? 'border-ink-700 text-ink-400'
+      : ok
+        ? 'border-signal-ok text-signal-ok'
+        : 'border-signal-err text-signal-err';
   return (
-    <span className={`rounded border px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 ${color}`}>
+    <span
+      className={`rounded border px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 ${color}`}
+    >
       {label}
     </span>
   );

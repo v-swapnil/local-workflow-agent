@@ -44,12 +44,10 @@ export const sessionRouter = router({
       return { ok: true as const };
     }),
 
-  delete: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
-    .mutation(({ input }) => {
-      deleteSession(input.id);
-      return { ok: true as const };
-    }),
+  delete: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+    deleteSession(input.id);
+    return { ok: true as const };
+  }),
 
   addMessage: publicProcedure
     .input(
@@ -139,32 +137,28 @@ export const taskRouter = router({
     .input(z.object({ taskId: z.string().min(1) }))
     .query(({ input }) => listSteps(input.taskId)),
 
-  start: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
-    .mutation(({ input }) => {
-      enqueueTask(input.id);
-      return { ok: true as const };
-    }),
+  start: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+    enqueueTask(input.id);
+    return { ok: true as const };
+  }),
 
   cancel: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
     .mutation(({ input }) => ({ ok: cancelQueuedOrRunning(input.id) })),
 
-  retry: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
-    .mutation(({ input }) => {
-      const orig = getTask(input.id);
-      // Reset the same task and re-enqueue instead of creating a new one
-      updateTask(orig.id, {
-        status: 'queued',
-        resultJson: null,
-        iterations: 0,
-        startedAt: null,
-        finishedAt: null,
-      });
-      enqueueTask(orig.id);
-      return orig;
-    }),
+  retry: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+    const orig = getTask(input.id);
+    // Reset the same task and re-enqueue instead of creating a new one
+    updateTask(orig.id, {
+      status: 'queued',
+      resultJson: null,
+      iterations: 0,
+      startedAt: null,
+      finishedAt: null,
+    });
+    enqueueTask(orig.id);
+    return orig;
+  }),
 
   exportReport: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
@@ -192,95 +186,139 @@ export const taskRouter = router({
     .input(z.object({ taskId: z.string().min(1) }))
     .query(({ input }) => taskBus.replayEvents(input.taskId)),
 
-  fullHistory: publicProcedure
-    .input(z.object({ taskId: z.string().min(1) }))
-    .query(({ input }) => {
-      const task = getTask(input.taskId);
-      const steps = listSteps(input.taskId);
-      const events = taskBus.replayEvents(input.taskId);
+  fullHistory: publicProcedure.input(z.object({ taskId: z.string().min(1) })).query(({ input }) => {
+    const task = getTask(input.taskId);
+    const steps = listSteps(input.taskId);
+    const events = taskBus.replayEvents(input.taskId);
 
-      type HistoryEntry =
-        | { kind: 'llm.call'; ts: number; agent: string; model: string; messages: { role: string; content: string }[]; response: string; durationMs: number }
-        | { kind: 'tool.call'; ts: number; stepId: string; agent: string; tool: string; args: unknown; ok: boolean; output: unknown; error?: string; durationMs?: number }
-        | { kind: 'plan'; ts: number; plan: unknown }
-        | { kind: 'critic'; ts: number; verdict: { done: boolean; reason: string; nextHint?: string } }
-        | { kind: 'approval'; ts: number; approvalId: string; tool: string; args: unknown; decision?: string }
-        | { kind: 'task.status'; ts: number; status: string; error?: string };
-
-      const history: HistoryEntry[] = [];
-
-      for (const ev of events) {
-        switch (ev.type) {
-          case 'llm.call':
-            history.push({
-              kind: 'llm.call',
-              ts: ev.ts,
-              agent: ev.agent,
-              model: ev.model,
-              messages: ev.messages,
-              response: ev.response,
-              durationMs: ev.durationMs,
-            });
-            break;
-          case 'plan':
-            history.push({ kind: 'plan', ts: ev.ts, plan: ev.plan });
-            break;
-          case 'critic':
-            history.push({ kind: 'critic', ts: ev.ts, verdict: ev.verdict });
-            break;
-          case 'task.started':
-            history.push({ kind: 'task.status', ts: ev.ts, status: 'running' });
-            break;
-          case 'task.finished':
-            history.push({ kind: 'task.status', ts: ev.ts, status: ev.status, error: ev.error as string | undefined });
-            break;
-          case 'approval.requested':
-            history.push({ kind: 'approval', ts: ev.ts, approvalId: ev.approvalId, tool: ev.tool, args: ev.args });
-            break;
-          case 'approval.decided':
-            // Attach decision to the last matching approval entry
-            for (let i = history.length - 1; i >= 0; i--) {
-              const h = history[i];
-              if (h && h.kind === 'approval' && h.approvalId === ev.approvalId) {
-                h.decision = ev.decision;
-                break;
-              }
-            }
-            break;
+    type HistoryEntry =
+      | {
+          kind: 'llm.call';
+          ts: number;
+          agent: string;
+          model: string;
+          messages: { role: string; content: string }[];
+          response: string;
+          durationMs: number;
         }
+      | {
+          kind: 'tool.call';
+          ts: number;
+          stepId: string;
+          agent: string;
+          tool: string;
+          args: unknown;
+          ok: boolean;
+          output: unknown;
+          error?: string;
+          durationMs?: number;
+        }
+      | { kind: 'plan'; ts: number; plan: unknown }
+      | {
+          kind: 'critic';
+          ts: number;
+          verdict: { done: boolean; reason: string; nextHint?: string };
+        }
+      | {
+          kind: 'approval';
+          ts: number;
+          approvalId: string;
+          tool: string;
+          args: unknown;
+          decision?: string;
+        }
+      | { kind: 'task.status'; ts: number; status: string; error?: string };
+
+    const history: HistoryEntry[] = [];
+
+    for (const ev of events) {
+      switch (ev.type) {
+        case 'llm.call':
+          history.push({
+            kind: 'llm.call',
+            ts: ev.ts,
+            agent: ev.agent,
+            model: ev.model,
+            messages: ev.messages,
+            response: ev.response,
+            durationMs: ev.durationMs,
+          });
+          break;
+        case 'plan':
+          history.push({ kind: 'plan', ts: ev.ts, plan: ev.plan });
+          break;
+        case 'critic':
+          history.push({ kind: 'critic', ts: ev.ts, verdict: ev.verdict });
+          break;
+        case 'task.started':
+          history.push({ kind: 'task.status', ts: ev.ts, status: 'running' });
+          break;
+        case 'task.finished':
+          history.push({
+            kind: 'task.status',
+            ts: ev.ts,
+            status: ev.status,
+            error: ev.error as string | undefined,
+          });
+          break;
+        case 'approval.requested':
+          history.push({
+            kind: 'approval',
+            ts: ev.ts,
+            approvalId: ev.approvalId,
+            tool: ev.tool,
+            args: ev.args,
+          });
+          break;
+        case 'approval.decided':
+          // Attach decision to the last matching approval entry
+          for (let i = history.length - 1; i >= 0; i--) {
+            const h = history[i];
+            if (h && h.kind === 'approval' && h.approvalId === ev.approvalId) {
+              h.decision = ev.decision;
+              break;
+            }
+          }
+          break;
       }
+    }
 
-      // Merge step rows as tool.call entries (these have full input/output from DB)
-      for (const step of steps) {
-        if (!step.tool) continue;
-        history.push({
-          kind: 'tool.call',
-          ts: step.startedAt ?? step.finishedAt ?? task.createdAt,
-          stepId: step.id,
-          agent: step.agent,
-          tool: step.tool,
-          args: step.inputJson ? tryParse(step.inputJson) : null,
-          ok: step.status === 'succeeded' || step.status === 'ok',
-          output: step.outputJson ? tryParse(step.outputJson) : null,
-          error: step.status === 'failed' ? (step.outputJson ?? undefined) : undefined,
-          durationMs: step.startedAt && step.finishedAt ? step.finishedAt - step.startedAt : undefined,
-        });
-      }
+    // Merge step rows as tool.call entries (these have full input/output from DB)
+    for (const step of steps) {
+      if (!step.tool) continue;
+      history.push({
+        kind: 'tool.call',
+        ts: step.startedAt ?? step.finishedAt ?? task.createdAt,
+        stepId: step.id,
+        agent: step.agent,
+        tool: step.tool,
+        args: step.inputJson ? tryParse(step.inputJson) : null,
+        ok: step.status === 'succeeded' || step.status === 'ok',
+        output: step.outputJson ? tryParse(step.outputJson) : null,
+        error: step.status === 'failed' ? (step.outputJson ?? undefined) : undefined,
+        durationMs:
+          step.startedAt && step.finishedAt ? step.finishedAt - step.startedAt : undefined,
+      });
+    }
 
-      // Sort everything by timestamp
-      history.sort((a, b) => a.ts - b.ts);
+    // Sort everything by timestamp
+    history.sort((a, b) => a.ts - b.ts);
 
-      return {
-        taskId: task.id,
-        prompt: task.prompt,
-        status: task.status,
-        iterations: task.iterations,
-        plan: task.planJson ? tryParse(task.planJson) : null,
-        history,
-      };
-    }),
+    return {
+      taskId: task.id,
+      prompt: task.prompt,
+      status: task.status,
+      iterations: task.iterations,
+      plan: task.planJson ? tryParse(task.planJson) : null,
+      history,
+    };
+  }),
 });
 
 function tryParse(json: string): unknown {
-  try { return JSON.parse(json); } catch { return json; }
+  try {
+    return JSON.parse(json);
+  } catch {
+    return json;
+  }
 }

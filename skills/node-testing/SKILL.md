@@ -32,7 +32,7 @@ When applying this skill:
 {
   "type": "module",
   "scripts": { "test": "vitest run" },
-  "devDependencies": { "vitest": "^2.0.0" }
+  "devDependencies": { "vitest": "^2.0.0" },
 }
 ```
 

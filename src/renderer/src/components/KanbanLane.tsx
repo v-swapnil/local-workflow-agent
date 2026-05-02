@@ -52,9 +52,7 @@ export function KanbanLane({ lane, cards, onCardClick, onResetLane }: KanbanLane
     <div
       className={cn(
         'flex min-w-[260px] flex-1 flex-col rounded-lg border bg-ink-900/40',
-        lane === 'need_help' && cards.length > 0
-          ? 'border-signal-err/30'
-          : 'border-ink-800',
+        lane === 'need_help' && cards.length > 0 ? 'border-signal-err/30' : 'border-ink-800',
         isOver && 'border-amber/50 bg-amber/[0.03]',
       )}
     >
@@ -74,12 +72,7 @@ export function KanbanLane({ lane, cards, onCardClick, onResetLane }: KanbanLane
             )}
           />
         </span>
-        <span
-          className={cn(
-            'font-mono text-ui-xs uppercase tracking-widest2',
-            meta.color,
-          )}
-        >
+        <span className={cn('font-mono text-ui-xs uppercase tracking-widest2', meta.color)}>
           {meta.label}
         </span>
         <span className="rounded-full bg-ink-800 px-1.5 font-mono text-ui-xs text-ink-300">

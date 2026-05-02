@@ -42,7 +42,7 @@ export interface ModelInfo {
 }
 
 export interface PullProgress {
-  status: string;        // e.g. "downloading", "verifying", "success"
+  status: string; // e.g. "downloading", "verifying", "success"
   digest?: string;
   total?: number;
   completed?: number;
@@ -54,6 +54,10 @@ export interface LLMProvider {
   ping(): Promise<boolean>;
   listModels(): Promise<ModelInfo[]>;
   chat(opts: ChatOptions): Promise<ChatResult>;
-  pullModel(name: string, onProgress: (p: PullProgress) => void, signal?: AbortSignal): Promise<void>;
+  pullModel(
+    name: string,
+    onProgress: (p: PullProgress) => void,
+    signal?: AbortSignal,
+  ): Promise<void>;
   deleteModel(name: string): Promise<void>;
 }

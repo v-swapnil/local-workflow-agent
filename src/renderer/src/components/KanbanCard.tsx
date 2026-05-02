@@ -30,7 +30,13 @@ interface KanbanCardProps {
   onResetLane?: () => void;
 }
 
-export function KanbanCardView({ card, isDragging, isOverlay, onClick, onResetLane }: KanbanCardProps) {
+export function KanbanCardView({
+  card,
+  isDragging,
+  isOverlay,
+  onClick,
+  onResetLane,
+}: KanbanCardProps) {
   const style = LANE_STYLES[card.lane];
   const { total, succeeded, running, failed, awaitingApproval } = card.taskSummary;
   const pct = total > 0 ? Math.round((succeeded / total) * 100) : 0;
@@ -71,18 +77,16 @@ export function KanbanCardView({ card, isDragging, isOverlay, onClick, onResetLa
           <span className="text-ink-500">no tasks</span>
         ) : (
           <>
-            <span className="text-ink-400">{total} task{total !== 1 ? 's' : ''}</span>
-            {succeeded > 0 && (
-              <span className="text-signal-ok">{succeeded} ✓</span>
-            )}
+            <span className="text-ink-400">
+              {total} task{total !== 1 ? 's' : ''}
+            </span>
+            {succeeded > 0 && <span className="text-signal-ok">{succeeded} ✓</span>}
             {running > 0 && (
               <span className="inline-flex items-center gap-0.5 text-amber">
                 <span className="animate-pulse">●</span> {running}
               </span>
             )}
-            {failed > 0 && (
-              <span className="text-signal-err">{failed} ✗</span>
-            )}
+            {failed > 0 && <span className="text-signal-err">{failed} ✗</span>}
             {awaitingApproval > 0 && (
               <span className="text-signal-warn">{awaitingApproval} ⏳</span>
             )}
@@ -135,7 +139,12 @@ export function SortableCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <KanbanCardView card={card} isDragging={isDragging} onClick={onClick} onResetLane={onResetLane} />
+      <KanbanCardView
+        card={card}
+        isDragging={isDragging}
+        onClick={onClick}
+        onResetLane={onResetLane}
+      />
     </div>
   );
 }

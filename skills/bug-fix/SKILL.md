@@ -12,7 +12,7 @@ Follow this loop. Do not skip steps.
 1. **Reproduce first.** Use `run_tests` (or `run_shell` with the exact command the user
    gave) to see the failure with your own eyes. Do not guess from the prompt alone.
 2. **Locate.** Use `grep` on the error message, function name, or symbol from the stack
-   trace. Read the *full* relevant file with `read_file` before editing.
+   trace. Read the _full_ relevant file with `read_file` before editing.
 3. **Understand.** State the root cause in one sentence in your `thought` before you
    propose a patch. If you can't explain why the bug happens, keep investigating —
    don't paper over it.

@@ -1,13 +1,7 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getWorkspace } from '../workspaces.js';
-import {
-  readFileTool,
-  writeFileTool,
-  listDirTool,
-  grepTool,
-  applyPatchTool,
-} from './fs.js';
+import { readFileTool, writeFileTool, listDirTool, grepTool, applyPatchTool } from './fs.js';
 import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { requestApproval } from '../approvals.js';
@@ -28,7 +22,12 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   git_commit: gitCommitTool as Tool<unknown, unknown>,
 };
 
-export function listTools(): { name: ToolName; description: string; needsApproval: boolean; argsSchema: Record<string, unknown> }[] {
+export function listTools(): {
+  name: ToolName;
+  description: string;
+  needsApproval: boolean;
+  argsSchema: Record<string, unknown>;
+}[] {
   return Object.values(REGISTRY).map((t) => ({
     name: t.name,
     description: t.description,
@@ -97,11 +96,12 @@ export async function invokeTool(
     const output = await tool.run(parsed, ctx);
     return { ok: true, output, durationMs: Date.now() - t0 };
   } catch (err) {
-    const msg = err instanceof z.ZodError
-      ? `invalid args: ${err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-      : err instanceof Error
-        ? err.message
-        : String(err);
+    const msg =
+      err instanceof z.ZodError
+        ? `invalid args: ${err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
+        : err instanceof Error
+          ? err.message
+          : String(err);
     return { ok: false, error: msg, durationMs: Date.now() - t0 };
   }
 }

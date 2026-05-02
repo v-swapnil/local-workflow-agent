@@ -149,17 +149,14 @@ export function Skills() {
                 <Field label="when_to_use" value={focused.whenToUse || '—'} />
                 <Field label="tags" value={focused.tags.join(', ') || '—'} />
                 <Field label="path" value={focused.path} mono />
-                <Field
-                  label="updated"
-                  value={new Date(focused.updatedAt).toLocaleString()}
-                />
+                <Field label="updated" value={new Date(focused.updatedAt).toLocaleString()} />
               </div>
 
               <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
                 body
               </div>
               <pre className="max-h-[60vh] overflow-y-auto rounded border border-ink-800 bg-ink-950 p-4 font-mono text-ui-sm leading-relaxed text-ink-100">
-{focused.body}
+                {focused.body}
               </pre>
             </div>
           ) : (
@@ -179,7 +176,13 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   return (
     <div className="rounded border border-ink-800 bg-ink-950 p-3">
       <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">{label}</div>
-      <div className={cn('mt-1 break-all', mono ? 'font-mono text-ui-sm' : 'font-serif text-ui-lg', 'text-ink-100')}>
+      <div
+        className={cn(
+          'mt-1 break-all',
+          mono ? 'font-mono text-ui-sm' : 'font-serif text-ui-lg',
+          'text-ink-100',
+        )}
+      >
         {value}
       </div>
     </div>

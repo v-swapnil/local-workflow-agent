@@ -24,6 +24,9 @@ function rotateIfNeeded(file: string): void {
   renameSync(file, `${file}.${stamp}`);
 }
 
-export const logger = pino({
-  level: process.env.LOG_LEVEL ?? 'info',
-}, pino.destination({ dest: destinationPath(), sync: false, minLength: 4096 }));
+export const logger = pino(
+  {
+    level: process.env.LOG_LEVEL ?? 'info',
+  },
+  pino.destination({ dest: destinationPath(), sync: false, minLength: 4096 }),
+);

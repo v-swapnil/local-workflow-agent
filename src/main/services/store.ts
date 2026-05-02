@@ -72,11 +72,7 @@ export function getSession(id: string): Session {
 }
 
 export function renameSession(id: string, title: string): void {
-  getDb()
-    .update(sessions)
-    .set({ title, updatedAt: Date.now() })
-    .where(eq(sessions.id, id))
-    .run();
+  getDb().update(sessions).set({ title, updatedAt: Date.now() }).where(eq(sessions.id, id)).run();
 }
 
 export function deleteSession(id: string): void {

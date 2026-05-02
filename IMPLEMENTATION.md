@@ -1,4 +1,5 @@
 # ASE — Autonomous Software Engineer
+
 ## Detailed Implementation Plan
 
 > Source of truth for building the Electron-based ASE desktop app described in [prd.md](prd.md).
@@ -16,27 +17,27 @@ ASE is a **local-first Electron desktop app** that lets a user describe a softwa
 
 ## 1. Tech Stack (locked)
 
-| Layer | Choice | Notes |
-|---|---|---|
-| Shell | **Electron 30+** | Packaged via `electron-builder` |
-| Build | **electron-vite** | TS + HMR for renderer + main |
-| Language | **TypeScript 5** strict | All code |
-| Renderer UI | **React 18 + Tailwind 3 + shadcn/ui** | Routing via `react-router` |
-| Renderer state | **Zustand** + **TanStack Query** | Query for tRPC data |
-| Editor | **Monaco** (`@monaco-editor/react`) | File tree via custom component |
-| Main ↔ Renderer | **electron-trpc** | Fully typed IPC |
-| DB | **better-sqlite3** + **Drizzle ORM** | File at `userData/ase.db` |
-| LLM | **Ollama** HTTP API (`/api/chat`, `/api/generate`) | Pluggable `LLMProvider` interface |
-| Agent runtime | **LangGraph.js** (`@langchain/langgraph`) | StateGraph for the loop |
-| Sandbox | **Node `child_process`** with cwd jail, env scrub, CPU/mem/wallclock limits | Optional `nsjail`/`bwrap` if found |
-| Git | **simple-git** | Local branch + commit only (MVP) |
-| Scheduler | **node-cron** | Persisted in SQLite |
-| Queue | Custom in-process FIFO with concurrency limit | No Redis |
-| Logging | **pino** + per-task NDJSON files | Streamed to renderer |
-| Packaging | **electron-builder** | dmg/zip for macOS |
-| Testing | **Vitest** for units, **Playwright** for renderer e2e | |
-| Lint/format | **ESLint** + **Prettier** | |
-| Node target | **Node 20+** | Electron 30 ships Node 20 |
+| Layer           | Choice                                                                      | Notes                              |
+| --------------- | --------------------------------------------------------------------------- | ---------------------------------- |
+| Shell           | **Electron 30+**                                                            | Packaged via `electron-builder`    |
+| Build           | **electron-vite**                                                           | TS + HMR for renderer + main       |
+| Language        | **TypeScript 5** strict                                                     | All code                           |
+| Renderer UI     | **React 18 + Tailwind 3 + shadcn/ui**                                       | Routing via `react-router`         |
+| Renderer state  | **Zustand** + **TanStack Query**                                            | Query for tRPC data                |
+| Editor          | **Monaco** (`@monaco-editor/react`)                                         | File tree via custom component     |
+| Main ↔ Renderer | **electron-trpc**                                                           | Fully typed IPC                    |
+| DB              | **better-sqlite3** + **Drizzle ORM**                                        | File at `userData/ase.db`          |
+| LLM             | **Ollama** HTTP API (`/api/chat`, `/api/generate`)                          | Pluggable `LLMProvider` interface  |
+| Agent runtime   | **LangGraph.js** (`@langchain/langgraph`)                                   | StateGraph for the loop            |
+| Sandbox         | **Node `child_process`** with cwd jail, env scrub, CPU/mem/wallclock limits | Optional `nsjail`/`bwrap` if found |
+| Git             | **simple-git**                                                              | Local branch + commit only (MVP)   |
+| Scheduler       | **node-cron**                                                               | Persisted in SQLite                |
+| Queue           | Custom in-process FIFO with concurrency limit                               | No Redis                           |
+| Logging         | **pino** + per-task NDJSON files                                            | Streamed to renderer               |
+| Packaging       | **electron-builder**                                                        | dmg/zip for macOS                  |
+| Testing         | **Vitest** for units, **Playwright** for renderer e2e                       |                                    |
+| Lint/format     | **ESLint** + **Prettier**                                                   |                                    |
+| Node target     | **Node 20+**                                                                | Electron 30 ships Node 20          |
 
 App name: **ASE**. Bundle id: **`com.ase.app`**. Default model: **`qwen2.5-coder:7b`** (overridable in Settings).
 
@@ -232,9 +233,15 @@ Migrations live under `src/main/db/migrations/` and are applied on app start.
 
 ```ts
 // src/shared/types.ts
-export type TaskStatus = 'queued'|'running'|'awaiting_approval'|'succeeded'|'failed'|'cancelled';
-export type AgentRole  = 'planner'|'executor'|'tester'|'critic';
-export type StepStatus = 'pending'|'running'|'ok'|'error'|'skipped';
+export type TaskStatus =
+  | 'queued'
+  | 'running'
+  | 'awaiting_approval'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled';
+export type AgentRole = 'planner' | 'executor' | 'tester' | 'critic';
+export type StepStatus = 'pending' | 'running' | 'ok' | 'error' | 'skipped';
 
 export interface Plan {
   goal: string;
@@ -250,13 +257,29 @@ export interface PlanStep {
 }
 
 export type ToolName =
-  | 'read_file' | 'write_file' | 'apply_patch' | 'list_dir' | 'grep'
-  | 'run_shell' | 'run_tests'
-  | 'git_status' | 'git_branch' | 'git_commit' | 'git_diff'
+  | 'read_file'
+  | 'write_file'
+  | 'apply_patch'
+  | 'list_dir'
+  | 'grep'
+  | 'run_shell'
+  | 'run_tests'
+  | 'git_status'
+  | 'git_branch'
+  | 'git_commit'
+  | 'git_diff'
   | 'ask_user';
 
-export interface ToolCall { name: ToolName; args: Record<string, unknown>; }
-export interface ToolResult { ok: boolean; output?: unknown; error?: string; durationMs: number; }
+export interface ToolCall {
+  name: ToolName;
+  args: Record<string, unknown>;
+}
+export interface ToolResult {
+  ok: boolean;
+  output?: unknown;
+  error?: string;
+  durationMs: number;
+}
 ```
 
 ---
@@ -277,20 +300,20 @@ Renderer subscribes via a tRPC subscription `task.events(taskId)` (electron-trpc
 
 ## 7. Tools — full spec
 
-| Tool | Args | Behaviour | Approval |
-|---|---|---|---|
-| `read_file` | `{ path }` | UTF-8 read, max 1 MB | no |
-| `write_file` | `{ path, content }` | Overwrite, must be inside workspace | yes if `requireApproval.write` |
-| `apply_patch` | `{ patch }` | unified diff applier | yes if `requireApproval.write` |
-| `list_dir` | `{ path, depth }` | tree, ignores `.git`, `node_modules` | no |
-| `grep` | `{ pattern, path?, regex? }` | ripgrep-like via `fast-glob` + scan | no |
-| `run_shell` | `{ cmd, args, timeoutMs? }` | sandboxed, captures stdout/stderr | yes if `requireApproval.shell` |
-| `run_tests` | `{ cmd? }` | auto-detect (`npm test`, `pnpm test`, `pytest`) or use given | yes if `requireApproval.shell` |
-| `git_status` | `{}` | simple-git status | no |
-| `git_branch` | `{ name }` | create+checkout | yes if `requireApproval.git` |
-| `git_commit` | `{ message, all? }` | stages + commits | yes if `requireApproval.git` |
-| `git_diff` | `{}` | working diff | no |
-| `ask_user` | `{ question, choices? }` | creates `approval` row, blocks step until resolved | always |
+| Tool          | Args                         | Behaviour                                                    | Approval                       |
+| ------------- | ---------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| `read_file`   | `{ path }`                   | UTF-8 read, max 1 MB                                         | no                             |
+| `write_file`  | `{ path, content }`          | Overwrite, must be inside workspace                          | yes if `requireApproval.write` |
+| `apply_patch` | `{ patch }`                  | unified diff applier                                         | yes if `requireApproval.write` |
+| `list_dir`    | `{ path, depth }`            | tree, ignores `.git`, `node_modules`                         | no                             |
+| `grep`        | `{ pattern, path?, regex? }` | ripgrep-like via `fast-glob` + scan                          | no                             |
+| `run_shell`   | `{ cmd, args, timeoutMs? }`  | sandboxed, captures stdout/stderr                            | yes if `requireApproval.shell` |
+| `run_tests`   | `{ cmd? }`                   | auto-detect (`npm test`, `pnpm test`, `pytest`) or use given | yes if `requireApproval.shell` |
+| `git_status`  | `{}`                         | simple-git status                                            | no                             |
+| `git_branch`  | `{ name }`                   | create+checkout                                              | yes if `requireApproval.git`   |
+| `git_commit`  | `{ message, all? }`          | stages + commits                                             | yes if `requireApproval.git`   |
+| `git_diff`    | `{}`                         | working diff                                                 | no                             |
+| `ask_user`    | `{ question, choices? }`     | creates `approval` row, blocks step until resolved           | always                         |
 
 All tools live in `src/main/services/tools/*.ts`, registered in `ToolRegistry`. Each tool exports:
 
@@ -329,11 +352,11 @@ export interface LLMProvider {
   chat(opts: {
     model: string;
     messages: ChatMessage[];
-    tools?: ToolSpec[];                  // JSON-schema tool defs
+    tools?: ToolSpec[]; // JSON-schema tool defs
     temperature?: number;
     signal?: AbortSignal;
-    onDelta?: (delta: string) => void;   // streaming
-  }): Promise<ChatResult>;               // { content, toolCalls?, usage }
+    onDelta?: (delta: string) => void; // streaming
+  }): Promise<ChatResult>; // { content, toolCalls?, usage }
 }
 ```
 
@@ -346,12 +369,15 @@ Health check on app start: `GET /api/tags` → if missing, show onboarding banne
 ## 10. Skills System
 
 Folder layout (per skill):
+
 ```
 skills/<skill-id>/
   SKILL.md           # frontmatter + body
   scripts/           # optional helper scripts (called via run_shell)
 ```
+
 `SKILL.md` frontmatter:
+
 ```md
 ---
 name: node-testing
@@ -359,9 +385,12 @@ description: Generate and run Vitest tests for Node.js projects.
 when_to_use: When the user asks to add tests, increase coverage, or test changes.
 tags: [testing, node, vitest]
 ---
+
 # Body...
 ```
+
 **Loader** (`src/main/services/skills.ts`):
+
 - Scans `userData/skills/*` and merges with `app://skills/*` (builtins).
 - On first run, copies builtins to userData (so user can edit).
 - Indexed in DB row.
@@ -381,8 +410,8 @@ type AgentState = {
   prompt: string;
   plan?: Plan;
   selectedSkills: string[];
-  history: ChatMessage[];          // running conversation
-  scratchpad: ToolCall[];          // recent tool calls
+  history: ChatMessage[]; // running conversation
+  scratchpad: ToolCall[]; // recent tool calls
   iteration: number;
   maxIterations: number;
   testReport?: TestReport;
@@ -415,11 +444,13 @@ Cancellation: every node receives an `AbortSignal` from `runner.ts`; UI "Stop" b
 ## 12. Task Queue & Scheduler
 
 `TaskQueue`:
+
 - FIFO array of taskIds, configurable `concurrency` (default 1).
 - `enqueue(taskId)` → status `queued`. Worker loop pulls and calls `runTask(taskId)`.
 - `cancel(taskId)` aborts active or removes from queue.
 
 `Scheduler` (`node-cron`):
+
 - On boot, loads all enabled `schedules`, registers cron jobs.
 - On fire: creates a new `task` (and session if missing) and enqueues it.
 - CRUD in UI updates registrations in real time.
@@ -503,6 +534,7 @@ Approval modal pops globally when an approval row enters `pending`; user clicks 
 ## 18. Build, Run, Package
 
 Scripts (`package.json`):
+
 ```
 "dev"        : electron-vite dev
 "build"      : electron-vite build
@@ -524,64 +556,74 @@ Electron-builder targets macOS first (dmg + zip), then later win/linux.
 Each phase ends with a runnable app. Acceptance criteria are checkable.
 
 ### Phase 1 — Scaffold
+
 - Init repo, `electron-vite` template, TS strict.
 - Tailwind + shadcn/ui + base layout (Sidebar + empty pages).
 - tRPC wired (renderer ↔ main) with a `ping` route.
 - SQLite + Drizzle initial migration with all tables empty.
 - App boots showing Sidebar, "Hello ASE".
-**Done when:** `pnpm dev` opens window, `ping` returns "pong" via tRPC.
+  **Done when:** `pnpm dev` opens window, `ping` returns "pong" via tRPC.
 
 ### Phase 2 — Workspaces & Editor
+
 - Workspace CRUD (managed under userData, or "Open existing folder…").
 - File tree (`file.tree`) and Monaco viewer/editor with save.
 - Workspace selector in top bar persists in `settings`.
-**Done when:** user can create a workspace, open files, edit + save.
+  **Done when:** user can create a workspace, open files, edit + save.
 
 ### Phase 3 — LLM Provider
+
 - Ollama provider + Settings page model picker.
 - Health check + onboarding banner if Ollama is missing.
 - "Pull model" with streaming progress in UI.
-**Done when:** Settings shows installed models; can chat-test in a debug page.
+  **Done when:** Settings shows installed models; can chat-test in a debug page.
 
 ### Phase 4 — Tools & Sandbox
+
 - Implement all tools listed in §7 with unit tests.
 - Sandbox runner with timeout/env scrub/allowlist.
-**Done when:** unit tests pass; tools callable from a debug tRPC route.
+  **Done when:** unit tests pass; tools callable from a debug tRPC route.
 
 ### Phase 5 — Single-Agent Loop (LangGraph)
+
 - Planner → Executor → Tester → Critic graph.
 - `runTask(taskId)` runs end-to-end with EventBus emissions.
 - Persist plan, steps, results.
-**Done when:** Submit "Create a hello.js that prints Hello and a passing vitest", task succeeds with files created and tests green.
+  **Done when:** Submit "Create a hello.js that prints Hello and a passing vitest", task succeeds with files created and tests green.
 
 ### Phase 6 — Sessions & Task UI
+
 - Sessions page + Session view with chat + live task timeline.
 - Approval dialog wired.
 - Cancel / Retry buttons.
-**Done when:** A user can run, watch, cancel, and retry tasks visually.
+  **Done when:** A user can run, watch, cancel, and retry tasks visually.
 
 ### Phase 7 — Skills System
+
 - Skills loader, builtin skills (`node-testing`, `bug-fix`, `refactor-ts`).
 - Planner picks skills; executor uses them.
 - Skills UI (toggle, edit, new).
-**Done when:** Toggling a skill changes planner output; new skill discovered after refresh.
+  **Done when:** Toggling a skill changes planner output; new skill discovered after refresh.
 
 ### Phase 8 — Background Tasks & Scheduler
+
 - TaskQueue with concurrency setting.
 - Tray icon + native notifications.
 - Schedules CRUD + node-cron + Schedules page.
-**Done when:** A scheduled task fires at the cron time and notifies via tray.
+  **Done when:** A scheduled task fires at the cron time and notifies via tray.
 
 ### Phase 9 — Git Integration
+
 - `git_*` tools enabled; "auto-branch per task" setting.
 - Show working diff in Session view (read-only Monaco diff).
-**Done when:** A task creates branch `ase/<taskId>` and commits its changes when enabled.
+  **Done when:** A task creates branch `ase/<taskId>` and commits its changes when enabled.
 
 ### Phase 10 — Polish & Package
+
 - Theming (light/dark), keyboard shortcuts, error boundaries.
 - Logs folder, export task report (JSON+md).
 - electron-builder dmg.
-**Done when:** Installable `.dmg` runs the full flow.
+  **Done when:** Installable `.dmg` runs the full flow.
 
 ---
 
@@ -589,7 +631,7 @@ Each phase ends with a runnable app. Acceptance criteria are checkable.
 
 1. Launch ASE.
 2. Create workspace **"demo"**.
-3. New session → prompt: *"Add a function `slugify(str)` in `src/slug.ts` and write vitest tests covering spaces, punctuation, and unicode."*
+3. New session → prompt: _"Add a function `slugify(str)` in `src/slug.ts` and write vitest tests covering spaces, punctuation, and unicode."_
 4. Watch planner produce 4 steps; executor writes files; tester runs `vitest`; critic marks done after 1 iteration.
 5. Open `src/slug.ts` in Editor, see code.
 6. Schedules → add cron `0 9 * * *` → "Run a lint check" → toggle on.

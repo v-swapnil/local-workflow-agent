@@ -11,9 +11,7 @@ import {
 export const approvalRouter = router({
   pending: publicProcedure
     .input(z.object({ taskId: z.string().optional() }).optional())
-    .query(({ input }) =>
-      input?.taskId ? listPendingForTask(input.taskId) : listPending(),
-    ),
+    .query(({ input }) => (input?.taskId ? listPendingForTask(input.taskId) : listPending())),
 
   decide: publicProcedure
     .input(

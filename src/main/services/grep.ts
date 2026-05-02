@@ -41,9 +41,7 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepHit[]> 
   const maxFileBytes = opts.maxFileBytes ?? 512 * 1024;
   const cwd = opts.rel ? join(root, opts.rel) : root;
 
-  const matcher = opts.isRegex
-    ? new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i')
-    : null;
+  const matcher = opts.isRegex ? new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i') : null;
   const needle = opts.caseSensitive ? opts.pattern : opts.pattern.toLowerCase();
 
   const entries = await fg('**/*', {

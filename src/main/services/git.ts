@@ -128,7 +128,10 @@ export async function workspaceDiff(workspaceId: string, staged = false): Promis
   return { isRepo: true, unifiedDiff: tracked + untracked, staged };
 }
 
-export async function showFileAtHead(workspaceId: string, filePath: string): Promise<string | null> {
+export async function showFileAtHead(
+  workspaceId: string,
+  filePath: string,
+): Promise<string | null> {
   const ws = await getWorkspace(workspaceId);
   if (!(await isRepo(ws.path))) return null;
 

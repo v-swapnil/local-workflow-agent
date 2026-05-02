@@ -9,12 +9,12 @@
 
 Replace (or augment) the current list-based Sessions page with a **Kanban board** where each session is a draggable card placed in one of four lanes:
 
-| Lane | Meaning | Colour accent |
-|---|---|---|
-| **Todo** | Session created but no task has started running yet | `slate` / neutral |
-| **In Progress** | At least one task is actively `running` or `queued` | `amber` |
-| **Done** | All tasks in the session have `succeeded` | `emerald` |
-| **Need Help** | A task is `awaiting_approval`, `failed`, or `cancelled` — user attention required | `rose` |
+| Lane            | Meaning                                                                           | Colour accent     |
+| --------------- | --------------------------------------------------------------------------------- | ----------------- |
+| **Todo**        | Session created but no task has started running yet                               | `slate` / neutral |
+| **In Progress** | At least one task is actively `running` or `queued`                               | `amber`           |
+| **Done**        | All tasks in the session have `succeeded`                                         | `emerald`         |
+| **Need Help**   | A task is `awaiting_approval`, `failed`, or `cancelled` — user attention required | `rose`            |
 
 Users can also **manually drag** a card between lanes (e.g. move a "Done" session back to "Todo" to re-run it), which persists a `kanban_lane` override on the session row.
 
@@ -35,7 +35,7 @@ export const sessions = sqliteTable(
   'sessions',
   {
     // ... existing columns ...
-    kanbanLane: text('kanban_lane'),          // 'todo' | 'in_progress' | 'done' | 'need_help' | null
+    kanbanLane: text('kanban_lane'), // 'todo' | 'in_progress' | 'done' | 'need_help' | null
   },
   (t) => ({ wsIdx: index('idx_sessions_ws').on(t.workspaceId) }),
 );
@@ -53,11 +53,11 @@ export type KanbanLane = 'todo' | 'in_progress' | 'done' | 'need_help';
 export function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
   if (taskStatuses.length === 0) return 'todo';
 
-  const hasAwaiting  = taskStatuses.includes('awaiting_approval');
-  const hasFailed    = taskStatuses.includes('failed');
+  const hasAwaiting = taskStatuses.includes('awaiting_approval');
+  const hasFailed = taskStatuses.includes('failed');
   const hasCancelled = taskStatuses.includes('cancelled');
-  const hasRunning   = taskStatuses.includes('running');
-  const hasQueued    = taskStatuses.includes('queued');
+  const hasRunning = taskStatuses.includes('running');
+  const hasQueued = taskStatuses.includes('queued');
   const allSucceeded = taskStatuses.every((s) => s === 'succeeded');
 
   // Need Help takes priority — user must intervene
@@ -83,7 +83,7 @@ export interface KanbanCard {
   title: string;
   workspaceId: string;
   lane: KanbanLane;
-  manualLane: KanbanLane | null;          // user override, null = auto
+  manualLane: KanbanLane | null; // user override, null = auto
   taskSummary: {
     total: number;
     queued: number;
@@ -93,7 +93,7 @@ export interface KanbanCard {
     awaitingApproval: number;
     cancelled: number;
   };
-  lastActivity: number;                   // epoch ms
+  lastActivity: number; // epoch ms
   createdAt: number;
 }
 ```
@@ -104,10 +104,10 @@ export interface KanbanCard {
 
 ### 3.1 New tRPC procedures (add to `sessionRouter`)
 
-| Procedure | Type | Input | Returns |
-|---|---|---|---|
-| `kanban` | `query` | `{ workspaceId?: string }` | `KanbanCard[]` — all sessions with computed lanes |
-| `setLane` | `mutation` | `{ sessionId: string, lane: KanbanLane \| null }` | `{ ok: true }` — sets `kanban_lane` override |
+| Procedure  | Type       | Input                                                        | Returns                                                         |
+| ---------- | ---------- | ------------------------------------------------------------ | --------------------------------------------------------------- |
+| `kanban`   | `query`    | `{ workspaceId?: string }`                                   | `KanbanCard[]` — all sessions with computed lanes               |
+| `setLane`  | `mutation` | `{ sessionId: string, lane: KanbanLane \| null }`            | `{ ok: true }` — sets `kanban_lane` override                    |
 | `moveLane` | `mutation` | `{ sessionId: string, lane: KanbanLane, position?: number }` | `{ ok: true }` — same as `setLane` but also persists sort order |
 
 #### `kanban` query implementation sketch
@@ -160,7 +160,7 @@ In the task runner (`src/main/orchestrator/runner.ts`), after updating a task st
 
 ```ts
 // After task status changes:
-setSessionKanbanLane(task.sessionId, null);   // reset to auto-derived
+setSessionKanbanLane(task.sessionId, null); // reset to auto-derived
 ```
 
 This can be gated behind a setting `kanban.autoClearOverride` (default `true`).
@@ -171,11 +171,11 @@ This can be gated behind a setting `kanban.autoClearOverride` (default `true`).
 
 ### 4.1 New files
 
-| File | Purpose |
-|---|---|
-| `src/renderer/src/pages/KanbanBoard.tsx` | Top-level page component |
-| `src/renderer/src/components/KanbanLane.tsx` | Single lane column |
-| `src/renderer/src/components/KanbanCard.tsx` | Draggable session card |
+| File                                         | Purpose                  |
+| -------------------------------------------- | ------------------------ |
+| `src/renderer/src/pages/KanbanBoard.tsx`     | Top-level page component |
+| `src/renderer/src/components/KanbanLane.tsx` | Single lane column       |
+| `src/renderer/src/components/KanbanCard.tsx` | Draggable session card   |
 
 ### 4.2 Dependencies
 
@@ -207,6 +207,7 @@ pnpm add @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
 **Layout**: Horizontal 4-column grid, each column scrollable vertically. Full height of the content area.
 
 **Key behaviours**:
+
 - Cards are draggable between lanes via `@dnd-kit`.
 - Dropping a card in a new lane calls `session.setLane` mutation.
 - Each lane header shows the lane name + count badge.
@@ -227,6 +228,7 @@ Each card shows:
 ```
 
 **Card states by lane**:
+
 - **Todo**: neutral border, muted styling.
 - **In Progress**: amber left-border accent, optional animated pulse on the running-count chip.
 - **Done**: emerald left-border accent, checkmark icon.
@@ -327,17 +329,17 @@ function SortableCard({ card }: { card: KanbanCard }) {
 
 Follow the existing app aesthetic (dark theme, `font-mono` for labels, `font-serif` for titles, amber/ink colour palette).
 
-| Element | Style |
-|---|---|
-| Board background | `bg-ink-950` (same as page bg) |
-| Lane column | `bg-ink-900/40 border border-ink-800 rounded-lg`, `min-w-[260px]` |
-| Lane header | `font-mono text-[10px] uppercase tracking-widest2`, lane-colour text |
-| Card | `bg-ink-900 border border-ink-800 rounded-md p-3`, hover → `border-ink-700` |
-| Card dragging | `opacity-60 ring-2 ring-amber-500/40 rotate-2` |
-| Drop indicator | Thin amber line between cards |
-| Need Help lane | `border-rose-800/40` header, pulsing dot when non-empty |
-| Progress bar | `h-1 rounded-full`, filled portion uses lane colour |
-| Count badge | `bg-ink-800 text-ink-300 text-[10px] rounded-full px-1.5` |
+| Element          | Style                                                                       |
+| ---------------- | --------------------------------------------------------------------------- |
+| Board background | `bg-ink-950` (same as page bg)                                              |
+| Lane column      | `bg-ink-900/40 border border-ink-800 rounded-lg`, `min-w-[260px]`           |
+| Lane header      | `font-mono text-[10px] uppercase tracking-widest2`, lane-colour text        |
+| Card             | `bg-ink-900 border border-ink-800 rounded-md p-3`, hover → `border-ink-700` |
+| Card dragging    | `opacity-60 ring-2 ring-amber-500/40 rotate-2`                              |
+| Drop indicator   | Thin amber line between cards                                               |
+| Need Help lane   | `border-rose-800/40` header, pulsing dot when non-empty                     |
+| Progress bar     | `h-1 rounded-full`, filled portion uses lane colour                         |
+| Count badge      | `bg-ink-800 text-ink-300 text-[10px] rounded-full px-1.5`                   |
 
 ---
 
@@ -345,10 +347,10 @@ Follow the existing app aesthetic (dark theme, `font-mono` for labels, `font-ser
 
 Add to the Settings page under a "Kanban" section:
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `kanban.autoClearOverride` | `boolean` | `true` | Reset manual lane placement when task status changes |
-| `kanban.defaultView` | `'board' \| 'list'` | `'board'` | Default Sessions page view |
+| Key                        | Type                | Default   | Description                                          |
+| -------------------------- | ------------------- | --------- | ---------------------------------------------------- |
+| `kanban.autoClearOverride` | `boolean`           | `true`    | Reset manual lane placement when task status changes |
+| `kanban.defaultView`       | `'board' \| 'list'` | `'board'` | Default Sessions page view                           |
 
 Stored in the existing `settings` table as `kanban.autoClearOverride` → `"true"`.
 
@@ -401,21 +403,21 @@ The renderer subscribes on mount and calls `utils.session.kanban.invalidate()` o
 
 ## 10. Implementation Steps
 
-| # | Step | Files touched |
-|---|---|---|
-| 1 | Add `KanbanLane` type + `deriveKanbanLane` helper | `src/shared/types.ts` |
-| 2 | Add `kanban_lane` column to schema + generate migration | `src/main/db/schema.ts`, migrations |
-| 3 | Add `setSessionKanbanLane` store helper | `src/main/services/store.ts` |
-| 4 | Add `kanban`, `setLane` procedures to session router | `src/main/ipc/session.ts` |
-| 5 | Add `onKanbanChange` subscription | `src/main/ipc/session.ts` |
-| 6 | Install `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` | `package.json` |
-| 7 | Create `KanbanCard.tsx` component | `src/renderer/src/components/KanbanCard.tsx` |
-| 8 | Create `KanbanLane.tsx` component | `src/renderer/src/components/KanbanLane.tsx` |
-| 9 | Create `KanbanBoard.tsx` page | `src/renderer/src/pages/KanbanBoard.tsx` |
-| 10 | Add `/kanban` route + Sidebar entry | `src/renderer/src/App.tsx`, `Sidebar.tsx` |
-| 11 | Add kanban settings to Settings page | `src/renderer/src/pages/Settings.tsx` |
-| 12 | Auto-clear override in task runner | `src/main/orchestrator/runner.ts` |
-| 13 | Tests: `deriveKanbanLane` unit tests, drag-and-drop E2E | `tests/` |
+| #   | Step                                                               | Files touched                                |
+| --- | ------------------------------------------------------------------ | -------------------------------------------- |
+| 1   | Add `KanbanLane` type + `deriveKanbanLane` helper                  | `src/shared/types.ts`                        |
+| 2   | Add `kanban_lane` column to schema + generate migration            | `src/main/db/schema.ts`, migrations          |
+| 3   | Add `setSessionKanbanLane` store helper                            | `src/main/services/store.ts`                 |
+| 4   | Add `kanban`, `setLane` procedures to session router               | `src/main/ipc/session.ts`                    |
+| 5   | Add `onKanbanChange` subscription                                  | `src/main/ipc/session.ts`                    |
+| 6   | Install `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` | `package.json`                               |
+| 7   | Create `KanbanCard.tsx` component                                  | `src/renderer/src/components/KanbanCard.tsx` |
+| 8   | Create `KanbanLane.tsx` component                                  | `src/renderer/src/components/KanbanLane.tsx` |
+| 9   | Create `KanbanBoard.tsx` page                                      | `src/renderer/src/pages/KanbanBoard.tsx`     |
+| 10  | Add `/kanban` route + Sidebar entry                                | `src/renderer/src/App.tsx`, `Sidebar.tsx`    |
+| 11  | Add kanban settings to Settings page                               | `src/renderer/src/pages/Settings.tsx`        |
+| 12  | Auto-clear override in task runner                                 | `src/main/orchestrator/runner.ts`            |
+| 13  | Tests: `deriveKanbanLane` unit tests, drag-and-drop E2E            | `tests/`                                     |
 
 ---
 

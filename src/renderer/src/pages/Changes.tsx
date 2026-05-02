@@ -42,7 +42,8 @@ function changeMeta(kind: ChangeKind): { code: string; label: string; className:
   if (kind === 'created') return { code: 'A', label: 'Added', className: 'text-signal-ok' };
   if (kind === 'deleted') return { code: 'D', label: 'Deleted', className: 'text-signal-err' };
   if (kind === 'renamed') return { code: 'R', label: 'Renamed', className: 'text-purple-400' };
-  if (kind === 'conflicted') return { code: 'C', label: 'Conflicted', className: 'text-signal-warn' };
+  if (kind === 'conflicted')
+    return { code: 'C', label: 'Conflicted', className: 'text-signal-warn' };
   return { code: '?', label: 'Untracked', className: 'text-ink-400' };
 }
 
@@ -62,13 +63,16 @@ function summarizeWorking(files: ChangedFile[]): string {
   return chunks.join(' · ');
 }
 
-function mapPathKind(path: string, status: {
-  created?: string[];
-  modified?: string[];
-  deleted?: string[];
-  conflicted?: string[];
-  renamed?: { from: string; to: string }[];
-}): { kind: ChangeKind; originalPath?: string } {
+function mapPathKind(
+  path: string,
+  status: {
+    created?: string[];
+    modified?: string[];
+    deleted?: string[];
+    conflicted?: string[];
+    renamed?: { from: string; to: string }[];
+  },
+): { kind: ChangeKind; originalPath?: string } {
   const renamed = status.renamed?.find((r) => r.to === path);
   if (renamed) return { kind: 'renamed', originalPath: renamed.from };
   if (status.conflicted?.includes(path)) return { kind: 'conflicted' };
@@ -141,7 +145,9 @@ function ChangedFileList({
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-mono text-ui-sm leading-5">{parts.name}</span>
                 {parts.parent ? (
-                  <span className="block truncate font-mono text-ui-xs text-ink-500">{parts.parent}</span>
+                  <span className="block truncate font-mono text-ui-xs text-ink-500">
+                    {parts.parent}
+                  </span>
                 ) : null}
               </span>
             </button>
@@ -173,10 +179,7 @@ function DiffPanelEditor({
     { enabled: kind !== 'created' && kind !== 'untracked' },
   );
 
-  const current = trpc.file.read.useQuery(
-    { workspaceId, path },
-    { enabled: kind !== 'deleted' },
-  );
+  const current = trpc.file.read.useQuery({ workspaceId, path }, { enabled: kind !== 'deleted' });
 
   const originalText = kind === 'created' || kind === 'untracked' ? '' : (original.data ?? '');
   const modifiedText = kind === 'deleted' ? '' : (current.data?.content ?? '');
@@ -346,7 +349,9 @@ function DiffPanel({
           <SectionHeader>Staged ({filesBySection.staged.length})</SectionHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {status.data && !status.data.isRepo ? (
-              <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">Not a git repository</div>
+              <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
+                Not a git repository
+              </div>
             ) : (
               <ChangedFileList
                 files={filesBySection.staged}
@@ -367,7 +372,9 @@ function DiffPanel({
           <SectionHeader>Others ({filesBySection.others.length})</SectionHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {status.data && !status.data.isRepo ? (
-              <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">Not a git repository</div>
+              <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
+                Not a git repository
+              </div>
             ) : status.data?.clean ? (
               <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
                 Working tree clean - no changes

@@ -19,7 +19,9 @@ export function Editor() {
     );
   }
 
-  return <EditorView workspaceId={workspaceId} activePath={activePath} setActivePath={setActivePath} />;
+  return (
+    <EditorView workspaceId={workspaceId} activePath={activePath} setActivePath={setActivePath} />
+  );
 }
 
 function EditorView({

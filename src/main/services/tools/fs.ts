@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import {
-  fileTree,
-  readWorkspaceFile,
-  writeWorkspaceFile,
-  getWorkspace,
-} from '../workspaces.js';
+import { fileTree, readWorkspaceFile, writeWorkspaceFile, getWorkspace } from '../workspaces.js';
 import { safeJoin } from '../../util/safePath.js';
 import { planPatch } from '../../util/patch.js';
 import { readFileSync, existsSync } from 'node:fs';
@@ -12,7 +7,10 @@ import { grep } from '../grep.js';
 import type { Tool } from './types.js';
 import { writeWorkspaceFile as writeWS, deleteWorkspacePath } from '../workspaces.js';
 
-export const readFileTool: Tool<{ path: string }, { content: string; size: number; truncated: boolean }> = {
+export const readFileTool: Tool<
+  { path: string },
+  { content: string; size: number; truncated: boolean }
+> = {
   name: 'read_file',
   description: 'Read a UTF-8 text file from the workspace.',
   schema: z.object({ path: z.string().min(1) }),
@@ -34,7 +32,10 @@ export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; 
 export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
   name: 'list_dir',
   description: 'Return a directory tree of the workspace (or a sub-path).',
-  schema: z.object({ path: z.string().optional(), depth: z.number().int().min(1).max(8).optional() }),
+  schema: z.object({
+    path: z.string().optional(),
+    depth: z.number().int().min(1).max(8).optional(),
+  }),
   needsApproval: false,
   run: async ({ path, depth }, ctx) => fileTree(ctx.workspaceId, path ?? '', depth ?? 4),
 };

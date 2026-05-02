@@ -11,10 +11,24 @@ loader.config({
 });
 
 const EXT_TO_LANG: Record<string, string> = {
-  ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript',
-  json: 'json', md: 'markdown', mdx: 'markdown', css: 'css', html: 'html',
-  py: 'python', rs: 'rust', go: 'go', java: 'java', sh: 'shell',
-  yaml: 'yaml', yml: 'yaml', toml: 'ini', sql: 'sql',
+  ts: 'typescript',
+  tsx: 'typescript',
+  js: 'javascript',
+  jsx: 'javascript',
+  json: 'json',
+  md: 'markdown',
+  mdx: 'markdown',
+  css: 'css',
+  html: 'html',
+  py: 'python',
+  rs: 'rust',
+  go: 'go',
+  java: 'java',
+  sh: 'shell',
+  yaml: 'yaml',
+  yml: 'yaml',
+  toml: 'ini',
+  sql: 'sql',
 };
 
 export function langFor(path: string): string {

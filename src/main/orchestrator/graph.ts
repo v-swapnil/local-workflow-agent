@@ -19,12 +19,7 @@ import {
   criticUser,
 } from './prompts.js';
 import type { EnvironmentContext } from './prompts.js';
-import type {
-  Plan,
-  Observation,
-  TestReport,
-  Verdict,
-} from '@shared/agent';
+import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
 import type { ToolName } from '../services/tools/types.js';
 import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
@@ -189,7 +184,10 @@ async function llmWithTools(
   // Fallback: model replied with text — check for {"done": true} signal or
   // try to parse a legacy JSON action (backwards-compat for models without tool support).
   try {
-    const parsed = extractJson<{ done?: boolean; action?: { tool: string; args: Record<string, unknown> } }>(text);
+    const parsed = extractJson<{
+      done?: boolean;
+      action?: { tool: string; args: Record<string, unknown> };
+    }>(text);
     if (parsed.done) return { done: true };
     if (parsed.action) {
       return {
@@ -197,7 +195,9 @@ async function llmWithTools(
         done: false,
       };
     }
-  } catch { /* not valid JSON, treat as done */ }
+  } catch {
+    /* not valid JSON, treat as done */
+  }
 
   return { done: true };
 }
@@ -330,9 +330,8 @@ async function plannerNode(
     }));
     // Filter selectedSkills to only those that actually exist + are enabled.
     const validNames = new Set(catalog.map((c) => c.name));
-    const raw = (plan as Plan & { selected_skills?: string[] }).selected_skills
-      ?? plan.selectedSkills
-      ?? [];
+    const raw =
+      (plan as Plan & { selected_skills?: string[] }).selected_skills ?? plan.selectedSkills ?? [];
     plan.selectedSkills = raw.filter((n) => validNames.has(n));
     updateTask(ctx.taskId, { planJson: JSON.stringify(plan).slice(0, 100_000) });
     emitStepFinished(ctx, stepId, true, plan);
@@ -369,7 +368,9 @@ async function executorNode(
     while (stepBudget-- > 0) {
       if (ctx.signal.aborted) throw new Error('aborted');
 
-      const histForLLM = state.history.concat(newObs).filter((o) => o.stepId === planStep.id || true);
+      const histForLLM = state.history
+        .concat(newObs)
+        .filter((o) => o.stepId === planStep.id || true);
       const response = await llmWithTools(
         ctx,
         'executor',

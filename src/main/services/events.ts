@@ -5,17 +5,74 @@ import { eq, asc } from 'drizzle-orm';
 
 export type TaskEvent =
   | { type: 'task.started'; taskId: string; ts: number }
-  | { type: 'task.finished'; taskId: string; ts: number; status: 'succeeded' | 'failed' | 'cancelled'; result?: unknown; error?: string }
+  | {
+      type: 'task.finished';
+      taskId: string;
+      ts: number;
+      status: 'succeeded' | 'failed' | 'cancelled';
+      result?: unknown;
+      error?: string;
+    }
   | { type: 'task.iteration'; taskId: string; ts: number; iteration: number }
   | { type: 'plan'; taskId: string; ts: number; plan: unknown }
-  | { type: 'step.started'; taskId: string; ts: number; stepId: string; agent: string; tool?: string; input?: unknown }
-  | { type: 'step.finished'; taskId: string; ts: number; stepId: string; ok: boolean; output?: unknown; error?: string }
-  | { type: 'log'; taskId: string; ts: number; stream: 'stdout' | 'stderr'; text: string; stepId?: string }
-  | { type: 'llm.call'; taskId: string; ts: number; agent: string; model: string; messages: { role: string; content: string }[]; response: string; durationMs: number }
+  | {
+      type: 'step.started';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      agent: string;
+      tool?: string;
+      input?: unknown;
+    }
+  | {
+      type: 'step.finished';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      ok: boolean;
+      output?: unknown;
+      error?: string;
+    }
+  | {
+      type: 'log';
+      taskId: string;
+      ts: number;
+      stream: 'stdout' | 'stderr';
+      text: string;
+      stepId?: string;
+    }
+  | {
+      type: 'llm.call';
+      taskId: string;
+      ts: number;
+      agent: string;
+      model: string;
+      messages: { role: string; content: string }[];
+      response: string;
+      durationMs: number;
+    }
   | { type: 'llm.delta'; taskId: string; ts: number; agent: string; content: string }
-  | { type: 'critic'; taskId: string; ts: number; verdict: { done: boolean; reason: string; nextHint?: string } }
-  | { type: 'approval.requested'; taskId: string; ts: number; approvalId: string; tool: string; args: unknown }
-  | { type: 'approval.decided'; taskId: string; ts: number; approvalId: string; decision: 'approve' | 'approve_session' | 'deny' };
+  | {
+      type: 'critic';
+      taskId: string;
+      ts: number;
+      verdict: { done: boolean; reason: string; nextHint?: string };
+    }
+  | {
+      type: 'approval.requested';
+      taskId: string;
+      ts: number;
+      approvalId: string;
+      tool: string;
+      args: unknown;
+    }
+  | {
+      type: 'approval.decided';
+      taskId: string;
+      ts: number;
+      approvalId: string;
+      decision: 'approve' | 'approve_session' | 'deny';
+    };
 
 class TaskBus {
   private bus = new EventEmitter();
@@ -26,12 +83,15 @@ class TaskBus {
   emit(taskId: string, event: TaskEvent): void {
     // Persist to SQLite (fire-and-forget, sync via better-sqlite3)
     try {
-      getDb().insert(taskEvents).values({
-        taskId,
-        type: event.type,
-        payloadJson: JSON.stringify(event),
-        ts: event.ts,
-      }).run();
+      getDb()
+        .insert(taskEvents)
+        .values({
+          taskId,
+          type: event.type,
+          payloadJson: JSON.stringify(event),
+          ts: event.ts,
+        })
+        .run();
     } catch {
       // Persistence failure should never break the task pipeline
     }

@@ -71,10 +71,27 @@ function fmtStamp(ts: number): string {
 
 function toMarkdown(payload: {
   exportedAt: number;
-  task: { id: string; prompt: string; status: string; createdAt: number; startedAt: number | null; finishedAt: number | null; iterations: number; maxIterations: number };
+  task: {
+    id: string;
+    prompt: string;
+    status: string;
+    createdAt: number;
+    startedAt: number | null;
+    finishedAt: number | null;
+    iterations: number;
+    maxIterations: number;
+  };
   session: { id: string; title: string; workspaceId: string };
   workspace: { id: string; name: string; path: string } | null;
-  steps: Array<{ id: string; idx: number; agent: string; tool: string | null; status: string; startedAt: number | null; finishedAt: number | null }>;
+  steps: Array<{
+    id: string;
+    idx: number;
+    agent: string;
+    tool: string | null;
+    status: string;
+    startedAt: number | null;
+    finishedAt: number | null;
+  }>;
   result: unknown;
 }): string {
   const lines: string[] = [];

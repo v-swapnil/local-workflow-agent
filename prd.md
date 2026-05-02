@@ -12,31 +12,31 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ### Primary Goals
 
-* Automate repetitive development tasks
-* Reduce developer effort for standard coding workflows
-* Enable background execution of engineering tasks
+- Automate repetitive development tasks
+- Reduce developer effort for standard coding workflows
+- Enable background execution of engineering tasks
 
 ### Secondary Goals
 
-* Improve development speed
-* Provide transparent execution logs
-* Allow human-in-the-loop approvals when needed
+- Improve development speed
+- Provide transparent execution logs
+- Allow human-in-the-loop approvals when needed
 
 ---
 
 ## 3. Non-Goals
 
-* Full replacement of human engineers
-* Complex system architecture design (initially)
-* Multi-repo orchestration (MVP)
+- Full replacement of human engineers
+- Complex system architecture design (initially)
+- Multi-repo orchestration (MVP)
 
 ---
 
 ## 4. Target Users
 
-* Individual developers
-* Small engineering teams
-* Startup founders
+- Individual developers
+- Small engineering teams
+- Startup founders
 
 ---
 
@@ -55,38 +55,32 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 ### Core Components
 
 1. **Frontend (React Dashboard)**
-
-   * Task input
-   * Execution logs
-   * Step approvals
+   - Task input
+   - Execution logs
+   - Step approvals
 
 2. **Backend (Node.js Orchestrator)**
-
-   * Manages agent workflow
-   * Maintains execution state
-   * Interfaces with LLM APIs
+   - Manages agent workflow
+   - Maintains execution state
+   - Interfaces with LLM APIs
 
 3. **Agents**
-
-   * Planner Agent: Breaks tasks into steps
-   * Executor Agent: Writes and executes code
-   * Tester Agent: Validates outputs
+   - Planner Agent: Breaks tasks into steps
+   - Executor Agent: Writes and executes code
+   - Tester Agent: Validates outputs
 
 4. **Execution Environment**
-
-   * Sandbox (Docker)
-   * Runs generated code safely
+   - Sandbox (Docker)
+   - Runs generated code safely
 
 5. **Memory Layer**
-
-   * Short-term: in-memory context
-   * Long-term: database + vector store
+   - Short-term: in-memory context
+   - Long-term: database + vector store
 
 6. **Tooling Layer**
-
-   * File system access
-   * Git operations
-   * CLI execution
+   - File system access
+   - Git operations
+   - CLI execution
 
 ---
 
@@ -94,39 +88,39 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ### Task Execution
 
-* Accept natural language task input
-* Generate execution plan
-* Execute steps sequentially
-* Retry on failure
+- Accept natural language task input
+- Generate execution plan
+- Execute steps sequentially
+- Retry on failure
 
 ### Code Generation
 
-* Create new files
-* Modify existing files
-* Maintain code consistency
+- Create new files
+- Modify existing files
+- Maintain code consistency
 
 ### Execution
 
-* Run code inside sandbox
-* Capture logs and outputs
+- Run code inside sandbox
+- Capture logs and outputs
 
 ### Testing
 
-* Auto-generate tests
-* Execute test suites
-* Validate success criteria
+- Auto-generate tests
+- Execute test suites
+- Validate success criteria
 
 ### Feedback Loop
 
-* Re-plan on failure
-* Iterate until success or limit reached
+- Re-plan on failure
+- Iterate until success or limit reached
 
 ### Git Integration (Optional MVP+)
 
-* Clone repository
-* Create branch
-* Commit changes
-* Open PR
+- Clone repository
+- Create branch
+- Commit changes
+- Open PR
 
 ---
 
@@ -134,22 +128,22 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ### Performance
 
-* Task execution latency < 2–5 minutes (MVP)
+- Task execution latency < 2–5 minutes (MVP)
 
 ### Reliability
 
-* Retry mechanisms for failed steps
-* Max iteration limits to prevent loops
+- Retry mechanisms for failed steps
+- Max iteration limits to prevent loops
 
 ### Security
 
-* Strict sandboxing of execution
-* No direct host system access
+- Strict sandboxing of execution
+- No direct host system access
 
 ### Scalability
 
-* Modular agent architecture
-* Horizontal scaling for execution workers
+- Modular agent architecture
+- Horizontal scaling for execution workers
 
 ---
 
@@ -157,18 +151,18 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ### Included
 
-* Single repository support
-* Node.js project support
-* Planner + Executor + Tester agents
-* Docker-based execution
-* Basic React UI
+- Single repository support
+- Node.js project support
+- Planner + Executor + Tester agents
+- Docker-based execution
+- Basic React UI
 
 ### Excluded
 
-* Multi-language support
-* Browser automation
-* Advanced memory systems
-* Full CI/CD integration
+- Multi-language support
+- Browser automation
+- Advanced memory systems
+- Full CI/CD integration
 
 ---
 
@@ -185,10 +179,10 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ## 11. Success Metrics
 
-* Task success rate (%)
-* Average iterations per task
-* Execution time per task
-* User intervention rate
+- Task success rate (%)
+- Average iterations per task
+- Execution time per task
+- User intervention rate
 
 ---
 
@@ -196,29 +190,29 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 ### Risk: Infinite loops
 
-* Mitigation: iteration limits + timeout
+- Mitigation: iteration limits + timeout
 
 ### Risk: Incorrect code
 
-* Mitigation: testing + validation layer
+- Mitigation: testing + validation layer
 
 ### Risk: High API costs
 
-* Mitigation: caching + cheaper models for execution
+- Mitigation: caching + cheaper models for execution
 
 ### Risk: Security issues
 
-* Mitigation: sandboxed execution environment
+- Mitigation: sandboxed execution environment
 
 ---
 
 ## 13. Future Enhancements
 
-* Multi-repo support
-* Browser automation
-* Autonomous deployment
-* Learning from past tasks
-* Team collaboration features
+- Multi-repo support
+- Browser automation
+- Autonomous deployment
+- Learning from past tasks
+- Team collaboration features
 
 ---
 
@@ -226,26 +220,26 @@ The system will function as a multi-agent workflow capable of handling end-to-en
 
 Week 1:
 
-* Basic orchestration + LLM integration
-* File + execution tools
+- Basic orchestration + LLM integration
+- File + execution tools
 
 Week 2:
 
-* Multi-agent workflow
-* Testing loop
+- Multi-agent workflow
+- Testing loop
 
 Week 3:
 
-* UI dashboard
-* Git integration (optional)
+- UI dashboard
+- Git integration (optional)
 
 ---
 
 ## 15. Open Questions
 
-* How much autonomy vs user control?
-* What level of code quality is acceptable?
-* Should approvals be mandatory for execution?
+- How much autonomy vs user control?
+- What level of code quality is acceptable?
+- Should approvals be mandatory for execution?
 
 ---
 

@@ -16,7 +16,9 @@ export function DebugChat() {
     buf: '',
   });
   const [subKey, setSubKey] = useState<number | null>(null);
-  const subPayload = useRef<{ messages: { role: 'user' | 'assistant' | 'system'; content: string }[] } | null>(null);
+  const subPayload = useRef<{
+    messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+  } | null>(null);
 
   trpc.llm.chatStream.useSubscription(
     {
@@ -132,7 +134,10 @@ function Bubble({ msg, streaming }: { msg: Msg; streaming?: boolean }) {
           {isUser ? 'you' : 'assistant'}
           {streaming && <span className="ml-2 animate-pulse text-amber">streaming…</span>}
         </div>
-        <div className="font-sans">{msg.content}{streaming && <span className="ml-0.5 text-amber">▍</span>}</div>
+        <div className="font-sans">
+          {msg.content}
+          {streaming && <span className="ml-0.5 text-amber">▍</span>}
+        </div>
       </div>
     </div>
   );

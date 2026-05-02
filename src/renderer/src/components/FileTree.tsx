@@ -62,9 +62,10 @@ export function Node({
         <span className="text-ui-2xs text-ink-500">{open ? '▾' : '▸'}</span>
         <span className="truncate">{node.name}</span>
       </button>
-      {open && node.children?.map((c) => (
-        <Node key={c.path} node={c} depth={depth + 1} activePath={activePath} onOpen={onOpen} />
-      ))}
+      {open &&
+        node.children?.map((c) => (
+          <Node key={c.path} node={c} depth={depth + 1} activePath={activePath} onOpen={onOpen} />
+        ))}
     </div>
   );
 }

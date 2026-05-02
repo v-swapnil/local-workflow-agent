@@ -66,8 +66,7 @@ export const llmRouter = router({
     )
     .mutation(async ({ input }) => {
       const p = getProvider('ollama');
-      const model =
-        input.model ?? (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? DEFAULT_MODEL;
+      const model = input.model ?? (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? DEFAULT_MODEL;
       const t0 = Date.now();
       const result = await p.chat({
         model,
@@ -176,7 +175,9 @@ export const llmRouter = router({
     .mutation(async ({ input }) => {
       await setSetting(SETTING_KEYS.COPILOT_CLI_URL, input.url);
       // Force reconnect on next use
-      getCopilotService().disconnect().catch(() => {});
+      getCopilotService()
+        .disconnect()
+        .catch(() => {});
       return { ok: true };
     }),
 
