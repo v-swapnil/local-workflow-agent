@@ -273,6 +273,7 @@ export interface SkillCatalogEntry {
   name: string;
   description: string;
   when_to_use: string;
+  location: string; // absolute path to the skill folder
 }
 
 /** Compact catalog handed to the planner. Only enabled skills are listed. */
@@ -284,6 +285,7 @@ export async function skillCatalog(): Promise<SkillCatalogEntry[]> {
       name: s.name,
       description: s.description,
       when_to_use: s.whenToUse,
+      location: s.path,
     }));
 }
 

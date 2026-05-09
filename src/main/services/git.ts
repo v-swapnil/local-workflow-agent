@@ -60,6 +60,16 @@ export async function ensureRepo(cwd: string): Promise<SimpleGit> {
   return g;
 }
 
+/** Return the git worktree root (rev-parse --show-toplevel), or null if not a repo. */
+export async function getWorktreeRoot(cwd: string): Promise<string | null> {
+  try {
+    if (!(await isRepo(cwd))) return null;
+    return (await gitFor(cwd).revparse(['--show-toplevel'])).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function workspaceStatus(workspaceId: string): Promise<GitStatus> {
   const ws = await getWorkspace(workspaceId);
   if (!(await isRepo(ws.path))) {

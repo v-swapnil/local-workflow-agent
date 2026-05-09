@@ -1,49 +1,44 @@
+import { pathToFileURL } from 'node:url';
 import type { SkillCatalogEntry } from '../services/skills.js';
 import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
 
 /* ───────── Environment context ───────── */
 
 export interface EnvironmentContext {
-  os: string; // e.g. "darwin", "linux", "win32"
-  shell: string | null; // e.g. "/bin/zsh"
-  nodeVersion: string; // e.g. "v20.11.0"
-  workspacePath: string;
+  directory: string;   // working directory (workspace path)
+  worktree: string;    // git worktree root (or same as directory)
+  isGitRepo: boolean;
+  platform: string;    // e.g. "darwin", "linux", "win32"
+  shell: string | null;
   model: string;
   git: {
-    isRepo: boolean;
     branch: string | null;
-    clean: boolean;
-    staged: string[];
-    modified: string[];
-    untracked: string[];
+    changedFiles: string[];
   };
 }
 
 function formatEnvContext(env: EnvironmentContext): string {
   const lines = [
-    `OS: ${env.os}`,
-    `Shell: ${env.shell ?? 'unknown'}`,
-    `Node: ${env.nodeVersion}`,
-    `Workspace: ${env.workspacePath}`,
-    `Model: ${env.model}`,
+    `<env>`,
+    `  Working directory: ${env.directory}`,
+    `  Workspace root folder: ${env.worktree}`,
+    `  Is directory a git repo: ${env.isGitRepo ? 'yes' : 'no'}`,
+    `  Platform: ${env.platform}`,
+    `  Shell: ${env.shell ?? 'unknown'}`,
+    `  Model: ${env.model}`,
+    `  Today's date: ${new Date().toDateString()}`,
   ];
-  if (env.git.isRepo) {
-    lines.push(`Git branch: ${env.git.branch ?? 'HEAD detached'}`);
-    lines.push(`Working tree: ${env.git.clean ? 'clean' : 'dirty'}`);
-    const changed = [
-      ...env.git.staged.map((f) => `  staged: ${f}`),
-      ...env.git.modified.map((f) => `  modified: ${f}`),
-      ...env.git.untracked.map((f) => `  untracked: ${f}`),
-    ];
-    if (changed.length) {
-      lines.push(`Changed files (${changed.length}):`);
-      // Cap to avoid blowing up context
-      lines.push(...changed.slice(0, 30));
-      if (changed.length > 30) lines.push(`  ... and ${changed.length - 30} more`);
+  if (env.isGitRepo) {
+    lines.push(`  Git branch: ${env.git.branch ?? 'HEAD detached'}`);
+    if (env.git.changedFiles.length) {
+      const capped = env.git.changedFiles.slice(0, 30);
+      lines.push(`  Changed files (${env.git.changedFiles.length}):`);
+      for (const f of capped) lines.push(`    ${f}`);
+      if (env.git.changedFiles.length > 30)
+        lines.push(`    ... and ${env.git.changedFiles.length - 30} more`);
     }
-  } else {
-    lines.push('Git: not a repository');
   }
+  lines.push(`</env>`);
   return lines.join('\n');
 }
 
@@ -77,19 +72,33 @@ export function plannerUser(
   env: EnvironmentContext,
 ): string {
   const skillsStr = skills.length
-    ? skills.map((s) => `- ${s.name}: ${s.description}\n  when_to_use: ${s.when_to_use}`).join('\n')
+    ? [
+        '<available_skills>',
+        ...skills
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .flatMap((skill) => [
+            '  <skill>',
+            `    <name>${skill.name}</name>`,
+            `    <description>${skill.description}</description>`,
+            `    <location>${pathToFileURL(skill.location).href}</location>`,
+            '  </skill>',
+          ]),
+        '</available_skills>',
+      ].join('\n')
     : '(none enabled)';
   return `USER GOAL:
 ${prompt}
 
-ENVIRONMENT:
+Here is some useful information about the environment you are running in:
 ${formatEnvContext(env)}
+
+Skills provide specialized instructions and workflows for specific tasks.
+Use the skill tool to load a skill when a task matches its description.
+
+${skillsStr}
 
 WORKSPACE OVERVIEW (top of tree):
 ${workspaceSummary}
-
-SKILLS AVAILABLE:
-${skillsStr}
 
 Produce the plan now.`;
 }
@@ -143,7 +152,7 @@ export function executorUser(
   return `OVERALL GOAL:
 ${goal}
 
-ENVIRONMENT:
+Here is some useful information about the environment you are running in:
 ${formatEnvContext(env)}
 
 PLAN:

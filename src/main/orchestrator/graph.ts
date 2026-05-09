@@ -6,7 +6,7 @@ import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { hasTestsConfigured } from '../services/tools/shell.js';
 import { fileTree } from '../services/workspaces.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
-import { workspaceStatus } from '../services/git.js';
+import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
 import { readdir } from 'node:fs/promises';
 import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
@@ -203,34 +203,34 @@ async function llmWithTools(
 }
 
 async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
-  let git: EnvironmentContext['git'] = {
-    isRepo: false,
-    branch: null,
-    clean: true,
-    staged: [],
-    modified: [],
-    untracked: [],
-  };
+  let isGitRepo = false;
+  let worktree = ctx.workspacePath;
+  let branch: string | null = null;
+  let changedFiles: string[] = [];
   try {
     const status = await workspaceStatus(ctx.workspaceId);
-    git = {
-      isRepo: status.isRepo,
-      branch: status.branch,
-      clean: status.clean,
-      staged: status.staged,
-      modified: status.modified,
-      untracked: status.not_added,
-    };
+    isGitRepo = status.isRepo;
+    if (isGitRepo) {
+      const root = await getWorktreeRoot(ctx.workspacePath);
+      if (root) worktree = root;
+      branch = status.branch;
+      changedFiles = [
+        ...status.staged.map((f) => `staged: ${f}`),
+        ...status.modified.map((f) => `modified: ${f}`),
+        ...status.not_added.map((f) => `untracked: ${f}`),
+      ];
+    }
   } catch {
     // git info is best-effort; swallow errors
   }
   return {
-    os: platform(),
+    directory: ctx.workspacePath,
+    worktree,
+    isGitRepo,
+    platform: platform(),
     shell: process.env.SHELL ?? null,
-    nodeVersion: process.version,
-    workspacePath: ctx.workspacePath,
     model: ctx.model,
-    git,
+    git: { branch, changedFiles },
   };
 }
 
