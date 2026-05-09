@@ -68,10 +68,9 @@ export function SessionTreeNode({
               </span>
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
-            <span>{new Date(session.updatedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-            <span className="text-ink-700">·</span>
-            <span>{taskCount} {taskCount === 1 ? 'task' : 'tasks'}</span>
+          <div className="font-mono text-ui-xs text-ink-500">
+            {new Date(session.updatedAt).toLocaleString()}
+            {tasks.data ? ` · ${tasks.data.length} tasks` : ''}
           </div>
         </button>
 
@@ -83,7 +82,7 @@ export function SessionTreeNode({
           }}
           title="Delete session"
         >
-          ✕
+          del
         </span>
       </div>
 
@@ -117,21 +116,12 @@ export function SessionTreeNode({
                     )}
                   >
                     {/* Task prompt */}
-                    <div className="flex items-start gap-2">
-                      <span className="mt-px shrink-0 font-mono text-ui-2xs text-ink-600">
+                    <div className="flex items-center gap-2">
+                      <span className="shrink-0 font-mono text-ui-xs text-ink-600">
                         #{tasks.data!.length - i}
                       </span>
                       <span
-                        className={cn(
-                          'min-w-0 flex-1 font-mono text-ui-sm leading-snug',
-                          isFocused ? 'text-ink-100' : 'text-ink-200',
-                        )}
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
+                        className={`text-ui-xs min-w-0 flex-1 truncate font-mono text-ink-200 ${isFocused ? 'text-ink-100' : ''}`}
                       >
                         {t.prompt}
                       </span>
