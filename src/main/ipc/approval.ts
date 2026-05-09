@@ -6,6 +6,7 @@ import {
   setAutoApprove,
   listPending,
   listPendingForTask,
+  respondUserInput,
 } from '../services/approvals.js';
 
 export const approvalRouter = router({
@@ -30,4 +31,8 @@ export const approvalRouter = router({
       await setAutoApprove(input.value);
       return { ok: true as const };
     }),
+
+  respondUserInput: publicProcedure
+    .input(z.object({ id: z.string().min(1), answer: z.string() }))
+    .mutation(({ input }) => ({ ok: respondUserInput(input.id, input.answer) })),
 });

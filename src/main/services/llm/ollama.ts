@@ -100,8 +100,8 @@ export class OllamaProvider implements LLMProvider {
     let toolCalls: ToolCallResult[] | undefined;
 
     for await (const chunk of response) {
-      if ((chunk.message as any)?.thinking) {
-        const t = (chunk.message as any).thinking as string;
+      if (chunk.message?.thinking) {
+        const t = chunk.message.thinking;
         thinking += t;
         opts.onThinkingDelta?.(t);
       }

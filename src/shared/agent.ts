@@ -10,7 +10,8 @@ export type ToolName =
   | 'git_status'
   | 'git_diff'
   | 'git_branch'
-  | 'git_commit';
+  | 'git_commit'
+  | 'ask_user';
 
 /** ───────── Plan ───────── */
 

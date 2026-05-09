@@ -154,6 +154,13 @@ export function clearTaskApprovals(taskId: string): void {
       p.resolve('deny');
     }
   }
+  // Also clear pending user-input requests for this task
+  for (const [id, u] of pendingUserInputs) {
+    if (u.taskId === taskId) {
+      pendingUserInputs.delete(id);
+      u.resolve('');
+    }
+  }
 }
 
 /**
@@ -167,4 +174,67 @@ export function clearStaleApprovals(): void {
     .set({ decision: 'stale', decidedAt: Date.now() })
     .where(eq(approvals.decision, 'pending'))
     .run();
+}
+
+/* ───────── User Input Requests ───────── */
+
+interface PendingUserInput {
+  taskId: string;
+  resolve: (answer: string) => void;
+}
+
+const pendingUserInputs = new Map<string, PendingUserInput>();
+
+/**
+ * Block until the user provides a text response.
+ * Similar to `requestApproval` but returns a string answer.
+ */
+export function requestUserInput(
+  taskId: string,
+  question: string,
+  opts?: { context?: string; choices?: string[] },
+  signal?: AbortSignal,
+): Promise<string> {
+  const requestId = nanoid(10);
+
+  return new Promise<string>((resolve, reject) => {
+    pendingUserInputs.set(requestId, { taskId, resolve });
+    taskBus.emit(taskId, {
+      type: 'user_input.requested',
+      taskId,
+      ts: Date.now(),
+      requestId,
+      question,
+      context: opts?.context,
+      choices: opts?.choices,
+    } as never);
+    bus.emit('changed');
+
+    const onAbort = () => {
+      pendingUserInputs.delete(requestId);
+      reject(new Error('aborted'));
+    };
+    if (signal) {
+      if (signal.aborted) return onAbort();
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+  });
+}
+
+export function respondUserInput(id: string, answer: string): boolean {
+  const p = pendingUserInputs.get(id);
+  if (!p) return false;
+  pendingUserInputs.delete(id);
+
+  taskBus.emit(p.taskId, {
+    type: 'user_input.responded',
+    taskId: p.taskId,
+    ts: Date.now(),
+    requestId: id,
+    answer,
+  } as never);
+  bus.emit('changed');
+
+  p.resolve(answer);
+  return true;
 }

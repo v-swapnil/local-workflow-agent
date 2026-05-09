@@ -4,6 +4,7 @@ import { getWorkspace } from '../workspaces.js';
 import { readFileTool, writeFileTool, listDirTool, grepTool, applyPatchTool } from './fs.js';
 import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
+import { askUserTool } from './user.js';
 import { requestApproval } from '../approvals.js';
 import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
@@ -20,6 +21,7 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   git_diff: gitDiffTool as Tool<unknown, unknown>,
   git_branch: gitBranchTool as Tool<unknown, unknown>,
   git_commit: gitCommitTool as Tool<unknown, unknown>,
+  ask_user: askUserTool as Tool<unknown, unknown>,
 };
 
 export function listTools(): {
@@ -92,6 +94,7 @@ export async function invokeTool(
     const ctx: ToolContext = {
       workspaceId: opts.workspaceId,
       workspacePath: opts.workspacePath ?? ws.path,
+      taskId: opts.taskId,
       signal: opts.signal,
       onLog: opts.onLog,
     };

@@ -104,6 +104,12 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   } catch {
     // Column already exists — ignore
   }
+  // Additive migration: add provider to tasks if missing
+  try {
+    _sqlite.exec(`ALTER TABLE tasks ADD COLUMN provider TEXT`);
+  } catch {
+    // Column already exists — ignore
+  }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

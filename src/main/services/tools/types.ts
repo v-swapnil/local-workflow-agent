@@ -5,6 +5,7 @@ export type { ToolName };
 export interface ToolContext {
   workspaceId: string;
   workspacePath: string;
+  taskId?: string;
   signal?: AbortSignal;
   onLog?: (chunk: { stream: 'stdout' | 'stderr'; text: string }) => void;
 }

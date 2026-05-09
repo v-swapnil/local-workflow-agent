@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { cn } from '../lib/utils';
-import { useUI } from '../store/ui';
 
 type TaskEvent =
   | { type: 'task.started'; taskId: string; ts: number }
@@ -71,6 +69,22 @@ type TaskEvent =
       ts: number;
       approvalId: string;
       decision: 'approve' | 'approve_session' | 'deny';
+    }
+  | {
+      type: 'user_input.requested';
+      taskId: string;
+      ts: number;
+      requestId: string;
+      question: string;
+      context?: string;
+      choices?: string[];
+    }
+  | {
+      type: 'user_input.responded';
+      taskId: string;
+      ts: number;
+      requestId: string;
+      answer: string;
     };
 
 export function Sessions() {
@@ -129,7 +143,7 @@ export function Sessions() {
   };
 
   return (
-    <div className="grid h-full grid-cols-[280px_1fr] gap-6 p-6">
+    <div className="grid h-full grid-cols-[320px_1fr] gap-6 p-6">
       <aside className="flex flex-col">
         <div className="mb-3 flex items-center justify-between">
           <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
@@ -161,7 +175,10 @@ export function Sessions() {
               isActive={sessionId === s.id}
               isExpanded={expandedSessions.has(s.id)}
               focusedTaskId={focusedTaskId}
-              onSelect={() => setSessionId(s.id)}
+              onSelect={() => {
+                setSessionId(s.id);
+                setFocusedTaskId(null);
+              }}
               onToggle={() => toggleExpand(s.id)}
               onDelete={() => {
                 if (confirm(`Delete session "${s.title}"?`)) del.mutate({ id: s.id });
@@ -264,19 +281,35 @@ function SessionTreeNode({
               key={t.id}
               onClick={() => onTaskSelect(t.id)}
               className={cn(
-                'mt-0.5 flex w-full items-center gap-2 rounded px-2 py-1 text-left transition-colors',
+                'mt-0.5 flex w-full flex-col gap-0.5 rounded px-2 py-1.5 text-left transition-colors',
                 focusedTaskId === t.id
-                  ? 'bg-amber-950/30'
-                  : 'hover:bg-ink-900/40',
+                  ? 'bg-amber-950/30 border border-amber-800/40'
+                  : 'border border-transparent hover:bg-ink-900/40',
               )}
             >
-              <span className="shrink-0 font-mono text-ui-xs text-ink-600">
-                #{tasks.data!.length - i}
-              </span>
-              <span className="min-w-0 flex-1 truncate font-mono text-ui-xs text-ink-300">
-                {t.prompt}
-              </span>
-              <StatusPill status={t.status} compact />
+              <div className="flex w-full items-center gap-2">
+                <span className="shrink-0 font-mono text-ui-xs text-ink-600">
+                  #{tasks.data!.length - i}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-mono text-ui-xs text-ink-200">
+                  {t.prompt}
+                </span>
+              </div>
+              <div className="flex w-full items-center gap-2 pl-5">
+                <StatusPill status={t.status} compact />
+                <span className="font-mono text-ui-2xs text-ink-600">
+                  {t.finishedAt
+                    ? new Date(t.finishedAt).toLocaleTimeString([], { hour12: false })
+                    : t.startedAt
+                      ? 'running…'
+                      : 'queued'}
+                </span>
+                {t.iterations > 0 && (
+                  <span className="font-mono text-ui-2xs text-ink-600">
+                    {t.iterations}/{t.maxIterations} iter
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -398,6 +431,14 @@ interface ApprovalReq {
   ts: number;
 }
 
+interface UserInputReq {
+  id: string;
+  question: string;
+  context?: string;
+  choices?: string[];
+  ts: number;
+}
+
 const getEvents = (previousEvents: TaskEvent[], currentEvent: TaskEvent) => {
   const lastEvent = previousEvents[previousEvents.length - 1];
   if (
@@ -422,9 +463,11 @@ function TaskView({ taskId }: { taskId: string }) {
   });
   const exportReport = trpc.task.exportReport.useMutation();
   const decide = trpc.approval.decide.useMutation();
+  const respondInput = trpc.approval.respondUserInput.useMutation();
 
   const [events, setEvents] = useState<TaskEvent[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalReq[]>([]);
+  const [pendingUserInputs, setPendingUserInputs] = useState<UserInputReq[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
   trpc.task.events.useSubscription(
@@ -440,8 +483,16 @@ function TaskView({ taskId }: { taskId: string }) {
           ]);
         } else if (e.type === 'approval.decided') {
           setPendingApprovals((prev) => prev.filter((a) => a.id !== e.approvalId));
+        } else if (e.type === 'user_input.requested') {
+          setPendingUserInputs((prev) => [
+            ...prev,
+            { id: e.requestId, question: e.question, context: e.context, choices: e.choices, ts: e.ts },
+          ]);
+        } else if (e.type === 'user_input.responded') {
+          setPendingUserInputs((prev) => prev.filter((r) => r.id !== e.requestId));
         } else if (e.type === 'task.finished') {
           setPendingApprovals([]);
+          setPendingUserInputs([]);
         }
       },
     },
@@ -451,19 +502,7 @@ function TaskView({ taskId }: { taskId: string }) {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [events.length]);
 
-  const plan = useMemo(() => {
-    const ev = [...events].reverse().find((e) => e.type === 'plan');
-    return ev?.type === 'plan' ? ev.plan : null;
-  }, [events]);
-
-  const verdict = useMemo(() => {
-    const ev = [...events].reverse().find((e) => e.type === 'critic');
-    return ev?.type === 'critic' ? ev.verdict : null;
-  }, [events]);
-
   const status = task.data?.status ?? 'queued';
-  const provider = task.data?.provider ?? 'ollama';
-  const showPlanVerdict = provider === 'ollama';
   const running = status === 'running' || status === 'queued';
   const finished = status === 'succeeded' || status === 'failed' || status === 'cancelled';
 
@@ -472,19 +511,13 @@ function TaskView({ taskId }: { taskId: string }) {
   useEffect(() => {
     if (finished) {
       setPendingApprovals([]);
+      setPendingUserInputs([]);
     }
   }, [finished]);
 
-  // Refresh git diff when files likely changed.
-  const fileTouched = useMemo(() => {
-    return events.filter(
-      (e) => e.type === 'step.finished' || (e.type === 'log' && e.text.startsWith('[git]')),
-    ).length;
-  }, [events]);
-
   return (
-    <div className={cn('grid h-full min-h-0 gap-4 overflow-hidden', showPlanVerdict ? 'grid-cols-[1fr_320px]' : 'grid-cols-1')}>
-      <div className="flex min-h-0 min-w-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-col flex-1">
         <div className="mb-2 flex items-center justify-between">
           <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
             event stream
@@ -508,13 +541,15 @@ function TaskView({ taskId }: { taskId: string }) {
                 >
                   {exportReport.isPending ? 'exporting…' : 'export report'}
                 </button>
-                <button
-                  onClick={() => retry.mutate({ id: taskId })}
-                  disabled={retry.isPending}
-                  className="rounded border border-amber-700/60 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/40 disabled:opacity-40"
-                >
-                  retry
-                </button>
+                {status !== 'succeeded' && (
+                  <button
+                    onClick={() => retry.mutate({ id: taskId })}
+                    disabled={retry.isPending}
+                    className="rounded border border-amber-700/60 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/40 disabled:opacity-40"
+                  >
+                    retry
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -531,53 +566,6 @@ function TaskView({ taskId }: { taskId: string }) {
         </div>
       </div>
 
-      {showPlanVerdict && (
-        <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <Panel title="plan">
-            {plan ? (
-              <div>
-                <div className="mb-2 font-serif text-ui-lg italic text-ink-200">{plan.summary}</div>
-                {plan.selectedSkills && plan.selectedSkills.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1">
-                    {plan.selectedSkills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded border border-amber-700/60 bg-amber-950/20 px-1.5 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber-300"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <ol className="space-y-1 font-mono text-ui-sm">
-                  {plan.steps.map((s, i) => (
-                    <li key={s.id} className="text-ink-200">
-                      <span className="text-ink-500">{i + 1}.</span> {s.goal}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ) : (
-              <div className="font-mono text-ui-sm text-ink-500">awaiting plan…</div>
-            )}
-          </Panel>
-          <Panel title="verdict">
-            {verdict ? (
-              <div className="space-y-1 font-mono text-ui-sm">
-                <div className={verdict.done ? 'text-emerald-400' : 'text-amber-400'}>
-                  {verdict.done ? '✔ done' : '↻ continue'}
-                </div>
-                <DiffPanel touchedKey={fileTouched} />
-                <div className="text-ink-300">{verdict.reason}</div>
-                {verdict.nextHint && <div className="text-ink-500">hint: {verdict.nextHint}</div>}
-              </div>
-            ) : (
-              <div className="font-mono text-ui-sm text-ink-500">no verdict yet</div>
-            )}
-          </Panel>
-        </aside>
-      )}
-
       {pendingApprovals.length > 0 && pendingApprovals[0] && (
         <ApprovalModal
           req={pendingApprovals[0]}
@@ -592,6 +580,36 @@ function TaskView({ taskId }: { taskId: string }) {
                     // Backend can't resolve (stale) — just remove from UI
                     setPendingApprovals((prev) => prev.filter((a) => a.id !== aid));
                   }
+                },
+              },
+            );
+          }}
+        />
+      )}
+
+      {pendingUserInputs.length > 0 && pendingUserInputs[0] && (
+        <UserInputModal
+          req={pendingUserInputs[0]}
+          onSubmit={(answer) => {
+            const rid = pendingUserInputs[0]!.id;
+            respondInput.mutate(
+              { id: rid, answer },
+              {
+                onSuccess: (res) => {
+                  if (!res.ok) {
+                    setPendingUserInputs((prev) => prev.filter((r) => r.id !== rid));
+                  }
+                },
+              },
+            );
+          }}
+          onDismiss={() => {
+            const rid = pendingUserInputs[0]!.id;
+            respondInput.mutate(
+              { id: rid, answer: '' },
+              {
+                onSuccess: () => {
+                  setPendingUserInputs((prev) => prev.filter((r) => r.id !== rid));
                 },
               },
             );
@@ -661,13 +679,74 @@ function ApprovalModal({
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function UserInputModal({
+  req,
+  onSubmit,
+  onDismiss,
+}: {
+  req: UserInputReq;
+  onSubmit: (answer: string) => void;
+  onDismiss: () => void;
+}) {
+  const [answer, setAnswer] = useState('');
+
   return (
-    <div className="rounded border border-ink-800 bg-ink-900/40 p-3">
-      <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-        {title}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+      <div className="w-[560px] max-w-[90vw] rounded border border-sky-700/60 bg-ink-950 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-ink-800 px-4 py-3">
+          <div>
+            <div className="font-mono text-ui-xs uppercase tracking-widest2 text-sky-400">
+              input requested
+            </div>
+            <div className="mt-1 font-serif text-lg text-ink-50">{req.question}</div>
+          </div>
+          <div className="font-mono text-ui-xs text-ink-500">
+            {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
+          </div>
+        </div>
+        {req.context && (
+          <div className="border-b border-ink-800 px-4 py-2 font-mono text-ui-sm text-ink-400">
+            {req.context}
+          </div>
+        )}
+        <form
+          className="px-4 py-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(answer);
+          }}
+        >
+          <textarea
+            value={answer}
+            onChange={(e) => setAnswer(e.target.value)}
+            placeholder="type your response…"
+            rows={3}
+            autoFocus
+            className="w-full resize-none rounded border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ui-sm text-ink-100 placeholder:text-ink-600 focus:border-sky-700/60 focus:outline-none"
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                onSubmit(answer);
+              }
+            }}
+          />
+        </form>
+        <div className="flex items-center justify-end gap-2 border-t border-ink-800 px-4 py-3">
+          <button
+            onClick={onDismiss}
+            className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-ink-300 hover:bg-ink-900"
+          >
+            skip
+          </button>
+          <button
+            onClick={() => onSubmit(answer)}
+            disabled={!answer.trim()}
+            className="rounded border border-sky-700/60 bg-sky-950/30 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-sky-300 hover:bg-sky-950/60 disabled:opacity-40"
+          >
+            send
+          </button>
+        </div>
       </div>
-      {children}
     </div>
   );
 }
@@ -695,79 +774,123 @@ function StatusPill({ status, compact }: { status: string; compact?: boolean }) 
 
 function EventRow({ ev }: { ev: TaskEvent }) {
   const t = new Date(ev.ts).toLocaleTimeString([], { hour12: false });
-  const ts = <span className="text-ink-600">{t}</span>;
 
   switch (ev.type) {
     case 'task.started':
-      return <Line tone="amber">{ts} ▶ task started</Line>;
+      return <Line ts={t} tone="amber">▶ task started</Line>;
     case 'task.finished':
       return (
         <Line
+          ts={t}
           tone={ev.status === 'succeeded' ? 'emerald' : ev.status === 'cancelled' ? 'ink' : 'rose'}
         >
-          {ts} ■ task {ev.status}
+          ■ task {ev.status}
           {ev.error ? ` · ${ev.error.slice(0, 200)}` : ''}
         </Line>
       );
     case 'plan':
       return (
-        <Line tone="ink">
-          {ts} ▣ plan: {ev.plan.summary}
-        </Line>
+        <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
+            <span className="font-mono text-ui-xs uppercase tracking-widest2 text-amber-400">▣ plan</span>
+          </div>
+          <div className="mt-1 font-serif text-ui-sm italic text-ink-200">{ev.plan.summary}</div>
+          {ev.plan.selectedSkills && ev.plan.selectedSkills.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {ev.plan.selectedSkills.map((s) => (
+                <span
+                  key={s}
+                  className="rounded border border-amber-700/60 bg-amber-950/20 px-1.5 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber-300"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+          <ol className="mt-1 space-y-0.5 font-mono text-ui-xs">
+            {ev.plan.steps.map((s, i) => (
+              <li key={s.id} className="text-ink-300">
+                <span className="text-ink-500">{i + 1}.</span> {s.goal}
+              </li>
+            ))}
+          </ol>
+        </div>
       );
     case 'step.started':
       return (
-        <Line tone="ink">
-          {ts} → {ev.agent}
+        <Line ts={t} tone="ink">
+          → {ev.agent}
           {ev.tool ? `:${ev.tool}` : ''}
         </Line>
       );
     case 'step.finished':
       return (
-        <Line tone={ev.ok ? 'ink' : 'rose'}>
-          {ts} ← step {ev.ok ? 'ok' : `fail · ${(ev.error ?? '').slice(0, 200)}`}
+        <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
+          ← step {ev.ok ? 'ok' : `fail · ${(ev.error ?? '').slice(0, 200)}`}
         </Line>
       );
     case 'log':
       return (
-        <Line tone={ev.stream === 'stderr' ? 'rose' : 'ink'} dim>
-          {ts} {ev.text.replace(/\n+$/, '')}
+        <Line ts={t} tone={ev.stream === 'stderr' ? 'rose' : 'ink'} dim>
+          {ev.text.replace(/\n+$/, '')}
         </Line>
       );
     case 'critic':
       return (
-        <Line tone={ev.verdict.done ? 'emerald' : 'amber'}>
-          {ts} ⚖ critic: {ev.verdict.reason}
-        </Line>
+        <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
+            <span className={cn('font-mono text-ui-xs uppercase tracking-widest2', ev.verdict.done ? 'text-emerald-400' : 'text-amber-400')}>
+              ⚖ {ev.verdict.done ? 'done' : 'continue'}
+            </span>
+          </div>
+          <div className="mt-1 font-mono text-ui-xs text-ink-300">{ev.verdict.reason}</div>
+          {ev.verdict.nextHint && (
+            <div className="mt-0.5 font-mono text-ui-xs text-ink-500">hint: {ev.verdict.nextHint}</div>
+          )}
+        </div>
       );
     case 'approval.requested':
       return (
-        <Line tone="amber">
-          {ts} ⚑ approval requested · {ev.tool}
+        <Line ts={t} tone="amber">
+          ⚑ approval requested · {ev.tool}
         </Line>
       );
     case 'approval.decided':
       return (
-        <Line tone={ev.decision === 'deny' ? 'rose' : 'emerald'}>
-          {ts} ⚐ approval {ev.decision}
+        <Line ts={t} tone={ev.decision === 'deny' ? 'rose' : 'emerald'}>
+          ⚐ approval {ev.decision}
         </Line>
       );
     case 'llm.delta':
       return (
-        <Line tone="emerald" dim>
-          {ts} ← {ev.content}
+        <Line ts={t} tone="emerald" dim>
+          {ev.content}
         </Line>
       );
     case 'llm.thinking_delta':
       return (
-        <Line tone="purple" dim>
-          {ts} 💭 {ev.content}
+        <Line ts={t} tone="purple" dim>
+          💭 {ev.content}
         </Line>
       );
     case 'task.iteration':
       return (
-        <Line tone="amber">
-          {ts} ↻ iteration {ev.iteration}
+        <Line ts={t} tone="amber">
+          ↻ iteration {ev.iteration}
+        </Line>
+      );
+    case 'user_input.requested':
+      return (
+        <Line ts={t} tone="sky">
+          ✋ question: {ev.question}
+        </Line>
+      );
+    case 'user_input.responded':
+      return (
+        <Line ts={t} tone="sky">
+          ✓ answered: {ev.answer || '(skipped)'}
         </Line>
       );
     default:
@@ -776,11 +899,13 @@ function EventRow({ ev }: { ev: TaskEvent }) {
 }
 
 function Line({
+  ts,
   tone,
   dim,
   children,
 }: {
-  tone: 'amber' | 'emerald' | 'rose' | 'ink' | 'purple';
+  ts: string;
+  tone: 'amber' | 'emerald' | 'rose' | 'ink' | 'purple' | 'sky';
   dim?: boolean;
   children: React.ReactNode;
 }) {
@@ -790,83 +915,12 @@ function Line({
     rose: 'text-rose-300',
     purple: dim ? 'text-purple-400' : 'text-purple-300',
     ink: dim ? 'text-ink-400' : 'text-ink-200',
+    sky: 'text-sky-300',
   }[tone];
-  return <div className={cn('whitespace-pre-wrap', colour)}>{children}</div>;
-}
-
-function DiffPanel({ touchedKey }: { touchedKey: number }) {
-  const { workspaceId } = useActiveWorkspace();
-  const theme = useUI((s) => s.theme);
-  const status = trpc.git.status.useQuery(
-    { workspaceId: workspaceId ?? '' },
-    { enabled: !!workspaceId },
-  );
-  const diff = trpc.git.diff.useQuery(
-    { workspaceId: workspaceId ?? '' },
-    { enabled: !!workspaceId },
-  );
-
-  // Refetch when files likely changed.
-  useEffect(() => {
-    if (!workspaceId) return;
-    status.refetch();
-    diff.refetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [touchedKey, workspaceId]);
-
-  if (!workspaceId) {
-    return (
-      <Panel title="git diff">
-        <div className="font-mono text-ui-sm text-ink-500">no workspace</div>
-      </Panel>
-    );
-  }
-
-  const s = status.data;
-  if (!s?.isRepo) {
-    return (
-      <Panel title="git diff">
-        <div className="font-mono text-ui-sm text-ink-500">
-          not a git repo — toggle <span className="text-ink-300">auto-branch per task</span> in
-          Settings to initialise on next run.
-        </div>
-      </Panel>
-    );
-  }
-
-  const text = diff.data?.unifiedDiff ?? '';
-
   return (
-    <Panel title="git diff">
-      <div className="mb-2 flex items-center justify-between font-mono text-ui-xs uppercase tracking-widest2">
-        <span className="text-ink-300">
-          branch: <span className="text-amber-300">{s.branch ?? '—'}</span>
-        </span>
-        <span className="text-ink-500">
-          {s.modified.length}M · {s.not_added.length}? · {s.staged.length}S
-        </span>
-      </div>
-      {text.trim() ? (
-        <div className="h-[260px] overflow-hidden rounded border border-ink-800">
-          <Editor
-            value={text}
-            language="diff"
-            theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 11,
-              fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-              wordWrap: 'on',
-              renderWhitespace: 'none',
-              folding: false,
-            }}
-          />
-        </div>
-      ) : (
-        <div className="font-mono text-ui-sm text-ink-500">working tree clean</div>
-      )}
-    </Panel>
+    <div className="grid grid-cols-[auto_1fr] gap-3">
+      <span className="shrink-0 select-none font-mono text-ui-xs text-ink-600">{ts}</span>
+      <span className={cn('min-w-0 whitespace-pre-wrap break-words', colour)}>{children}</span>
+    </div>
   );
 }

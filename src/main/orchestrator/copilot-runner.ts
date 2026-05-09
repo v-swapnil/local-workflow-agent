@@ -5,12 +5,23 @@
 import { getCopilotService } from '../services/llm/copilot.js';
 import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { requestApproval } from '../services/approvals.js';
+import { requestApproval, requestUserInput } from '../services/approvals.js';
 import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
 import { getTask } from '../services/store.js';
+
+/** Mirrors UserInputRequest / UserInputResponse from @github/copilot-sdk */
+interface UserInputRequest {
+  question: string;
+  choices?: string[];
+  allowFreeform?: boolean;
+}
+interface UserInputResponse {
+  answer: string;
+  wasFreeform: boolean;
+}
 
 const log = logger.child({ mod: 'copilot-runner' });
 
@@ -38,8 +49,13 @@ export async function runTaskViaCopilot(
     return { kind: 'no-result' };
   };
 
-  const onUserInputRequest = async () => {
-    return { answer: '', wasFreeform: true };
+  const onUserInputRequest = async (req: UserInputRequest): Promise<UserInputResponse> => {
+    try {
+      const answer = await requestUserInput(taskId, req.question, { choices: req.choices }, signal);
+      return { answer, wasFreeform: !req.choices?.includes(answer) };
+    } catch {
+      return { answer: '', wasFreeform: true };
+    }
   };
 
   const session = await client.createSession({
@@ -56,7 +72,7 @@ export async function runTaskViaCopilot(
     },
   });
 
-  const sessionId = (session as any).sessionId ?? (session as any).id;
+  const sessionId = session.sessionId;
 
   try {
     const task = await getTask(taskId);
@@ -115,7 +131,7 @@ function bridgeEvent(taskId: string, event: SessionEvent): void {
         taskId,
         ts,
         agent: 'copilot',
-        content: (event as any).data.deltaContent,
+        content: event.data.deltaContent,
       });
       break;
 
@@ -148,7 +164,7 @@ function bridgeEvent(taskId: string, event: SessionEvent): void {
         taskId,
         ts,
         stream: 'stderr',
-        text: `[copilot] error: ${(event as any).data?.message ?? 'unknown'}\n`,
+        text: `[copilot] error: ${event.data?.message ?? 'unknown'}\n`,
       });
       break;
   }

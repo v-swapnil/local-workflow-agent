@@ -73,6 +73,22 @@ export type TaskEvent =
       ts: number;
       approvalId: string;
       decision: 'approve' | 'approve_session' | 'deny';
+    }
+  | {
+      type: 'user_input.requested';
+      taskId: string;
+      ts: number;
+      requestId: string;
+      question: string;
+      context?: string;
+      choices?: string[];
+    }
+  | {
+      type: 'user_input.responded';
+      taskId: string;
+      ts: number;
+      requestId: string;
+      answer: string;
     };
 
 class TaskBus {
