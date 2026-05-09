@@ -20,6 +20,7 @@ import {
 import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
 import { taskBus, type TaskEvent } from '../services/events.js';
 import { exportTaskReport } from '../services/reports.js';
+import { getWorktreeForSession } from '../services/worktrees.js';
 import { deriveKanbanLane, type KanbanCard, type KanbanLane, type TaskStatus } from '@shared/types';
 
 const kanbanLaneSchema = z.enum(['todo', 'in_progress', 'done', 'need_help']);
@@ -27,7 +28,7 @@ const kanbanLaneSchema = z.enum(['todo', 'in_progress', 'done', 'need_help']);
 export const sessionRouter = router({
   create: publicProcedure
     .input(z.object({ workspaceId: z.string().min(1), title: z.string().min(1) }))
-    .mutation(({ input }) => createSession(input.workspaceId, input.title)),
+    .mutation(async ({ input }) => createSession(input.workspaceId, input.title)),
 
   list: publicProcedure
     .input(z.object({ workspaceId: z.string().optional() }).optional())
@@ -35,7 +36,11 @@ export const sessionRouter = router({
 
   get: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
-    .query(({ input }) => getSession(input.id)),
+    .query(({ input }) => {
+      const session = getSession(input.id);
+      const worktree = getWorktreeForSession(input.id);
+      return { ...session, worktree: worktree ?? undefined };
+    }),
 
   rename: publicProcedure
     .input(z.object({ id: z.string().min(1), title: z.string().min(1) }))

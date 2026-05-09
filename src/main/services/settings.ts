@@ -33,4 +33,5 @@ export const SETTING_KEYS = {
   UI_TEXT_SIZE: 'uiTextSize',
   KANBAN_AUTO_CLEAR: 'kanban.autoClearOverride',
   KANBAN_DEFAULT_VIEW: 'kanban.defaultView',
+  USE_WORKTREES: 'use_worktrees',
 } as const;

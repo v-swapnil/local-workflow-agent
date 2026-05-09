@@ -89,7 +89,24 @@ export const skills = sqliteTable('skills', {
   builtin: integer('builtin', { mode: 'boolean' }).notNull().default(false),
   updatedAt: integer('updated_at').notNull(),
 });
-
+export const worktrees = sqliteTable(
+  'worktrees',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').notNull(),
+    sessionId: text('session_id'),
+    branch: text('branch').notNull(),
+    path: text('path').notNull(),
+    baseBranch: text('base_branch').notNull(),
+    baseCommit: text('base_commit').notNull(),
+    status: text('status').notNull().default('active'),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => ({
+    wsIdx: index('idx_worktrees_ws').on(t.workspaceId),
+    sessIdx: index('idx_worktrees_session').on(t.sessionId),
+  }),
+);
 export const agents = sqliteTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),

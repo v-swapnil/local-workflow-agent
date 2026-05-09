@@ -72,4 +72,16 @@ export const settingsRouter = router({
       await setSetting(SETTING_KEYS.KANBAN_DEFAULT_VIEW, input.value);
       return { ok: true as const };
     }),
+
+  useWorktrees: publicProcedure.query(async () => {
+    const saved = await getSetting(SETTING_KEYS.USE_WORKTREES);
+    return saved === '1';
+  }),
+
+  setUseWorktrees: publicProcedure
+    .input(z.object({ value: z.boolean() }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.USE_WORKTREES, input.value ? '1' : '0');
+      return { ok: true as const };
+    }),
 });

@@ -2,10 +2,11 @@ import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { trpc } from '../trpc';
 
-const NAV: { to: string; label: string; hint: string }[] = [
+const BASE_NAV: { to: string; label: string; hint: string }[] = [
   { to: '/sessions', label: 'sessions', hint: '01' },
   { to: '/board', label: 'board', hint: '02' },
   { to: '/changes', label: 'changes', hint: '03' },
+  { to: '/worktrees', label: 'worktrees', hint: '03b' },
   { to: '/editor', label: 'editor', hint: '04' },
   { to: '/skills', label: 'skills', hint: '05' },
   { to: '/agents', label: 'agents', hint: '06' },
@@ -16,6 +17,11 @@ const NAV: { to: string; label: string; hint: string }[] = [
 
 export function Sidebar() {
   const ping = trpc.ping.useQuery('hello');
+  const useWorktrees = trpc.settings.useWorktrees.useQuery();
+
+  const nav = BASE_NAV.filter(
+    (item) => item.to !== '/worktrees' || useWorktrees.data === true,
+  );
 
   return (
     <aside className="relative flex w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-950">
@@ -29,7 +35,7 @@ export function Sidebar() {
       <div className="hair mx-5 h-px" />
 
       <nav className="flex flex-col gap-px px-3 py-4">
-        {NAV.map((item) => (
+        {nav.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

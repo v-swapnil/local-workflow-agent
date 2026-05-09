@@ -26,6 +26,10 @@ export function Settings() {
   const setAutoBranch = trpc.git.setAutoBranch.useMutation({
     onSuccess: () => utils.git.autoBranch.invalidate(),
   });
+  const useWorktrees = trpc.settings.useWorktrees.useQuery();
+  const setUseWorktrees = trpc.settings.setUseWorktrees.useMutation({
+    onSuccess: () => utils.settings.useWorktrees.invalidate(),
+  });
   const activeProvider = trpc.llm.activeProvider.useQuery();
 
   return (
@@ -107,6 +111,15 @@ export function Settings() {
               title="auto-branch per task"
               description="Each task checks out a fresh branch ase/<taskId> before code is written, and commits all changes on success. The repo is initialised on first use."
             />
+            <div className="mt-2">
+              <ToggleCard
+                checked={!!useWorktrees.data}
+                disabled={setUseWorktrees.isPending}
+                onChange={(v) => setUseWorktrees.mutate({ value: v })}
+                title="use worktrees for session isolation"
+                description="Creates a separate git worktree for each session, keeping your workspace clean. Each session gets its own branch ase/session/<id>. Requires a git repo."
+              />
+            </div>
           </div>
         </section>
 

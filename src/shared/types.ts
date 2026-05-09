@@ -55,3 +55,15 @@ export interface KanbanCard {
   lastActivity: number;
   createdAt: number;
 }
+
+export interface WorktreeRecord {
+  id: string;
+  workspaceId: string;
+  sessionId: string | null;
+  branch: string;
+  path: string;
+  baseBranch: string;
+  baseCommit: string;
+  status: 'active' | 'removed';
+  createdAt: number;
+}

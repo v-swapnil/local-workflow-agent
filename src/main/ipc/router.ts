@@ -13,6 +13,7 @@ import { skillRouter } from './skill.js';
 import { gitRouter } from './git.js';
 import { getProvider } from '../services/llm/index.js';
 import { settingsRouter } from './settings.js';
+import { worktreeRouter } from './worktree.js';
 
 async function checkOllama(): Promise<AppHealth['ollama']> {
   const provider = getProvider('ollama');
@@ -48,6 +49,7 @@ export const appRouter = router({
   skill: skillRouter,
   git: gitRouter,
   settings: settingsRouter,
+  worktree: worktreeRouter,
 });
 
 export type AppRouter = typeof appRouter;

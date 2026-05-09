@@ -29,3 +29,9 @@ export function reportsDir(): string {
   mkdirSync(dir, { recursive: true });
   return dir;
 }
+
+export function worktreesRoot(): string {
+  const dir = join(userDataDir(), 'worktrees');
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}

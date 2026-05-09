@@ -2,6 +2,8 @@ import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { sessions, messages, tasks, steps } from '../db/schema.js';
+import { getSetting, SETTING_KEYS } from './settings.js';
+import { createWorktree, removeWorktreeBySession } from './worktrees.js';
 
 export interface Session {
   id: string;
@@ -42,7 +44,7 @@ export interface Step {
 
 // ───────── Sessions ─────────
 
-export function createSession(workspaceId: string, title: string): Session {
+export async function createSession(workspaceId: string, title: string): Promise<Session> {
   const now = Date.now();
   const row = {
     id: nanoid(10),
@@ -54,6 +56,15 @@ export function createSession(workspaceId: string, title: string): Session {
     updatedAt: now,
   };
   getDb().insert(sessions).values(row).run();
+  // Create worktree synchronously so it's ready before any task runs
+  const useWt = await getSetting(SETTING_KEYS.USE_WORKTREES);
+  if (useWt === '1') {
+    try {
+      await createWorktree(workspaceId, row.id);
+    } catch (err) {
+      console.warn('[store] worktree creation failed:', err);
+    }
+  }
   return row;
 }
 
@@ -77,6 +88,10 @@ export function renameSession(id: string, title: string): void {
 
 export function deleteSession(id: string): void {
   const db = getDb();
+  // Remove worktree first (best-effort, async)
+  removeWorktreeBySession(id).catch((err) => {
+    console.warn('[store] worktree removal failed:', err);
+  });
   // cascade by hand
   const taskRows = db.select().from(tasks).where(eq(tasks.sessionId, id)).all();
   for (const t of taskRows) {

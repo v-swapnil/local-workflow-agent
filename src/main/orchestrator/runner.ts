@@ -8,6 +8,8 @@ import { eq, inArray } from 'drizzle-orm';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
 import { createBranch, commitAll } from '../services/git.js';
+import { getWorktreeForSession } from '../services/worktrees.js';
+import { existsSync } from 'node:fs';
 import { buildGraph, type RunCtx, type AgentState } from './graph.js';
 import { runTaskViaCopilot } from './copilot-runner.js';
 import type { TaskResult } from '@shared/agent';
@@ -93,7 +95,10 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   taskBus.emit(taskId, { type: 'task.started', taskId, ts: Date.now() });
 
   // Optional: auto-branch per task before any code is written.
-  const autoBranch = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
+  // Skip branching if session has an active worktree (it already has its own branch).
+  const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
+  const autoBranch = gitAutoEnabled && !session.hasWorktree;
+  const autoCommit = gitAutoEnabled; // auto-commit applies even in worktree mode
   let branchName: string | null = null;
   if (autoBranch) {
     branchName = `ase/${taskId}`;
@@ -165,19 +170,20 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       };
     }
 
-    if (result.status === 'succeeded' && branchName) {
+    if (result.status === 'succeeded' && autoCommit) {
       try {
         const r = await commitAll(
           session.workspaceId,
           `ase: ${task.prompt.slice(0, 72)}\n\ntask: ${task.id}`,
         );
         if (r.committed) {
+          const commitBranch = branchName ?? (session.hasWorktree ? 'worktree' : 'current');
           taskBus.emit(taskId, {
             type: 'log',
             taskId,
             ts: Date.now(),
             stream: 'stdout',
-            text: `[git] committed ${r.sha} on ${branchName}\n`,
+            text: `[git] committed ${r.sha} on ${commitBranch}\n`,
           });
         }
       } catch (err) {
@@ -229,9 +235,17 @@ function finish(task: Task, result: TaskResult): TaskResult {
 async function loadSessionWorkspace(task: Task): Promise<{
   workspaceId: string;
   workspacePath: string;
+  hasWorktree: boolean;
 }> {
   const sess = getDb().select().from(sessions).where(eq(sessions.id, task.sessionId)).get();
   if (!sess) throw new Error(`session not found for task ${task.id}`);
   const ws = await getWorkspace(sess.workspaceId);
-  return { workspaceId: ws.id, workspacePath: ws.path };
+
+  // Use worktree path if one exists and is valid on disk
+  const worktree = getWorktreeForSession(task.sessionId);
+  if (worktree && existsSync(worktree.path)) {
+    return { workspaceId: ws.id, workspacePath: worktree.path, hasWorktree: true };
+  }
+
+  return { workspaceId: ws.id, workspacePath: ws.path, hasWorktree: false };
 }

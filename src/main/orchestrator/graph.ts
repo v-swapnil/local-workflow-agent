@@ -388,6 +388,7 @@ async function executorNode(
 
       const result = await invokeTool(tool, args, {
         workspaceId: ctx.workspaceId,
+        workspacePath: ctx.workspacePath,
         taskId: ctx.taskId,
         signal: ctx.signal,
         onLog: ({ stream, text }) => {
@@ -438,6 +439,7 @@ async function testerNode(
     {},
     {
       workspaceId: ctx.workspaceId,
+      workspacePath: ctx.workspacePath,
       taskId: ctx.taskId,
       signal: ctx.signal,
       onLog: ({ stream, text }) => {

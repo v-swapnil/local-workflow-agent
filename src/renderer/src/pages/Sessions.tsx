@@ -183,6 +183,8 @@ function SessionDetail({ sessionId }: { sessionId: string }) {
   const utils = trpc.useUtils();
   const session = trpc.session.get.useQuery({ id: sessionId });
   const tasks = trpc.task.list.useQuery({ sessionId }, { refetchInterval: 2000 });
+  const worktree = trpc.worktree.getForSession.useQuery({ sessionId });
+  const openPath = trpc.worktree.openPath.useMutation();
   const [prompt, setPrompt] = useState('');
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const create = trpc.task.create.useMutation({
@@ -204,6 +206,28 @@ function SessionDetail({ sessionId }: { sessionId: string }) {
         <div className="mt-1 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
           {session.data?.id} · {tasks.data?.length ?? 0} tasks
         </div>
+        {worktree.data && (
+          <div className="mt-2 flex items-center gap-3 font-mono text-ui-xs">
+            <span className="text-ink-500">⎇</span>
+            <span className="text-amber-400">{worktree.data.branch}</span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-ui-xs uppercase tracking-widest2 ${
+                worktree.data.status === 'active'
+                  ? 'bg-emerald-950/50 text-emerald-400'
+                  : 'bg-ink-800 text-ink-500'
+              }`}
+            >
+              {worktree.data.status}
+            </span>
+            <button
+              className="max-w-xs truncate text-ink-500 hover:text-ink-300 hover:underline"
+              title={`${worktree.data.path} (click to open)`}
+              onClick={() => openPath.mutate({ path: worktree.data!.path })}
+            >
+              {worktree.data.path}
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-[180px_1fr] gap-4 overflow-hidden">

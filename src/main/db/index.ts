@@ -75,6 +75,19 @@ CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS worktrees (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  session_id TEXT,
+  branch TEXT NOT NULL,
+  path TEXT NOT NULL,
+  base_branch TEXT NOT NULL,
+  base_commit TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_worktrees_ws ON worktrees(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_worktrees_session ON worktrees(session_id);
 `;
 
 export function initDb(): BetterSQLite3Database<typeof schema> {

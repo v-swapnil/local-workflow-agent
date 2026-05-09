@@ -59,6 +59,8 @@ export function getTool(name: ToolName): Tool<unknown, unknown> {
 
 export interface InvokeOpts {
   workspaceId: string;
+  /** Override the workspace path (e.g. when running in a worktree). Falls back to ws.path. */
+  workspacePath?: string;
   /** When set, sensitive tools will require approval before execution. */
   taskId?: string;
   signal?: AbortSignal;
@@ -89,7 +91,7 @@ export async function invokeTool(
 
     const ctx: ToolContext = {
       workspaceId: opts.workspaceId,
-      workspacePath: ws.path,
+      workspacePath: opts.workspacePath ?? ws.path,
       signal: opts.signal,
       onLog: opts.onLog,
     };
