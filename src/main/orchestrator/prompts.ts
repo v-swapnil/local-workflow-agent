@@ -5,10 +5,10 @@ import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
 /* ───────── Environment context ───────── */
 
 export interface EnvironmentContext {
-  directory: string;   // working directory (workspace path)
-  worktree: string;    // git worktree root (or same as directory)
+  directory: string; // working directory (workspace path)
+  worktree: string; // git worktree root (or same as directory)
   isGitRepo: boolean;
-  platform: string;    // e.g. "darwin", "linux", "win32"
+  platform: string; // e.g. "darwin", "linux", "win32"
   shell: string | null;
   model: string;
   git: {
@@ -67,7 +67,6 @@ Schema:
 
 export function plannerUser(
   prompt: string,
-  workspaceSummary: string,
   skills: SkillCatalogEntry[],
   env: EnvironmentContext,
 ): string {
@@ -96,9 +95,6 @@ Skills provide specialized instructions and workflows for specific tasks.
 Use the skill tool to load a skill when a task matches its description.
 
 ${skillsStr}
-
-WORKSPACE OVERVIEW (top of tree):
-${workspaceSummary}
 
 Produce the plan now.`;
 }

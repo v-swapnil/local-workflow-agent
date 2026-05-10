@@ -6,7 +6,11 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
 
   switch (ev.type) {
     case 'task.started':
-      return <Line ts={t} tone="amber">▶ task started</Line>;
+      return (
+        <Line ts={t} tone="amber">
+          ▶ task started
+        </Line>
+      );
     case 'task.finished':
       return (
         <Line
@@ -22,7 +26,9 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
         <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
           <div className="flex items-center gap-2">
             <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
-            <span className="font-mono text-ui-xs uppercase tracking-widest2 text-amber-400">▣ plan</span>
+            <span className="font-mono text-ui-xs uppercase tracking-widest2 text-amber-400">
+              ▣ plan
+            </span>
           </div>
           <div className="mt-1 font-serif text-ui-sm italic text-ink-200">{ev.plan.summary}</div>
           {ev.plan.selectedSkills && ev.plan.selectedSkills.length > 0 && (
@@ -70,13 +76,20 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
         <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
           <div className="flex items-center gap-2">
             <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
-            <span className={cn('font-mono text-ui-xs uppercase tracking-widest2', ev.verdict.done ? 'text-emerald-400' : 'text-amber-400')}>
+            <span
+              className={cn(
+                'font-mono text-ui-xs uppercase tracking-widest2',
+                ev.verdict.done ? 'text-emerald-400' : 'text-amber-400',
+              )}
+            >
               ⚖ {ev.verdict.done ? 'done' : 'continue'}
             </span>
           </div>
           <div className="mt-1 font-mono text-ui-xs text-ink-300">{ev.verdict.reason}</div>
           {ev.verdict.nextHint && (
-            <div className="mt-0.5 font-mono text-ui-xs text-ink-500">hint: {ev.verdict.nextHint}</div>
+            <div className="mt-0.5 font-mono text-ui-xs text-ink-500">
+              hint: {ev.verdict.nextHint}
+            </div>
           )}
         </div>
       );

@@ -232,24 +232,6 @@ async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
   };
 }
 
-async function workspaceSummary(workspaceId: string, workspacePath: string): Promise<string> {
-  try {
-    const tree = await fileTree(workspaceId, '', 2);
-    return JSON.stringify(tree).slice(0, 2000);
-  } catch {
-    try {
-      const entries = await readdir(workspacePath, { withFileTypes: true });
-      return entries
-        .filter((e) => !e.name.startsWith('.'))
-        .map((e) => `${e.name}${e.isDirectory() ? '/' : ''}`)
-        .join('\n')
-        .slice(0, 1500);
-    } catch {
-      return `(empty workspace at ${workspacePath})`;
-    }
-  }
-}
-
 function emitStepStarted(
   ctx: RunCtx,
   agent: string,
@@ -312,14 +294,13 @@ async function plannerNode(
   const ctx = ctxOf(config);
   const { stepId } = emitStepStarted(ctx, 'planner', undefined, { prompt: state.prompt });
   try {
-    const summary = await workspaceSummary(ctx.workspaceId, ctx.workspacePath);
     const catalog = await skillCatalog();
     const env = await gatherEnvContext(ctx);
     const plan = await llmJson<Plan>(
       ctx,
       'planner',
       PLANNER_SYSTEM,
-      plannerUser(state.prompt, summary, catalog, env),
+      plannerUser(state.prompt, catalog, env),
     );
     if (!plan?.steps?.length) throw new Error('planner returned empty plan');
     plan.steps = plan.steps.map((s, i) => ({
