@@ -98,7 +98,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   // Skip branching if session has an active worktree (it already has its own branch).
   const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
   const autoBranch = gitAutoEnabled && !session.hasWorktree;
-  const autoCommit = gitAutoEnabled; // auto-commit applies even in worktree mode
+  const autoCommit = gitAutoEnabled && !session.hasWorktree;
   let branchName: string | null = null;
   if (autoBranch) {
     branchName = `ase/${taskId}`;

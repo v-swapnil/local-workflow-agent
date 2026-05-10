@@ -24,6 +24,7 @@ import type { ToolName } from '../services/tools/types.js';
 import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import { logger } from '../services/logger.js';
+import { AgentState, StateAnnotation } from './state.js';
 
 const log = logger.child({ mod: 'orchestrator' });
 
@@ -46,27 +47,6 @@ function ctxOf(config?: RunnableConfig): RunCtx {
   if (!c) throw new Error('orchestrator: missing runCtx in config');
   return c;
 }
-
-/* ───────── State ───────── */
-
-const StateAnnotation = Annotation.Root({
-  prompt: Annotation<string>(),
-  plan: Annotation<Plan | null>({ reducer: (_, n) => n, default: () => null }),
-  history: Annotation<Observation[]>({
-    reducer: (a, b) => a.concat(b),
-    default: () => [],
-  }),
-  iteration: Annotation<number>({ reducer: (_, n) => n, default: () => 0 }),
-  maxIterations: Annotation<number>({ reducer: (_, n) => n, default: () => 6 }),
-  testsConfigured: Annotation<boolean>({ reducer: (_, n) => n, default: () => false }),
-  testReport: Annotation<TestReport | null>({
-    reducer: (_, n) => n,
-    default: () => null,
-  }),
-  verdict: Annotation<Verdict | null>({ reducer: (_, n) => n, default: () => null }),
-});
-
-export type AgentState = typeof StateAnnotation.State;
 
 /* ───────── Helpers ───────── */
 
