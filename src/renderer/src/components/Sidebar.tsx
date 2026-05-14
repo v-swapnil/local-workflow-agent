@@ -19,20 +19,18 @@ export function Sidebar() {
   const ping = trpc.ping.useQuery('hello');
   const useWorktrees = trpc.settings.useWorktrees.useQuery();
 
-  const nav = BASE_NAV.filter(
-    (item) => item.to !== '/worktrees' || useWorktrees.data === true,
-  );
+  const nav = BASE_NAV.filter((item) => item.to !== '/worktrees' || useWorktrees.data === true);
 
   return (
     <aside className="relative flex w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-950">
-      <div className="px-5 pb-4 pt-6">
+      {/* <div className="px-5 pb-4 pt-6">
         <div className="font-serif text-2xl leading-none text-amber">[ASE]</div>
         <p className="mt-3 max-w-[180px] font-mono text-ui-xs uppercase leading-relaxed tracking-widest2 text-ink-400">
           plan · write · run · test · <span className="text-ink-200">iterate</span>
         </p>
-      </div>
+      </div> */}
 
-      <div className="hair mx-5 h-px" />
+      {/* <div className="hair mx-5 h-px" /> */}
 
       <nav className="flex flex-col gap-px px-3 py-4">
         {nav.map((item) => (

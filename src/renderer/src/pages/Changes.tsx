@@ -475,11 +475,5 @@ export function Changes() {
     );
   }
 
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1">
-        <DiffPanel workspaceId={workspaceId} active={active} setActive={setActive} />
-      </div>
-    </div>
-  );
+  return <DiffPanel workspaceId={workspaceId} active={active} setActive={setActive} />;
 }

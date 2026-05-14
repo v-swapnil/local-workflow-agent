@@ -14,7 +14,7 @@ export function PageShell({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex min-h-full max-w-5xl flex-col px-10 py-10">
+    <div className="mx-auto flex min-h-full flex-col px-6 py-6">
       <header className="mb-10 flex items-end justify-between gap-6">
         <div>
           <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
