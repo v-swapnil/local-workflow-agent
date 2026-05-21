@@ -37,6 +37,19 @@ export const llmRouter = router({
     return p.listModels();
   }),
 
+  listModelsByProvider: publicProcedure
+    .input(z.object({ provider: z.enum(['ollama', 'copilot']) }))
+    .query(async ({ input }) => {
+      if (input.provider === 'copilot') {
+        const svc = getCopilotService();
+        if (!(await svc.ping())) return [];
+        return svc.listModels();
+      }
+      const p = getProvider('ollama');
+      if (!(await p.ping())) return [];
+      return p.listModels();
+    }),
+
   activeModel: publicProcedure.query(async () => {
     return (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? DEFAULT_MODEL;
   }),

@@ -65,12 +65,12 @@ function Slider({ label, value, onChange }: { label: string; value: number; onCh
 
 export function Agents() {
   const utils = trpc.useUtils();
-  const { data: agents = [] } = trpc.agent.list.useQuery();
-  const { data: modelsData } = trpc.llm.listModels.useQuery();
-  const models = modelsData ?? [];
-
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<AgentFormState>(BLANK);
+
+  const { data: agents = [] } = trpc.agent.list.useQuery();
+  const { data: modelsData } = trpc.llm.listModelsByProvider.useQuery({ provider: form.provider });
+  const models = modelsData ?? [];
   const [testPrompt, setTestPrompt] = useState('');
   const [testResponse, setTestResponse] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
@@ -219,7 +219,7 @@ export function Agents() {
             <span className="font-mono text-ui-xs text-ink-400">provider</span>
             <select
               value={form.provider}
-              onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value as 'ollama' | 'copilot' }))}
+              onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value as 'ollama' | 'copilot', model: '' }))}
               className="rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-100 focus:border-amber-700/60 focus:outline-none"
             >
               <option value="ollama">ollama</option>
