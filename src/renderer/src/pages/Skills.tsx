@@ -38,13 +38,13 @@ export function Skills() {
           <button
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
-            className="rounded border border-ink-700 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 hover:border-amber-500 hover:text-amber-400 disabled:opacity-40"
+            className="rounded-md border border-ink-700/60 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-300 transition-all hover:border-ink-600 hover:text-ink-200 disabled:opacity-40"
           >
             {refresh.isPending ? 'syncing…' : 'refresh'}
           </button>
           <button
             onClick={() => setShowNew(true)}
-            className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/60"
+            className="rounded-md bg-amber/90 px-3 py-1.5 font-mono text-ui-xs font-medium uppercase tracking-widest2 text-ink-950 shadow-glow-sm transition-all hover:bg-amber hover:shadow-glow"
           >
             + new skill
           </button>
@@ -62,14 +62,14 @@ export function Skills() {
                 key={s.name}
                 onClick={() => setSelected(s.name)}
                 className={cn(
-                  'flex w-full flex-col items-start rounded border px-3 py-2 text-left',
+                  'flex w-full flex-col items-start rounded-lg border px-3 py-2.5 text-left transition-all',
                   focused?.name === s.name
-                    ? 'border-amber-700/60 bg-amber-950/20'
-                    : 'border-ink-800 bg-ink-900/30 hover:border-ink-700',
+                    ? 'border-amber/20 bg-amber/5 shadow-sm shadow-amber/5'
+                    : 'border-ink-800/40 bg-ink-900/20 hover:border-ink-700/60 hover:bg-ink-900/30',
                 )}
               >
                 <div className="flex w-full items-center justify-between">
-                  <span className="font-serif text-ui-lg text-ink-50">{s.name}</span>
+                  <span className="font-mono text-ui-sm font-medium text-ink-50">{s.name}</span>
                   <span
                     className={cn(
                       'font-mono text-ui-2xs uppercase tracking-widest2',
@@ -97,7 +97,7 @@ export function Skills() {
           </div>
         </aside>
 
-        <main className="min-h-0 min-w-0 overflow-y-auto rounded border border-ink-800 bg-ink-900/40 p-5">
+        <main className="min-h-0 min-w-0 overflow-y-auto rounded-lg border border-ink-800/60 bg-ink-900/20 p-5">
           {focused ? (
             <div>
               <div className="mb-4 flex items-start justify-between gap-4">
@@ -105,20 +105,20 @@ export function Skills() {
                   <div className="font-mono text-ui-xs uppercase tracking-widest2 text-amber">
                     skill
                   </div>
-                  <div className="mt-1 font-serif text-2xl text-ink-50">{focused.name}</div>
+                  <div className="mt-1 text-ui-lg font-medium tracking-tight text-ink-50">{focused.name}</div>
                   <div className="mt-1 font-mono text-ui-sm text-ink-300">
                     {focused.description}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="flex cursor-pointer items-center gap-2 rounded border border-ink-700 px-3 py-1.5">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-md border border-ink-700/50 px-3 py-1.5 transition-colors hover:border-ink-600">
                     <input
                       type="checkbox"
                       checked={focused.enabled}
                       onChange={(e) =>
                         toggle.mutate({ name: focused.name, enabled: e.target.checked })
                       }
-                      className="h-3.5 w-3.5 accent-amber-500"
+                      className="h-3.5 w-3.5 accent-amber"
                     />
                     <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-200">
                       enabled
@@ -126,7 +126,7 @@ export function Skills() {
                   </label>
                   <button
                     onClick={() => reveal.mutate({ name: focused.name })}
-                    className="rounded border border-ink-700 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 hover:border-amber-500 hover:text-amber-400"
+                    className="btn-secondary !py-1.5"
                   >
                     open folder
                   </button>
@@ -137,7 +137,7 @@ export function Skills() {
                           remove.mutate({ name: focused.name });
                         }
                       }}
-                      className="rounded border border-rose-800/60 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-rose-300 hover:bg-rose-950/40"
+                      className="btn-danger !py-1.5"
                     >
                       delete
                     </button>
@@ -155,7 +155,7 @@ export function Skills() {
               <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
                 body
               </div>
-              <pre className="max-h-[60vh] overflow-y-auto rounded border border-ink-800 bg-ink-950 p-4 font-mono text-ui-sm leading-relaxed text-ink-100">
+              <pre className="max-h-[60vh] overflow-y-auto rounded-lg border border-ink-800/40 bg-ink-950/80 p-4 font-mono text-ui-xs leading-relaxed text-ink-100">
                 {focused.body}
               </pre>
             </div>
@@ -174,12 +174,12 @@ export function Skills() {
 
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="rounded border border-ink-800 bg-ink-950 p-3">
-      <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">{label}</div>
+    <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-3">
+      <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">{label}</div>
       <div
         className={cn(
           'mt-1 break-all',
-          mono ? 'font-mono text-ui-sm' : 'font-serif text-ui-lg',
+          mono ? 'font-mono text-ui-sm' : 'font-mono text-ui-sm',
           'text-ink-100',
         )}
       >
@@ -205,15 +205,17 @@ function NewSkillModal({ onClose }: { onClose: () => void }) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-[520px] max-w-[90vw] rounded border border-amber-700/60 bg-ink-950 shadow-2xl">
-        <div className="border-b border-ink-800 px-4 py-3">
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-amber-400">
-            new skill
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="w-[520px] max-w-[90vw] rounded-xl border border-amber/20 bg-ink-900 shadow-2xl animate-scale-in">
+        <div className="border-b border-ink-800/60 px-5 py-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+              new skill
+            </span>
           </div>
         </div>
         <form
-          className="space-y-3 px-4 py-4"
+          className="space-y-3 px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault();
             if (!id || !name || !description) return;
@@ -251,20 +253,20 @@ function NewSkillModal({ onClose }: { onClose: () => void }) {
             mono
           />
           {create.error && (
-            <div className="font-mono text-ui-sm text-rose-400">{create.error.message}</div>
+            <div className="font-mono text-ui-xs text-signal-err">{create.error.message}</div>
           )}
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-ink-200 hover:bg-ink-900"
+              className="btn-secondary"
             >
               cancel
             </button>
             <button
               type="submit"
               disabled={!id || !name || !description || create.isPending}
-              className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/60 disabled:opacity-40"
+              className="btn-primary"
             >
               {create.isPending ? 'creating…' : 'create'}
             </button>
@@ -299,8 +301,7 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          'w-full rounded border border-ink-700 bg-ink-950 px-3 py-1.5 text-ink-100 placeholder:text-ink-600 focus:border-amber-700/60 focus:outline-none',
-          mono ? 'font-mono text-ui-base' : 'font-serif text-ui-lg',
+      'w-full rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none',
         )}
       />
     </label>

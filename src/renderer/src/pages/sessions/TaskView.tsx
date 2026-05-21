@@ -83,16 +83,19 @@ export function TaskView({ taskId }: { taskId: string }) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex min-h-0 min-w-0 flex-col flex-1">
+        {/* Header bar */}
         <div className="mb-2 flex items-center justify-between">
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-            event stream
-          </div>
           <div className="flex items-center gap-2">
             <StatusPill status={status} />
+            <span className="font-mono text-ui-2xs text-ink-600 uppercase tracking-widest2">
+              event stream
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
             {running && (
               <button
                 onClick={() => cancel.mutate({ id: taskId })}
-                className="rounded border border-rose-800/60 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-rose-300 hover:bg-rose-950/40"
+                className="btn-danger !py-0.5 !px-2 !text-ui-2xs"
               >
                 cancel
               </button>
@@ -102,15 +105,15 @@ export function TaskView({ taskId }: { taskId: string }) {
                 <button
                   onClick={() => exportReport.mutate({ id: taskId })}
                   disabled={exportReport.isPending}
-                  className="rounded border border-ink-700 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 hover:border-ink-600 disabled:opacity-40"
+                  className="btn-secondary !py-0.5 !px-2 !text-ui-2xs"
                 >
-                  {exportReport.isPending ? 'exporting…' : 'export report'}
+                  {exportReport.isPending ? 'exporting…' : 'export'}
                 </button>
                 {status !== 'succeeded' && (
                   <button
                     onClick={() => retry.mutate({ id: taskId })}
                     disabled={retry.isPending}
-                    className="rounded border border-amber-700/60 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/40 disabled:opacity-40"
+                    className="btn-primary !py-0.5 !px-2 !text-ui-2xs"
                   >
                     retry
                   </button>
@@ -120,11 +123,17 @@ export function TaskView({ taskId }: { taskId: string }) {
           </div>
         </div>
 
+        {/* Event log */}
         <div
           ref={logRef}
-          className="flex-1 overflow-y-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-snug"
+          className="flex-1 overflow-y-auto rounded-lg border border-ink-800/60 bg-ink-950/80 p-3 font-mono text-ui-sm leading-relaxed"
         >
-          {events.length === 0 && <div className="text-ink-500">waiting for events…</div>}
+          {events.length === 0 && (
+            <div className="flex items-center gap-2 text-ink-500">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-ink-600 animate-pulse" />
+              waiting for events…
+            </div>
+          )}
           {events.map((ev, i) => (
             <EventRow key={i} ev={ev} />
           ))}

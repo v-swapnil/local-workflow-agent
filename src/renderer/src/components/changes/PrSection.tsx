@@ -9,7 +9,7 @@ interface Props {
 
 function Banner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded border border-signal-warn/30 bg-signal-warn/10 px-3 py-2 font-mono text-ui-xs text-signal-warn">
+    <div className="rounded-md border border-signal-warn/20 bg-signal-warn/5 px-3 py-2 font-mono text-ui-2xs text-signal-warn">
       {children}
     </div>
   );
@@ -18,13 +18,13 @@ function Banner({ children }: { children: React.ReactNode }) {
 function PrBadge({ url, state, title }: { url?: string; state?: string; title?: string }) {
   const color =
     state === 'OPEN'
-      ? 'text-signal-ok border-signal-ok/40 bg-signal-ok/10'
+      ? 'text-signal-ok border-signal-ok/20 bg-signal-ok/5'
       : state === 'MERGED'
-        ? 'text-purple-400 border-purple-400/40 bg-purple-400/10'
-        : 'text-signal-err border-signal-err/40 bg-signal-err/10';
+        ? 'text-purple-400 border-purple-400/20 bg-purple-400/5'
+        : 'text-signal-err border-signal-err/20 bg-signal-err/5';
   return (
-    <div className={`inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-ui-xs ${color}`}>
-      <span className="uppercase tracking-widest2">{state ?? 'PR'}</span>
+    <div className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-ui-2xs ${color}`}>
+      <span className="uppercase tracking-widest2 font-medium">{state ?? 'PR'}</span>
       {title && <span className="max-w-xs truncate text-ink-200">{title}</span>}
       {url && (
         <a
@@ -69,8 +69,8 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
   if (!currentBranch || currentBranch === 'main' || currentBranch === 'master') return null;
 
   return (
-    <div className="border-t border-ink-800 p-3">
-      <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+    <div className="border-t border-ink-800/40 p-3">
+      <div className="mb-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
         pull request
       </div>
 
@@ -92,7 +92,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
           ) : (
             <>
               {prUrl && !prStatus.data?.hasPr && (
-                <div className="mb-2 font-mono text-ui-xs text-signal-ok">
+                <div className="mb-2 font-mono text-ui-2xs text-signal-ok">
                   PR created:{' '}
                   <a href={prUrl} target="_blank" rel="noreferrer" className="underline">
                     {prUrl}
@@ -105,7 +105,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                     setShowForm(true);
                     setTitle(currentBranch.replace(/[/-]/g, ' ').replace(/^ase /, ''));
                   }}
-                  className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-xs text-ink-300 hover:border-amber-700/40 hover:text-amber-300"
+                  className="btn-secondary !py-1"
                 >
                   create pull request
                 </button>
@@ -115,36 +115,36 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="PR title"
-                    className="w-full rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-100 focus:border-amber-700/60 focus:outline-none"
+                    className="w-full rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 transition-colors focus:border-amber/30 focus:outline-none"
                   />
                   <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Description (optional)…"
                     rows={3}
-                    className="w-full resize-none rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-100 placeholder:text-ink-600 focus:border-amber-700/60 focus:outline-none"
+                    className="w-full resize-none rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none"
                   />
                   <div className="flex gap-2">
                     <input
                       value={baseBranch}
                       onChange={(e) => setBaseBranch(e.target.value)}
                       placeholder="base branch (default: main)"
-                      className="flex-1 rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-xs text-ink-200 focus:border-amber-700/60 focus:outline-none"
+                      className="flex-1 rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-2xs text-ink-200 transition-colors focus:border-amber/30 focus:outline-none"
                     />
-                    <label className="flex items-center gap-1.5 font-mono text-ui-xs text-ink-400">
+                    <label className="flex items-center gap-1.5 font-mono text-ui-2xs text-ink-400">
                       <input
                         type="checkbox"
                         checked={draft}
                         onChange={(e) => setDraft(e.target.checked)}
-                        className="accent-amber-500"
+                        className="accent-amber"
                       />
                       draft
                     </label>
                   </div>
                   {prError && (
-                    <div className="font-mono text-ui-xs text-signal-err">{prError}</div>
+                    <div className="font-mono text-ui-2xs text-signal-err">{prError}</div>
                   )}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <button
                       onClick={() =>
                         createPr.mutate({
@@ -157,13 +157,13 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                         })
                       }
                       disabled={createPr.isPending || !title.trim()}
-                      className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/60 disabled:opacity-40"
+                      className="btn-primary !py-1"
                     >
                       {createPr.isPending ? '…' : 'create PR'}
                     </button>
                     <button
                       onClick={() => setShowForm(false)}
-                      className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-xs text-ink-400 hover:text-ink-200"
+                      className="btn-secondary !py-1"
                     >
                       cancel
                     </button>

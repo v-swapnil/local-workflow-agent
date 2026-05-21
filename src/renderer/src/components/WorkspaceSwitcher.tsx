@@ -34,19 +34,22 @@ export function WorkspaceSwitcher() {
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="app-no-drag flex items-center gap-2 rounded border border-ink-800 bg-ink-900/60 px-2.5 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-ink-200 hover:border-ink-700"
+        className="app-no-drag flex items-center gap-2 rounded-md border border-ink-800/60 bg-ink-900/40 px-2.5 py-1 font-mono text-ui-xs text-ink-200 transition-all hover:border-ink-700 hover:bg-ink-800/40"
       >
-        <span className="text-ink-500">workspace</span>
-        <span className="text-amber">·</span>
-        <span className="max-w-[160px] truncate normal-case">
-          {current ? current.name : 'none'}
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-ink-500">
+          <path d="M2 4h12M2 8h8M2 12h10" />
+        </svg>
+        <span className="max-w-[140px] truncate normal-case">
+          {current ? current.name : 'no workspace'}
         </span>
-        <span className="text-ink-500">{open ? '▴' : '▾'}</span>
+        <svg viewBox="0 0 8 5" fill="currentColor" className={cn('h-[5px] w-2 text-ink-500 transition-transform', open && 'rotate-180')}>
+          <path d="M0 0l4 4 4-4z" />
+        </svg>
       </button>
 
       {open && (
-        <div className="app-no-drag absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded border border-ink-700 bg-ink-900 shadow-2xl">
-          <div className="border-b border-ink-800 px-4 py-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+        <div className="app-no-drag absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-ink-700/60 bg-ink-900 shadow-float animate-scale-in">
+          <div className="border-b border-ink-800/60 px-4 py-2.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
             workspaces
           </div>
           <div className="max-h-64 overflow-y-auto">

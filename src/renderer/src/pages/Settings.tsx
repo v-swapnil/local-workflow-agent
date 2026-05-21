@@ -45,49 +45,52 @@ export function Settings() {
 
           <div className="mt-8">
             <SectionTitle index="02" title="Appearance" />
-            <div className="flex items-center gap-2">
-              <button
-                className={`rounded border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 ${theme === 'dark' ? 'border-amber-700/60 bg-amber-950/30 text-amber-300' : 'border-ink-700 text-ink-300 hover:border-ink-600'}`}
-                onClick={() => {
-                  setThemeLocal('dark');
-                  setTheme.mutate({ value: 'dark' });
-                }}
-                disabled={setTheme.isPending}
-              >
-                dark
-              </button>
-              <button
-                className={`rounded border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 ${theme === 'light' ? 'border-amber-700/60 bg-amber-950/30 text-amber-300' : 'border-ink-700 text-ink-300 hover:border-ink-600'}`}
-                onClick={() => {
-                  setThemeLocal('light');
-                  setTheme.mutate({ value: 'light' });
-                }}
-                disabled={setTheme.isPending}
-              >
-                light
-              </button>
-            </div>
-            <div className="mt-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
-              quick toggle: cmd/ctrl + shift + l
-            </div>
 
-            <div className="mt-5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-              text size
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              {(['compact', 'default', 'comfortable'] as TextSize[]).map((size) => (
+            <div className="mt-5 group flex flex-col items-start gap-3.5 rounded-lg border border-ink-800/40 bg-ink-900/15 p-4 transition-all">
+              <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+                Theme
+              </div>
+              <div className="flex items-center gap-2">
                 <button
-                  key={size}
-                  className={`rounded border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 ${textSize === size ? 'border-amber-700/60 bg-amber-950/30 text-amber-300' : 'border-ink-700 text-ink-300 hover:border-ink-600'}`}
+                  className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${theme === 'dark' ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
                   onClick={() => {
-                    setTextSizeLocal(size);
-                    setTextSize.mutate({ value: size });
+                    setThemeLocal('dark');
+                    setTheme.mutate({ value: 'dark' });
                   }}
-                  disabled={setTextSize.isPending}
+                  disabled={setTheme.isPending}
                 >
-                  {size}
+                  dark
                 </button>
-              ))}
+                <button
+                  className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${theme === 'light' ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
+                  onClick={() => {
+                    setThemeLocal('light');
+                    setTheme.mutate({ value: 'light' });
+                  }}
+                  disabled={setTheme.isPending}
+                >
+                  light
+                </button>
+              </div>
+
+              <div className="mt-5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+                text size
+              </div>
+              <div className="flex items-center gap-2">
+                {(['compact', 'default', 'comfortable'] as TextSize[]).map((size) => (
+                  <button
+                    key={size}
+                    className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${textSize === size ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
+                    onClick={() => {
+                      setTextSizeLocal(size);
+                      setTextSize.mutate({ value: size });
+                    }}
+                    disabled={setTextSize.isPending}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -133,7 +136,7 @@ export function Settings() {
               <button
                 onClick={() => openLogs.mutate()}
                 disabled={openLogs.isPending}
-                className="rounded border border-ink-700 px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 text-ink-200 hover:border-ink-600 disabled:opacity-40"
+                className="rounded-md border border-ink-700/50 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 transition-colors hover:border-ink-600 hover:text-ink-100 disabled:opacity-40"
               >
                 {openLogs.isPending ? 'opening…' : 'open logs folder'}
               </button>
@@ -151,7 +154,7 @@ export function Settings() {
                 ],
               ]}
             />
-            <div className="mt-3 rounded border border-ink-800 bg-ink-900/40 px-4 py-3 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+            <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
               shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
             </div>
           </div>
@@ -175,17 +178,17 @@ function ToggleCard({
   description: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded border border-ink-800 bg-ink-900/40 p-4 hover:border-ink-700">
+    <label className="group flex cursor-pointer items-start gap-3.5 rounded-lg border border-ink-800/40 bg-ink-900/15 p-4 transition-all hover:border-ink-700/50 hover:bg-ink-900/25">
       <input
         type="checkbox"
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 accent-amber-500"
+        className="toggle-switch mt-0.5 shrink-0"
       />
       <div>
-        <div className="font-serif text-sm text-ink-50">{title}</div>
-        <div className="mt-1 font-mono text-ui-sm text-ink-400">{description}</div>
+        <div className="font-mono text-ui-sm font-medium text-ink-50">{title}</div>
+        <div className="mt-1 font-mono text-ui-xs leading-relaxed text-ink-400">{description}</div>
       </div>
     </label>
   );
@@ -194,22 +197,26 @@ function ToggleCard({
 function SectionTitle({ index, title }: { index: string; title: string }) {
   return (
     <div className="mb-4 flex items-baseline gap-3">
-      <span className="font-mono text-ui-xs uppercase tracking-widest2 text-amber">{index}</span>
-      <h2 className="font-serif text-2xl text-ink-50">{title}</h2>
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber/10 font-mono text-ui-2xs text-amber">
+        {index}
+      </span>
+      <h2 className="font-mono text-ui-base font-medium uppercase tracking-widest2 text-ink-100">
+        {title}
+      </h2>
     </div>
   );
 }
 
 function Rows({ rows }: { rows: [string, string][] }) {
   return (
-    <div className="overflow-hidden rounded border border-ink-800 bg-ink-900/40">
+    <div className="overflow-hidden rounded-lg border border-ink-800/40 bg-ink-900/15">
       {rows.map(([k, v], i) => (
         <div
           key={k}
-          className={`grid grid-cols-[140px_1fr] gap-4 px-4 py-2.5 ${i ? 'border-t border-ink-800' : ''}`}
+          className={`grid grid-cols-[140px_1fr] gap-4 px-4 py-2.5 ${i ? 'border-t border-ink-800/30' : ''}`}
         >
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">{k}</div>
-          <div className="truncate font-mono text-ui-sm text-ink-100">{v}</div>
+          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">{k}</div>
+          <div className="truncate font-mono text-ui-xs text-ink-200">{v}</div>
         </div>
       ))}
     </div>

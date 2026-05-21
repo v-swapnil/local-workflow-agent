@@ -31,25 +31,25 @@ export function Worktrees() {
       )}
 
       {worktrees.data && worktrees.data.length > 0 && (
-        <div className="space-y-1 overflow-hidden rounded border border-ink-800">
+        <div className="space-y-1 overflow-hidden rounded-lg border border-ink-800/40">
           {worktrees.data.map((w, i) => (
             <div
               key={w.id}
               className={cn(
                 'grid grid-cols-[1fr_auto] items-start gap-4 px-4 py-3',
-                i ? 'border-t border-ink-800' : '',
+                i ? 'border-t border-ink-800/30' : '',
                 w.status === 'removed' ? 'opacity-50' : '',
               )}
             >
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-ui-xs text-ink-500">⎇</span>
-                  <span className="font-mono text-ui-sm text-amber-400">{w.branch}</span>
+                  <span className="font-mono text-ui-xs text-amber">{w.branch}</span>
                   <span
-                    className={`rounded px-1.5 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 ${
+                    className={`rounded-full px-1.5 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 ${
                       w.status === 'active'
-                        ? 'bg-emerald-950/50 text-emerald-400'
-                        : 'bg-ink-800 text-ink-500'
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-ink-800/50 text-ink-500'
                     }`}
                   >
                     {w.status}
@@ -65,13 +65,13 @@ export function Worktrees() {
                   base: {w.baseBranch} @ {w.baseCommit.slice(0, 8)} ·{' '}
                   {w.sessionId ? (
                     <button
-                      className="text-amber-400 hover:underline"
+                      className="text-amber hover:underline"
                       onClick={() => navigate(`/sessions?id=${w.sessionId}`)}
                     >
                       session {w.sessionId}
                     </button>
                   ) : (
-                    <span className="text-amber-600">orphaned</span>
+                    <span className="text-amber/60">orphaned</span>
                   )}{' '}
                   · {new Date(w.createdAt).toLocaleString()}
                 </div>
@@ -84,7 +84,7 @@ export function Worktrees() {
                       if (confirm(`Delete worktree "${w.branch}"?`)) remove.mutate({ id: w.id });
                     }}
                     disabled={remove.isPending}
-                    className="rounded border border-ink-700 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-300 hover:border-rose-500 hover:text-rose-400 disabled:opacity-40"
+                    className="btn-danger !py-0.5 !px-2"
                   >
                     delete
                   </button>

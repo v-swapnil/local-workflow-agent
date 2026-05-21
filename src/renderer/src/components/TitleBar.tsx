@@ -14,14 +14,14 @@ export function TitleBar() {
   const version = health.data?.app.version ?? '';
 
   return (
-    <div className="app-drag relative z-30 flex h-10 items-center justify-between border-b border-ink-800 bg-ink-950/80 pl-4 pr-4 backdrop-blur">
-      <div className="flex items-center gap-3 font-mono text-ui-sm uppercase tracking-widest2 text-ink-400">
-        {/* <span className="text-amber">[ase]</span> */}
-        {/* <span className="text-ink-500">/</span> */}
-        <span>autonomous software engineer</span>
-        {version && <span className="text-ink-500">v{version}</span>}
+    <div className="app-drag relative z-30 flex h-11 items-center justify-between border-b border-ink-800/60 bg-ink-950/90 pl-[80px] pr-4 backdrop-blur-md">
+      <div className="flex items-center gap-2.5 font-mono text-ui-xs tracking-widest2 text-ink-500">
+        <span className="uppercase">autonomous software engineer</span>
+        {version && (
+          <span className="rounded-full bg-ink-800/60 px-1.5 py-0.5 text-ui-2xs text-ink-500">{version}</span>
+        )}
       </div>
-      <div className="app-no-drag flex items-center gap-3 font-mono text-ui-xs uppercase tracking-widest2">
+      <div className="app-no-drag flex items-center gap-2">
         <ModelBadge />
         <button
           onClick={() => {
@@ -29,30 +29,40 @@ export function TitleBar() {
             setThemeLocal(next);
             setTheme.mutate({ value: next });
           }}
-          className="rounded border border-ink-800 bg-ink-900/60 px-2 py-1 text-ink-300 hover:border-ink-700"
+          className="group flex h-7 w-7 items-center justify-center rounded-md border border-ink-800/60 bg-ink-900/40 text-ink-400 transition-all hover:border-ink-700 hover:bg-ink-800/60 hover:text-ink-200"
           title="Toggle theme (Cmd/Ctrl+Shift+L)"
         >
-          {theme === 'dark' ? 'light' : 'dark'}
+          {theme === 'dark' ? (
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="h-3.5 w-3.5 transition-transform group-hover:rotate-45">
+              <circle cx="8" cy="8" r="3" />
+              <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M3.8 12.2l1-1M11.2 4.8l1-1" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <path d="M13.5 9.5a5.5 5.5 0 01-7-7 5.5 5.5 0 107 7z" />
+            </svg>
+          )}
         </button>
         <WorkspaceSwitcher />
-        <Status
+        <div className="mx-1 h-4 w-px bg-ink-800/60" />
+        <StatusDot
           label="ollama"
           ok={ollamaOk}
-          detail={ollamaOk ? `${health.data?.ollama.models?.length ?? 0} models` : 'offline'}
+          detail={ollamaOk ? `${health.data?.ollama.models?.length ?? 0}` : undefined}
         />
-        <Status label="db" ok={health.data?.db.ok} />
+        <StatusDot label="db" ok={health.data?.db.ok} />
       </div>
     </div>
   );
 }
 
-function Status({ label, ok, detail }: { label: string; ok?: boolean; detail?: string }) {
+function StatusDot({ label, ok, detail }: { label: string; ok?: boolean; detail?: string }) {
   const color = ok === undefined ? 'bg-ink-500' : ok ? 'bg-signal-ok' : 'bg-signal-err';
   return (
-    <div className="flex items-center gap-1.5 text-ink-400">
-      <span className={`h-1.5 w-1.5 rounded-full ${color}`} />
+    <div className="flex items-center gap-1.5 rounded-md px-1.5 py-1 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+      <span className={`h-[5px] w-[5px] rounded-full ${color} ${ok === false ? 'animate-pulse' : ''}`} />
       <span>{label}</span>
-      {detail && <span className="text-ink-500">· {detail}</span>}
+      {detail && <span className="text-ink-600">{detail}</span>}
     </div>
   );
 }
@@ -60,10 +70,14 @@ function Status({ label, ok, detail }: { label: string; ok?: boolean; detail?: s
 function ModelBadge() {
   const active = trpc.llm.activeModel.useQuery();
   return (
-    <div className="flex items-center gap-1.5 rounded border border-ink-800 bg-ink-900/60 px-2 py-1 text-ink-300">
-      <span className="text-ink-500">model</span>
-      <span className="text-amber">·</span>
-      <span className="normal-case text-ink-100">{active.data ?? '…'}</span>
+    <div className="flex items-center gap-1.5 rounded-md border border-ink-800/60 bg-ink-900/40 px-2.5 py-1 font-mono text-ui-xs text-ink-300">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" className="h-3 w-3 text-ink-500">
+        <rect x="2" y="2" width="12" height="12" rx="2" />
+        <circle cx="6" cy="6.5" r="1" fill="currentColor" stroke="none" />
+        <circle cx="10" cy="6.5" r="1" fill="currentColor" stroke="none" />
+        <path d="M5.5 10c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5" />
+      </svg>
+      <span className="normal-case text-ink-200">{active.data ?? '…'}</span>
     </div>
   );
 }

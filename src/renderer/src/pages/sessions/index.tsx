@@ -61,14 +61,13 @@ export function Sessions() {
   };
 
   return (
-    <div className="grid h-full grid-cols-[340px_1fr] gap-6 p-6">
-      <aside className="flex flex-col">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-            sessions
-          </div>
+    <div className="grid h-full grid-cols-[320px_1fr] gap-0 animate-fade-in">
+      {/* Sidebar */}
+      <aside className="flex flex-col border-r border-ink-800/60 bg-ink-900/20">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800/40">
+          <h2 className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">Sessions</h2>
           <button
-            className="rounded border border-ink-700 px-2 py-0.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 hover:border-amber-500 hover:text-amber-400 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-md border border-ink-700/50 bg-ink-800/40 px-2.5 py-1.5 font-mono text-ui-xs text-ink-300 transition-all hover:border-amber/30 hover:bg-amber/8 hover:text-amber disabled:opacity-40"
             disabled={!workspaceId || create.isPending}
             onClick={() =>
               create.mutate({
@@ -77,15 +76,18 @@ export function Sessions() {
               })
             }
           >
-            + new
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3">
+              <path d="M6 2v8M2 6h8" />
+            </svg>
+            new
           </button>
         </div>
 
         {!workspaceId && (
-          <div className="font-mono text-ui-sm text-ink-500">no active workspace</div>
+          <div className="px-4 py-6 text-center font-mono text-ui-sm text-ink-500">no active workspace</div>
         )}
 
-        <div className="flex-1 space-y-0.5 overflow-y-auto">
+        <div className="flex-1 space-y-px overflow-y-auto px-2 py-2">
           {sessionsQ.data?.map((s) => (
             <SessionTreeNode
               key={s.id}
@@ -108,12 +110,20 @@ export function Sessions() {
             />
           ))}
           {sessionsQ.data?.length === 0 && (
-            <div className="font-mono text-ui-sm text-ink-500">no sessions yet</div>
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="h-8 w-8 text-ink-700">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M8 12h8M12 8v8" strokeWidth="1.5" />
+              </svg>
+              <div className="font-mono text-ui-xs text-ink-500">no sessions yet</div>
+              <div className="font-mono text-ui-2xs text-ink-600">click "new" to start</div>
+            </div>
           )}
         </div>
       </aside>
 
-      <main className="min-w-0">
+      {/* Main content */}
+      <main className="min-w-0 p-5">
         {sessionId ? (
           <SessionDetail
             sessionId={sessionId}
@@ -122,8 +132,11 @@ export function Sessions() {
             onTaskFocus={setFocusedTaskId}
           />
         ) : (
-          <div className="flex h-full items-center justify-center font-mono text-ui-sm text-ink-500">
-            select or create a session
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="h-10 w-10 text-ink-700">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <div className="font-mono text-ui-xs text-ink-500">select or create a session</div>
           </div>
         )}
       </main>

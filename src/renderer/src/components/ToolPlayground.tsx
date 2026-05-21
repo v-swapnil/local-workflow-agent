@@ -124,7 +124,7 @@ export function ToolPlayground() {
         <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
           tool
         </div>
-        <div className="flex flex-col rounded border border-ink-800 bg-ink-900/40">
+        <div className="flex flex-col rounded-lg border border-ink-800/40 bg-ink-900/15">
           {(Object.keys(PRESETS) as ToolName[]).map((t) => (
             <button
               key={t}
@@ -137,8 +137,8 @@ export function ToolPlayground() {
                 setDuration(null);
               }}
               className={cn(
-                'border-b border-ink-800/60 px-3 py-2 text-left font-mono text-ui-base last:border-b-0',
-                tool === t ? 'bg-ink-800 text-amber' : 'text-ink-300 hover:bg-ink-800/40',
+                'border-b border-ink-800/30 px-3 py-2 text-left font-mono text-ui-xs last:border-b-0',
+                tool === t ? 'bg-ink-800/50 text-amber' : 'text-ink-300 hover:bg-ink-800/30',
               )}
             >
               {t}
@@ -162,13 +162,13 @@ export function ToolPlayground() {
             onChange={(e) => setArgs(e.target.value)}
             spellCheck={false}
             rows={8}
-            className="w-full resize-y rounded border border-ink-700 bg-ink-950 p-3 font-mono text-ui-base text-ink-100 focus:border-amber focus:outline-none"
+            className="w-full resize-y rounded-md border border-ink-700/50 bg-ink-950/80 p-3 font-mono text-ui-xs text-ink-100 transition-colors focus:border-amber/30 focus:outline-none"
           />
           <div className="mt-3 flex items-center gap-3">
             <button
               onClick={run}
               disabled={running || !workspaceId}
-              className="rounded border border-amber bg-amber/10 px-4 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 text-amber hover:bg-amber/20 disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-primary !py-1.5"
             >
               {running ? 'running…' : 'invoke →'}
             </button>
@@ -177,7 +177,7 @@ export function ToolPlayground() {
                 {duration}ms
               </span>
             )}
-            {error && <span className="font-mono text-ui-sm text-signal-err">{error}</span>}
+            {error && <span className="font-mono text-ui-xs text-signal-err">{error}</span>}
           </div>
         </div>
 
@@ -186,7 +186,7 @@ export function ToolPlayground() {
             <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
               live log
             </div>
-            <div className="h-48 overflow-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-relaxed">
+            <div className="h-48 overflow-auto rounded-lg border border-ink-800/40 bg-ink-950/80 p-3 font-mono text-ui-xs leading-relaxed">
               {logs.length === 0 && <div className="text-ink-500">// no output yet</div>}
               {logs.map((l, i) => (
                 <span
@@ -204,7 +204,7 @@ export function ToolPlayground() {
           <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
             result
           </div>
-          <pre className="h-64 overflow-auto rounded border border-ink-800 bg-ink-950 p-3 font-mono text-ui-sm leading-relaxed text-ink-100">
+          <pre className="h-64 overflow-auto rounded-lg border border-ink-800/40 bg-ink-950/80 p-3 font-mono text-ui-xs leading-relaxed text-ink-100">
             {resultPretty || (running ? '…' : '// no result yet')}
           </pre>
         </div>

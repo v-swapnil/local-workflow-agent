@@ -2,51 +2,98 @@ import { cn } from '../../lib/utils';
 import type { TaskEvent } from './types';
 
 export function EventRow({ ev }: { ev: TaskEvent }) {
-  const t = new Date(ev.ts).toLocaleTimeString([], { hour12: false });
+  const t = new Date(ev.ts).toLocaleTimeString([], {
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 
   switch (ev.type) {
     case 'task.started':
       return (
-        <Line ts={t} tone="amber">
-          ▶ task started
-        </Line>
+        <div className="my-2 flex items-center gap-3">
+          <div className="h-px flex-1 bg-amber/15" />
+          <span className="flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+            <svg viewBox="0 0 8 8" className="h-2 w-2" fill="currentColor">
+              <polygon points="1,0 8,4 1,8" />
+            </svg>
+            task started
+          </span>
+          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
+          <div className="h-px flex-1 bg-amber/15" />
+        </div>
       );
     case 'task.finished':
       return (
-        <Line
-          ts={t}
-          tone={ev.status === 'succeeded' ? 'emerald' : ev.status === 'cancelled' ? 'ink' : 'rose'}
-        >
-          ■ task {ev.status}
-          {ev.error ? ` · ${ev.error.slice(0, 200)}` : ''}
-        </Line>
+        <div className="my-2 flex items-center gap-3">
+          <div
+            className={cn(
+              'h-px flex-1',
+              ev.status === 'succeeded'
+                ? 'bg-emerald-500/20'
+                : ev.status === 'cancelled'
+                  ? 'bg-ink-700/40'
+                  : 'bg-rose-500/20',
+            )}
+          />
+          <span
+            className={cn(
+              'flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2',
+              ev.status === 'succeeded'
+                ? 'text-emerald-400'
+                : ev.status === 'cancelled'
+                  ? 'text-ink-500'
+                  : 'text-rose-400',
+            )}
+          >
+            <svg viewBox="0 0 8 8" className="h-2 w-2" fill="currentColor">
+              <rect width="8" height="8" rx="1" />
+            </svg>
+            task {ev.status}
+          </span>
+          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
+          <div
+            className={cn(
+              'h-px flex-1',
+              ev.status === 'succeeded'
+                ? 'bg-emerald-500/20'
+                : ev.status === 'cancelled'
+                  ? 'bg-ink-700/40'
+                  : 'bg-rose-500/20',
+            )}
+          />
+        </div>
       );
     case 'plan':
       return (
-        <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
+        <div className="my-2 rounded-lg border border-amber/10 bg-amber/3 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
-            <span className="font-mono text-ui-xs uppercase tracking-widest2 text-amber-400">
-              ▣ plan
+            <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
+            <span className="rounded-full bg-amber/10 px-2 py-px font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+              plan
             </span>
           </div>
-          <div className="mt-1 font-serif text-ui-sm italic text-ink-200">{ev.plan.summary}</div>
+          <div className="mt-1.5 font-mono text-ui-xs leading-relaxed text-ink-100">
+            {ev.plan.summary}
+          </div>
           {ev.plan.selectedSkills && ev.plan.selectedSkills.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {ev.plan.selectedSkills.map((s) => (
                 <span
                   key={s}
-                  className="rounded border border-amber-700/60 bg-amber-950/20 px-1.5 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber-300"
+                  className="rounded-full border border-amber/15 bg-amber/5 px-2 py-0.5 font-mono text-ui-2xs text-amber/80"
                 >
                   {s}
                 </span>
               ))}
             </div>
           )}
-          <ol className="mt-1 space-y-0.5 font-mono text-ui-xs">
+          <ol className="mt-2 space-y-0.5 border-t border-amber/8 pt-2">
             {ev.plan.steps.map((s, i) => (
-              <li key={s.id} className="text-ink-300">
-                <span className="text-ink-500">{i + 1}.</span> {s.goal}
+              <li key={s.id} className="flex items-start gap-2 font-mono text-ui-xs text-ink-300">
+                <span className="shrink-0 w-4 text-right text-ink-600">{i + 1}.</span>
+                <span>{s.goal}</span>
               </li>
             ))}
           </ol>
@@ -55,14 +102,19 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'step.started':
       return (
         <Line ts={t} tone="ink">
-          → {ev.agent}
-          {ev.tool ? `:${ev.tool}` : ''}
+          <span className="text-ink-500">→</span> {ev.agent}
+          {ev.tool ? <span className="text-ink-500">:{ev.tool}</span> : ''}
         </Line>
       );
     case 'step.finished':
       return (
         <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
-          ← step {ev.ok ? 'ok' : `fail · ${(ev.error ?? '').slice(0, 200)}`}
+          <span className="text-ink-500">←</span> step{' '}
+          {ev.ok ? (
+            <span className="text-emerald-400">ok</span>
+          ) : (
+            <span className="text-rose-400">fail · {(ev.error ?? '').slice(0, 200)}</span>
+          )}
         </Line>
       );
     case 'log':
@@ -73,22 +125,24 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
       );
     case 'critic':
       return (
-        <div className="my-1 rounded border border-ink-800 bg-ink-900/30 px-3 py-2">
+        <div className="my-2 rounded-lg border border-ink-800/40 bg-ink-900/20 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="shrink-0 font-mono text-ui-xs text-ink-600">{t}</span>
+            <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
             <span
               className={cn(
-                'font-mono text-ui-xs uppercase tracking-widest2',
-                ev.verdict.done ? 'text-emerald-400' : 'text-amber-400',
+                'rounded-full px-2 py-px font-mono text-ui-2xs uppercase tracking-widest2',
+                ev.verdict.done ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber/10 text-amber',
               )}
             >
-              ⚖ {ev.verdict.done ? 'done' : 'continue'}
+              {ev.verdict.done ? 'done' : 'continue'}
             </span>
           </div>
-          <div className="mt-1 font-mono text-ui-xs text-ink-300">{ev.verdict.reason}</div>
+          <div className="mt-1.5 font-mono text-ui-2xs leading-relaxed text-ink-200">
+            {ev.verdict.reason}
+          </div>
           {ev.verdict.nextHint && (
-            <div className="mt-0.5 font-mono text-ui-xs text-ink-500">
-              hint: {ev.verdict.nextHint}
+            <div className="mt-1 font-mono text-ui-2xs text-ink-500">
+              → {ev.verdict.nextHint}
             </div>
           )}
         </div>
@@ -96,13 +150,18 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'approval.requested':
       return (
         <Line ts={t} tone="amber">
-          ⚑ approval requested · {ev.tool}
+          <span className="inline-flex items-center gap-1">
+            <svg viewBox="0 0 10 12" className="h-3 w-3" fill="currentColor">
+              <path d="M2 1h2v11H2zM6 5l4 3-4 3z" />
+            </svg>
+            approval requested · <span className="text-ink-200">{ev.tool}</span>
+          </span>
         </Line>
       );
     case 'approval.decided':
       return (
         <Line ts={t} tone={ev.decision === 'deny' ? 'rose' : 'emerald'}>
-          ⚐ approval {ev.decision}
+          approval {ev.decision}
         </Line>
       );
     case 'llm.delta':
@@ -114,25 +173,29 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'llm.thinking_delta':
       return (
         <Line ts={t} tone="purple" dim>
-          💭 {ev.content}
+          {ev.content}
         </Line>
       );
     case 'task.iteration':
       return (
-        <Line ts={t} tone="amber">
-          ↻ iteration {ev.iteration}
-        </Line>
+        <div className="my-1.5 flex items-center gap-2">
+          <div className="h-px flex-1 bg-ink-800/40" />
+          <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+            iteration {ev.iteration}
+          </span>
+          <div className="h-px flex-1 bg-ink-800/40" />
+        </div>
       );
     case 'user_input.requested':
       return (
         <Line ts={t} tone="sky">
-          ✋ question: {ev.question}
+          ✋ {ev.question}
         </Line>
       );
     case 'user_input.responded':
       return (
         <Line ts={t} tone="sky">
-          ✓ answered: {ev.answer || '(skipped)'}
+          ✓ {ev.answer || '(skipped)'}
         </Line>
       );
     default:
@@ -152,17 +215,21 @@ function Line({
   children: React.ReactNode;
 }) {
   const colour = {
-    amber: 'text-amber-300',
-    emerald: 'text-emerald-300',
-    rose: 'text-rose-300',
-    purple: dim ? 'text-purple-400' : 'text-purple-300',
-    ink: dim ? 'text-ink-400' : 'text-ink-200',
-    sky: 'text-sky-300',
+    amber: 'text-amber',
+    emerald: dim ? 'text-emerald-400/70' : 'text-emerald-400',
+    rose: 'text-rose-400',
+    purple: dim ? 'text-purple-400/70' : 'text-purple-400',
+    ink: dim ? 'text-ink-500' : 'text-ink-200',
+    sky: 'text-sky-400',
   }[tone];
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-3">
-      <span className="shrink-0 select-none font-mono text-ui-xs text-ink-600">{ts}</span>
-      <span className={cn('min-w-0 whitespace-pre-wrap break-words', colour)}>{children}</span>
+    <div className="grid grid-cols-[auto_1fr] gap-3 py-px">
+      <span className="shrink-0 select-none font-mono text-ui-2xs text-ink-600 tabular-nums">
+        {ts}
+      </span>
+      <span className={cn('min-w-0 whitespace-pre-wrap break-words text-ui-xs', colour)}>
+        {children}
+      </span>
     </div>
   );
 }

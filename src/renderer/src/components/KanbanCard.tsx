@@ -45,16 +45,16 @@ export function KanbanCardView({
     <div
       onClick={onClick}
       className={cn(
-        'group relative cursor-pointer rounded-md border border-l-[3px] bg-ink-900 p-3 transition-all',
+        'group relative cursor-pointer rounded-lg border border-l-[3px] bg-ink-900/60 p-3.5 transition-all',
         style.border,
-        'border-ink-800 hover:border-ink-700',
+        'border-ink-800/60 hover:border-ink-700 hover:shadow-sm hover:shadow-ink-950/20',
         isDragging && 'rotate-[2deg] opacity-60 ring-2 ring-amber/40',
-        isOverlay && 'rotate-[2deg] shadow-xl shadow-ink-950/60 ring-2 ring-amber/40',
+        isOverlay && 'rotate-[2deg] shadow-float ring-2 ring-amber/40',
       )}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 truncate font-serif text-ui-lg leading-snug text-ink-50">
+        <h3 className="min-w-0 truncate font-mono text-ui-sm font-medium leading-snug text-ink-50">
           {card.title}
         </h3>
         {card.manualLane && onResetLane && (

@@ -86,7 +86,7 @@ function mapPathKind(
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-b border-ink-800 px-3 py-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+    <div className="border-b border-ink-800/40 px-3 py-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
       {children}
     </div>
   );
@@ -95,8 +95,8 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full items-center justify-center p-10 text-center">
-      <div className="max-w-md rounded border border-dashed border-ink-700 bg-ink-900/30 px-8 py-10 font-mono text-ui-base text-ink-400">
-        {children}
+      <div className="max-w-md rounded-lg border border-dashed border-ink-700/50 bg-ink-900/20 px-8 py-10">
+        <div className="font-mono text-ui-sm text-ink-400">{children}</div>
       </div>
     </div>
   );
@@ -120,7 +120,7 @@ function ChangedFileList({
   }
 
   return (
-    <ul className="space-y-0.5 px-2 py-2">
+    <ul className="space-y-px px-2 py-1.5">
       {files.map((file) => {
         const isActive = activePath === file.path;
         const meta = changeMeta(file.kind);
@@ -131,16 +131,15 @@ function ChangedFileList({
             : meta.label;
 
         return (
-          <li key={`${file.section}:${file.path}:${file.kind}`} className="flex items-center gap-1">
-            {/* Stage/Unstage button */}
+          <li key={`${file.section}:${file.path}:${file.kind}`} className="flex items-center gap-0.5">
             {file.section === 'working' && onStage && (
               <button
                 type="button"
                 title="Stage file"
                 onClick={(e) => { e.stopPropagation(); onStage(file.path); }}
-                className="shrink-0 w-5 text-center font-mono text-ui-xs text-ink-500 hover:text-signal-ok"
+                className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-emerald-500/10 hover:text-signal-ok"
               >
-                +
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3"><path d="M6 2v8M2 6h8" /></svg>
               </button>
             )}
             {file.section === 'staged' && onUnstage && (
@@ -148,31 +147,31 @@ function ChangedFileList({
                 type="button"
                 title="Unstage file"
                 onClick={(e) => { e.stopPropagation(); onUnstage(file.path); }}
-                className="shrink-0 w-5 text-center font-mono text-ui-xs text-ink-500 hover:text-signal-err"
+                className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-rose-500/10 hover:text-signal-err"
               >
-                −
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3"><path d="M2 6h8" /></svg>
               </button>
             )}
             <button
               type="button"
-              className={`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+              className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-all ${
                 isActive
-                  ? 'bg-ink-800 text-ink-100 shadow-inset-hair'
-                  : 'text-ink-300 hover:bg-ink-800/60 hover:text-ink-100'
+                  ? 'bg-amber/8 text-ink-100 border border-amber/15'
+                  : 'border border-transparent text-ink-300 hover:bg-ink-800/30 hover:text-ink-100'
               }`}
               onClick={() => onSelect(file.path)}
               title={file.path}
             >
               <span
-                className={`w-4 shrink-0 text-center font-mono text-ui-xs ${meta.className}`}
+                className={`w-4 shrink-0 text-center font-mono text-ui-2xs font-medium ${meta.className}`}
                 title={renameTitle}
               >
                 {meta.code}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-mono text-ui-sm leading-5">{parts.name}</span>
+                <span className="block truncate font-mono text-ui-xs leading-5">{parts.name}</span>
                 {parts.parent ? (
-                  <span className="block truncate font-mono text-ui-xs text-ink-500">
+                  <span className="block truncate font-mono text-ui-2xs text-ink-500">
                     {parts.parent}
                   </span>
                 ) : null}
@@ -222,11 +221,14 @@ function DiffPanelEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-ink-800 px-4 py-2">
-        <div className="min-w-0 truncate font-mono text-ui-sm text-ink-200">{path}</div>
+      <div className="flex items-center justify-between border-b border-ink-800/40 bg-ink-900/20 px-4 py-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`shrink-0 font-mono text-ui-2xs font-medium ${changeMeta(kind).className}`}>{changeMeta(kind).code}</span>
+          <span className="min-w-0 truncate font-mono text-ui-sm text-ink-100">{path}</span>
+        </div>
         <button
           type="button"
-          className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs text-ink-300 hover:border-ink-600 hover:text-ink-100"
+          className="rounded-md border border-ink-700/50 px-2.5 py-1 font-mono text-ui-2xs text-ink-300 transition-colors hover:border-ink-600 hover:text-ink-100"
           onClick={() => setInlineMode((v) => !v)}
         >
           {inlineMode ? 'Side-by-side' : 'Inline'}
@@ -377,33 +379,32 @@ function DiffPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink-950">
-      <div className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
-        <div>
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
-            workspace
-          </div>
-          <div className="mt-0.5 font-serif text-lg text-ink-100">
-            {workspace.data?.name ?? '—'}
-            <span className="ml-2 font-mono text-ui-xs text-ink-500">{workspace.data?.path}</span>
-          </div>
-          <div className="mt-1 font-mono text-ui-xs text-ink-500">
-            branch: {status.data?.branch ?? '—'}
-            <span className="mx-2">|</span>
-            {summary || 'no working changes'}
+      {/* Top bar */}
+      <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="font-serif text-ui-lg tracking-tight text-ink-100">
+              {workspace.data?.name ?? '—'}
+            </h2>
+            <div className="mt-0.5 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
+              <span>⎇ {status.data?.branch ?? '—'}</span>
+              <span className="text-ink-700">·</span>
+              <span>{summary || 'clean'}</span>
+            </div>
           </div>
         </div>
 
-        <div className="mb-2 flex items-center justify-end">
-          <label className="mr-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             source
-          </label>
+          </span>
           <select
             value={worktreeId}
             onChange={(e) => {
               setWorktreeId(e.target.value);
               setActive(null);
             }}
-            className="rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-200 focus:border-amber-700/60 focus:outline-none"
+            className="rounded-md border border-ink-700/50 bg-ink-900/40 px-3 py-1.5 font-mono text-ui-xs text-ink-200 transition-colors focus:border-amber/30 focus:outline-none hover:border-ink-600"
           >
             <option value="">workspace root</option>
             {(worktrees.data ?? [])
@@ -418,7 +419,7 @@ function DiffPanel({
       </div>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-72 shrink-0 flex-col border-r border-ink-800 bg-ink-900/30">
+        <aside className="flex w-72 shrink-0 flex-col border-r border-ink-800/40 bg-ink-900/15">
           <SectionHeader>Staged ({filesBySection.staged.length})</SectionHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {status.data && !status.data.isRepo ? (

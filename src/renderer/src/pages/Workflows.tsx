@@ -19,22 +19,33 @@ function WorkflowList({
   onNew: () => void;
 }) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-ink-800">
-      <div className="flex items-center justify-between border-b border-ink-800 px-4 py-3">
-        <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-ink-800/60">
+      <div className="flex items-center justify-between border-b border-ink-800/60 px-4 py-3">
+        <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
           workflows
         </span>
         <button
           onClick={onNew}
-          className="rounded border border-ink-700 px-2 py-0.5 font-mono text-ui-xs text-ink-300 hover:border-amber-700/60 hover:text-amber-300"
+          className="flex items-center gap-1 rounded-md border border-ink-700/60 bg-ink-800/30 px-2 py-1 font-mono text-ui-xs text-ink-300 transition-all hover:border-amber/30 hover:bg-amber/5 hover:text-amber"
         >
-          + new
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-2.5 w-2.5">
+            <path d="M6 2v8M2 6h8" />
+          </svg>
+          new
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {workflows.length === 0 ? (
-          <div className="px-4 py-8 text-center font-mono text-ui-xs text-ink-500">
-            no workflows yet
+          <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-800/40">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="h-4 w-4 text-ink-500">
+                <circle cx="4" cy="4" r="1.5" />
+                <circle cx="12" cy="4" r="1.5" />
+                <circle cx="8" cy="12" r="1.5" />
+                <path d="M5.2 5.2L7 10.5M10.8 5.2L9 10.5" />
+              </svg>
+            </div>
+            <span className="font-mono text-ui-xs text-ink-500">no workflows yet</span>
           </div>
         ) : (
           <ul className="space-y-0.5 px-2 py-2">
@@ -42,12 +53,15 @@ function WorkflowList({
               <li key={w.id}>
                 <button
                   onClick={() => onSelect(w.id)}
-                  className={`flex w-full flex-col gap-0.5 rounded px-3 py-2 text-left transition-colors ${
+                  className={`relative flex w-full flex-col gap-0.5 rounded-md border px-3 py-2.5 text-left transition-all ${
                     selectedId === w.id
-                      ? 'bg-ink-800 text-ink-100 shadow-inset-hair'
-                      : 'text-ink-300 hover:bg-ink-800/60 hover:text-ink-100'
+                      ? 'border-amber/20 bg-ink-800/60 text-ink-100 shadow-sm shadow-amber/5'
+                      : 'border-transparent text-ink-300 hover:border-ink-700/60 hover:bg-ink-800/30 hover:text-ink-100'
                   }`}
                 >
+                  {selectedId === w.id && (
+                    <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-amber" />
+                  )}
                   <span className="truncate font-mono text-ui-sm font-medium">{w.name}</span>
                   {w.description && (
                     <span className="truncate font-mono text-ui-xs text-ink-500">
@@ -181,7 +195,7 @@ export function Workflows() {
           <button
             onClick={save}
             disabled={upsert.isPending || !name.trim()}
-            className="rounded border border-amber-700/60 bg-amber-950/30 px-4 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/60 disabled:opacity-40"
+            className="rounded-md bg-amber/90 px-4 py-1.5 font-mono text-ui-xs font-medium uppercase tracking-widest2 text-ink-950 shadow-glow-sm transition-all hover:bg-amber hover:shadow-glow disabled:opacity-40 disabled:shadow-none"
           >
             {upsert.isPending ? 'saving…' : 'save'}
           </button>

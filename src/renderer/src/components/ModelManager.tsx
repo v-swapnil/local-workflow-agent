@@ -25,8 +25,8 @@ export function ModelManager() {
   return (
     <div className="space-y-6">
       {/* Provider toggle */}
-      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
-        <div className="mb-3 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
+        <div className="mb-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
           active provider
         </div>
         <div className="flex items-center gap-2">
@@ -35,8 +35,8 @@ export function ModelManager() {
               key={id}
               className={`rounded border px-4 py-2 font-mono text-ui-sm uppercase tracking-widest2 transition-colors ${
                 provider === id
-                  ? 'border-amber-700/60 bg-amber-950/30 text-amber'
-                  : 'border-ink-700 text-ink-300 hover:border-ink-600'
+                  ? 'border-amber/30 bg-amber/8 text-amber'
+                  : 'border-ink-700/50 text-ink-300 hover:border-ink-600'
               }`}
               onClick={() => setActiveProvider.mutate({ provider: id })}
               disabled={setActiveProvider.isPending}
@@ -98,14 +98,14 @@ function OllamaPanel() {
 
   return (
     <>
-      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+            <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
               provider
             </div>
-            <div className="mt-1 font-serif text-lg text-ink-50">Ollama</div>
-            <div className="font-mono text-ui-xs text-ink-500">
+            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">Ollama</div>
+            <div className="font-mono text-ui-2xs text-ink-500">
               {health.data?.url ?? OLLAMA_URL}
             </div>
           </div>
@@ -132,19 +132,19 @@ function OllamaPanel() {
         )}
       </div>
 
-      <div className="rounded border border-ink-800 bg-ink-900/40">
-        <div className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15">
+        <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
+          <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             installed models
           </div>
-          <div className="font-mono text-ui-xs text-ink-500">
+          <div className="font-mono text-ui-2xs text-ink-500">
             active: <span className="text-amber">{active.data ?? '—'}</span>
           </div>
         </div>
         {!ollamaOk ? (
-          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">—</div>
+          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">—</div>
         ) : models.data && models.data.length === 0 ? (
-          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">
+          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">
             no models installed yet. pull one below.
           </div>
         ) : (
@@ -154,14 +154,14 @@ function OllamaPanel() {
               return (
                 <li
                   key={m.name}
-                  className="flex items-center justify-between border-b border-ink-800/60 px-5 py-2.5 last:border-b-0"
+                  className="flex items-center justify-between border-b border-ink-800/30 px-5 py-2.5 last:border-b-0"
                 >
                   <div>
-                    <div className="font-mono text-ui-base text-ink-100">
+                    <div className="font-mono text-ui-sm text-ink-100">
                       {m.name}
                       {isActive && <span className="ml-2 text-amber">●</span>}
                     </div>
-                    <div className="font-mono text-ui-xs text-ink-500">
+                    <div className="font-mono text-ui-2xs text-ink-500">
                       {m.sizeBytes ? formatBytes(m.sizeBytes) : ''}
                       {m.modifiedAt ? `  ·  ${new Date(m.modifiedAt).toLocaleDateString()}` : ''}
                     </div>
@@ -170,8 +170,7 @@ function OllamaPanel() {
                     {!isActive && (
                       <button
                         onClick={() => setActive.mutate({ name: m.name })}
-                        className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber hover:border-amber"
-                      >
+                        className="btn-primary !py-1 !px-2">
                         use
                       </button>
                     )}
@@ -179,8 +178,7 @@ function OllamaPanel() {
                       onClick={() => {
                         if (window.confirm(`Delete ${m.name}?`)) del.mutate({ name: m.name });
                       }}
-                      className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400 hover:border-signal-err hover:text-signal-err"
-                    >
+                      className="btn-danger !py-1 !px-2">
                       remove
                     </button>
                   </div>
@@ -191,8 +189,8 @@ function OllamaPanel() {
         )}
       </div>
 
-      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
-        <div className="mb-3 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
+        <div className="mb-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
           pull a model
         </div>
         <div className="flex gap-2">
@@ -204,7 +202,7 @@ function OllamaPanel() {
               pullState?.status === 'starting' ||
               (pullState?.status !== undefined && !pullState.done && pullState.status !== 'error')
             }
-            className="flex-1 rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-base text-ink-100 placeholder:text-ink-500 focus:border-amber focus:outline-none disabled:opacity-50"
+            className="flex-1 rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none disabled:opacity-50"
             placeholder="qwen2.5-coder:7b"
           />
           <button
@@ -214,14 +212,14 @@ function OllamaPanel() {
               (pullState !== null && !pullState.done && pullState.status !== 'error')
             }
             onClick={() => setPullState({ status: 'starting' })}
-            className="rounded border border-amber bg-amber/10 px-4 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 text-amber hover:bg-amber/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary !py-1.5"
           >
             pull →
           </button>
         </div>
 
         {pullState && <PullProgressBar state={pullState} />}
-        <div className="mt-3 font-mono text-ui-xs text-ink-500">
+        <div className="mt-3 font-mono text-ui-2xs text-ink-500">
           tip: try{' '}
           <button
             onClick={() => setPullName('qwen2.5-coder:7b')}
@@ -283,13 +281,13 @@ function CopilotPanel() {
 
   return (
     <>
-      <div className="rounded border border-ink-800 bg-ink-900/40 p-5">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+            <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
               provider
             </div>
-            <div className="mt-1 font-serif text-lg text-ink-50">GitHub Copilot</div>
+            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">GitHub Copilot</div>
             <div className="font-mono text-ui-xs text-ink-500">
               {editing ? (
                 <form
@@ -339,7 +337,7 @@ function CopilotPanel() {
           <Pill ok={copilotHealth.isLoading ? undefined : ok} label={state} />
         </div>
         {!ok && !copilotHealth.isLoading && (
-          <div className="rounded border border-ink-700 bg-ink-950 px-4 py-3 font-mono text-ui-sm text-ink-300">
+          <div className="rounded-lg border border-ink-700/40 bg-ink-950/80 px-4 py-3 font-mono text-ui-xs text-ink-300">
             <div className="mb-1 text-amber">Copilot CLI not reachable.</div>
             Start the server with <code className="text-amber">copilot --stdio=false</code>, then
             check the URL above matches the port.
@@ -348,7 +346,7 @@ function CopilotPanel() {
                 type="button"
                 onClick={() => retryCopilot.mutate()}
                 disabled={retryCopilot.isPending}
-                className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber hover:border-amber disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-ink-700/50 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber transition-colors hover:border-amber/40 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {retryCopilot.isPending ? 'retrying...' : 'retry now'}
               </button>
@@ -357,19 +355,19 @@ function CopilotPanel() {
         )}
       </div>
 
-      <div className="rounded border border-ink-800 bg-ink-900/40">
-        <div className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15">
+        <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
+          <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             available models
           </div>
-          <div className="font-mono text-ui-xs text-ink-500">
+          <div className="font-mono text-ui-2xs text-ink-500">
             active: <span className="text-amber">{activeModel.data ?? '—'}</span>
           </div>
         </div>
         {!ok ? (
-          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">—</div>
+          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">—</div>
         ) : copilotModels.data && copilotModels.data.length === 0 ? (
-          <div className="px-5 py-6 font-mono text-ui-sm text-ink-500">
+          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">
             no models returned — check authentication
           </div>
         ) : (
@@ -379,16 +377,16 @@ function CopilotPanel() {
               return (
                 <li
                   key={m.name}
-                  className="flex items-center justify-between border-b border-ink-800/60 px-5 py-2.5 last:border-b-0"
+                  className="flex items-center justify-between border-b border-ink-800/30 px-5 py-2.5 last:border-b-0"
                 >
-                  <div className="font-mono text-ui-base text-ink-100">
+                  <div className="font-mono text-ui-sm text-ink-100">
                     {m.name}
                     {isActive && <span className="ml-2 text-amber">●</span>}
                   </div>
                   {!isActive && (
                     <button
                       onClick={() => setActiveModel.mutate({ name: m.name })}
-                      className="rounded border border-ink-700 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber hover:border-amber"
+                      className="btn-primary !py-1 !px-2"
                     >
                       use
                     </button>

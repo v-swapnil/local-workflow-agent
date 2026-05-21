@@ -24,19 +24,28 @@ export function AdvancedOptions({
   const models = modelsData ?? [];
   const workflows = workflowsData as { id: string; name: string }[];
 
+  const selectClass =
+    'rounded-md border border-ink-700/60 bg-ink-900/40 px-2 py-1 font-mono text-ui-xs text-ink-200 transition-colors focus:border-amber/30 focus:outline-none hover:border-ink-600';
+
   return (
-    <details className="mt-2">
-      <summary className="cursor-pointer select-none font-mono text-ui-xs uppercase tracking-widest2 text-ink-500 hover:text-ink-300">
-        ▸ advanced options
+    <details className="group">
+      <summary className="flex cursor-pointer select-none items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500 transition-colors hover:text-ink-300">
+        <svg
+          className="h-2.5 w-2.5 transition-transform group-open:rotate-90"
+          viewBox="0 0 8 10"
+          fill="currentColor"
+        >
+          <path d="M1 1l6 4-6 4V1z" />
+        </svg>
+        options
       </summary>
-      <div className="mt-2 grid grid-cols-3 gap-3">
-        {/* Model override */}
+      <div className="mt-2 grid grid-cols-3 gap-2">
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-ui-xs text-ink-500">model</span>
+          <span className="font-mono text-ui-2xs text-ink-500">model</span>
           <select
             value={modelOverride}
             onChange={(e) => onModelOverride(e.target.value)}
-            className="rounded border border-ink-700 bg-ink-950 px-2 py-1 font-mono text-ui-xs text-ink-200 focus:border-amber-700/60 focus:outline-none"
+            className={selectClass}
           >
             <option value="">— default —</option>
             {models.map((m) => (
@@ -47,16 +56,15 @@ export function AdvancedOptions({
           </select>
         </label>
 
-        {/* Agent picker */}
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-ui-xs text-ink-500">agent</span>
+          <span className="font-mono text-ui-2xs text-ink-500">agent</span>
           <select
             value={agentId}
             onChange={(e) => {
               onAgentId(e.target.value);
-              if (e.target.value) onWorkflowId(''); // mutually exclusive
+              if (e.target.value) onWorkflowId('');
             }}
-            className="rounded border border-ink-700 bg-ink-950 px-2 py-1 font-mono text-ui-xs text-ink-200 focus:border-amber-700/60 focus:outline-none"
+            className={selectClass}
           >
             <option value="">— none —</option>
             {agents.map((a) => (
@@ -67,16 +75,15 @@ export function AdvancedOptions({
           </select>
         </label>
 
-        {/* Workflow picker */}
         <label className="flex flex-col gap-1">
-          <span className="font-mono text-ui-xs text-ink-500">workflow</span>
+          <span className="font-mono text-ui-2xs text-ink-500">workflow</span>
           <select
             value={workflowId}
             onChange={(e) => {
               onWorkflowId(e.target.value);
-              if (e.target.value) onAgentId(''); // mutually exclusive
+              if (e.target.value) onAgentId('');
             }}
-            className="rounded border border-ink-700 bg-ink-950 px-2 py-1 font-mono text-ui-xs text-ink-200 focus:border-amber-700/60 focus:outline-none"
+            className={selectClass}
           >
             <option value="">— none —</option>
             {workflows.map((w) => (

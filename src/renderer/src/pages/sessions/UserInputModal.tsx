@@ -17,31 +17,33 @@ export function UserInputModal({
   const canSubmit = answer.trim().length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-[560px] max-w-[90vw] rounded border border-sky-700/60 bg-ink-950 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="w-[560px] max-w-[90vw] rounded-xl border border-sky-500/20 bg-ink-900 shadow-2xl animate-scale-in">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-ink-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-ink-800/60 px-5 py-3">
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-ui-xs uppercase tracking-widest2 text-sky-400">
-              input requested
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-sky-500/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
+                input requested
+              </span>
             </div>
-            <div className="mt-1 font-serif text-lg text-ink-50">{req.question}</div>
+            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">{req.question}</div>
           </div>
-          <div className="shrink-0 font-mono text-ui-xs text-ink-500">
+          <div className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-600">
             {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
           </div>
         </div>
 
         {/* Context */}
         {req.context && (
-          <div className="border-b border-ink-800 px-4 py-2 font-mono text-ui-sm text-ink-400">
+          <div className="border-b border-ink-800/60 px-5 py-2 font-mono text-ui-xs text-ink-400">
             {req.context}
           </div>
         )}
 
         {/* Input area */}
         <form
-          className="px-4 py-3"
+          className="px-5 py-3"
           onSubmit={(e) => {
             e.preventDefault();
             if (canSubmit) onSubmit(answer);
@@ -54,10 +56,10 @@ export function UserInputModal({
                   key={choice}
                   type="button"
                   onClick={() => setAnswer(choice)}
-                  className={`flex w-full items-center gap-3 rounded border px-3 py-2 text-left font-mono text-ui-sm transition-colors ${
+                  className={`flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left font-mono text-ui-xs transition-colors ${
                     answer === choice
-                      ? 'border-sky-600/70 bg-sky-950/30 text-sky-200'
-                      : 'border-ink-700 bg-ink-900/50 text-ink-200 hover:border-ink-600 hover:bg-ink-900'
+                      ? 'border-sky-500/30 bg-sky-500/8 text-sky-200'
+                      : 'border-ink-700/50 bg-ink-900/30 text-ink-200 hover:border-ink-600 hover:bg-ink-800/30'
                   }`}
                 >
                   <span
@@ -94,7 +96,7 @@ export function UserInputModal({
                 placeholder="type your response…"
                 rows={3}
                 autoFocus
-                className="w-full resize-none rounded border border-ink-700 bg-ink-900 px-3 py-2 font-mono text-ui-sm text-ink-100 placeholder:text-ink-600 focus:border-sky-700/60 focus:outline-none"
+                className="w-full resize-none rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-2 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 focus:border-sky-500/30 focus:outline-none"
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault();
@@ -119,17 +121,17 @@ export function UserInputModal({
         </form>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 border-t border-ink-800 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-ink-800/60 px-5 py-3">
           <button
             onClick={onDismiss}
-            className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-ink-300 hover:bg-ink-900"
+            className="btn-secondary"
           >
             skip
           </button>
           <button
             onClick={() => onSubmit(answer)}
             disabled={!canSubmit}
-            className="rounded border border-sky-700/60 bg-sky-950/30 px-3 py-1 font-mono text-ui-sm uppercase tracking-widest2 text-sky-300 hover:bg-sky-950/60 disabled:opacity-40"
+            className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-sky-300 transition-colors hover:bg-sky-500/20 disabled:opacity-40"
           >
             send
           </button>
