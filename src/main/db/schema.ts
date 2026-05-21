@@ -46,6 +46,9 @@ export const tasks = sqliteTable(
     resultJson: text('result_json'),
     iterations: integer('iterations').notNull().default(0),
     maxIterations: integer('max_iterations').notNull().default(6),
+    modelOverride: text('model_override'),
+    agentId: text('agent_id'),
+    workflowId: text('workflow_id'),
     createdAt: integer('created_at').notNull(),
     startedAt: integer('started_at'),
     finishedAt: integer('finished_at'),
@@ -116,6 +119,19 @@ export const agents = sqliteTable('agents', {
   systemPrompt: text('system_prompt').notNull(),
   toolsJson: text('tools_json'),
   temperature: real('temperature').notNull().default(0.2),
+  graphMode: text('graph_mode').notNull().default('full'),
+  maxIterations: integer('max_iterations').notNull().default(10),
+  description: text('description'),
+  provider: text('provider').notNull().default('ollama'),
+});
+
+export const workflows = sqliteTable('workflows', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  graphJson: text('graph_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
 });
 
 export const schedules = sqliteTable('schedules', {

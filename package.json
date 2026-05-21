@@ -27,6 +27,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@trpc/client": "^10.45.4",
     "@trpc/server": "^10.45.4",
+    "@xyflow/react": "^12.10.2",
     "better-sqlite3": "^11.3.0",
     "diff": "^9.0.0",
     "drizzle-orm": "^0.36.0",

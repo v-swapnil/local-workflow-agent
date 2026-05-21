@@ -1,0 +1,178 @@
+import { getProvider } from '../services/llm/index.js';
+import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
+import { taskBus } from '../services/events.js';
+import { addStep, updateStep } from '../services/store.js';
+import type { RunCtx } from './graph.js';
+import type { AgentRecord } from '../services/agents.js';
+import type { TaskResult } from '@shared/agent';
+import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
+import type { ToolName } from '../services/tools/types.js';
+
+function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
+  const idx = ctx.stepIdx.n++;
+  const row = addStep({
+    taskId: ctx.taskId,
+    idx,
+    agent: 'direct',
+    tool: tool ?? null,
+    inputJson: input != null ? JSON.stringify(input).slice(0, 100_000) : null,
+    outputJson: null,
+    status: 'running',
+    startedAt: Date.now(),
+    finishedAt: null,
+  });
+  taskBus.emit(ctx.taskId, {
+    type: 'step.started',
+    taskId: ctx.taskId,
+    ts: Date.now(),
+    stepId: row.id,
+    agent: 'direct',
+    tool,
+    input,
+  });
+  return row.id;
+}
+
+function finishStep(ctx: RunCtx, stepId: string, ok: boolean, output: unknown, error?: string) {
+  updateStep(stepId, {
+    outputJson: output != null ? JSON.stringify(output).slice(0, 100_000) : null,
+    status: ok ? 'succeeded' : 'failed',
+    finishedAt: Date.now(),
+  });
+  taskBus.emit(ctx.taskId, {
+    type: 'step.finished',
+    taskId: ctx.taskId,
+    ts: Date.now(),
+    stepId,
+    ok,
+    output,
+    error,
+  });
+}
+
+/**
+ * Standalone ReAct loop for agents with graphMode === 'direct'.
+ * Think → Tool calls → Observe → repeat until done or max iterations.
+ */
+export async function runDirectAgent(
+  taskId: string,
+  agent: AgentRecord,
+  prompt: string,
+  ctx: RunCtx,
+): Promise<TaskResult> {
+  const provider = getProvider(agent.provider === 'copilot' ? 'copilot' : 'ollama');
+  const model = ctx.model;
+  const maxIter = agent.maxIterations ?? 10;
+
+  // Determine tool subset from agent's toolsJson
+  const allTools = listToolsForLLM();
+  let tools = allTools;
+  if (agent.toolsJson) {
+    try {
+      const allowed = new Set<string>(JSON.parse(agent.toolsJson) as string[]);
+      tools = allTools.filter((t) => allowed.has(t.function.name));
+    } catch {
+      tools = allTools;
+    }
+  }
+
+  const messages: ChatMessage[] = [
+    { role: 'system', content: agent.systemPrompt },
+    { role: 'user', content: prompt },
+  ];
+
+  let iterations = 0;
+  let lastError: string | null = null;
+
+  for (let i = 0; i < maxIter; i++) {
+    if (ctx.signal.aborted) break;
+    iterations = i + 1;
+
+    const buf: string[] = [];
+    let toolCalls: ToolCallResult[] = [];
+
+    const result = await provider.chat({
+      model,
+      temperature: agent.temperature,
+      signal: ctx.signal,
+      messages,
+      tools,
+      onDelta: (d) => {
+        buf.push(d);
+        taskBus.emit(taskId, {
+          type: 'llm.delta',
+          taskId,
+          ts: Date.now(),
+          agent: 'direct',
+          content: d,
+        });
+      },
+    });
+
+    toolCalls = result.toolCalls ?? [];
+    const text = result.content || buf.join('');
+
+    // If no tool calls returned, check for {"done": true} in text
+    if (!toolCalls.length) {
+      // Try to parse legacy JSON done signal
+      try {
+        const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] ?? '{}') as {
+          done?: boolean;
+        };
+        if (parsed.done) break;
+      } catch {
+        /* not JSON — treat as done */
+      }
+      break;
+    }
+
+    // Append assistant message
+    messages.push({ role: 'assistant', content: text });
+
+    // Execute each tool call
+    for (const tc of toolCalls) {
+      const toolName = tc.name as ToolName;
+      const stepId = emitStep(ctx, toolName, tc.arguments);
+
+      const toolResult = await invokeTool(toolName, tc.arguments, {
+        workspaceId: ctx.workspaceId,
+        workspacePath: ctx.workspacePath,
+        taskId,
+        signal: ctx.signal,
+        onLog: ({ stream, text: logText }) => {
+          taskBus.emit(taskId, {
+            type: 'log',
+            taskId,
+            ts: Date.now(),
+            stream,
+            text: logText,
+            stepId,
+          });
+        },
+      });
+
+      finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error);
+      lastError = toolResult.ok ? null : (toolResult.error ?? null);
+
+      // Append tool result as a user-turn observation
+      messages.push({
+        role: 'user',
+        content: `[tool: ${toolName}] ${
+          toolResult.ok
+            ? JSON.stringify(toolResult.output ?? {}).slice(0, 4000)
+            : `ERROR: ${toolResult.error ?? 'unknown error'}`
+        }`,
+      });
+    }
+  }
+
+  const succeeded = !ctx.signal.aborted && !lastError;
+  return {
+    status: succeeded ? 'succeeded' : 'failed',
+    iterations,
+    plan: null,
+    testReport: null,
+    verdict: { done: succeeded, reason: succeeded ? 'direct agent completed' : (lastError ?? 'aborted') },
+    reason: succeeded ? undefined : (lastError ?? 'aborted'),
+  };
+}

@@ -2,6 +2,7 @@ import { getWorkspace } from '../services/workspaces.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { taskBus } from '../services/events.js';
 import { getTask, updateTask, setSessionKanbanLane, type Task } from '../services/store.js';
+import { getAgentOrNull } from '../services/agents.js';
 import { getDb } from '../db/index.js';
 import { sessions, tasks as tasksTable } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
@@ -14,6 +15,8 @@ import { existsSync } from 'node:fs';
 import { buildGraph, type RunCtx } from './graph.js';
 import type { AgentState } from './state.js';
 import { runTaskViaCopilot } from './copilot-runner.js';
+import { runDirectAgent } from './direct-runner.js';
+import { runWorkflow } from './workflow-runner.js';
 import type { TaskResult } from '@shared/agent';
 
 const log = logger.child({ mod: 'runner' });
@@ -81,7 +84,12 @@ async function doRun(taskId: string, ctrl: AbortController): Promise<TaskResult>
 async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskResult> {
   const task = getTask(taskId);
   const session = await loadSessionWorkspace(task);
-  const model = (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? '';
+
+  // Priority: task.modelOverride > agent.model > global ACTIVE_MODEL setting
+  const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
+  const globalModel = (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? '';
+  const model = task.modelOverride ?? agent?.model ?? globalModel;
+
   if (!model) {
     return finish(task, {
       status: 'failed',
@@ -138,20 +146,23 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   };
 
   try {
-    // Dispatch based on active provider
+    // Dispatch based on active provider and task/agent configuration
     const provider = (await getSetting(SETTING_KEYS.ACTIVE_PROVIDER)) ?? 'ollama';
     updateTask(taskId, { provider });
 
     let result: TaskResult;
-    if (provider === 'copilot') {
+    if (task.workflowId) {
+      result = await runWorkflow(taskId, task.workflowId, ctx);
+    } else if (provider === 'copilot' && !agent) {
       result = await runTaskViaCopilot(taskId, session, ctrl.signal);
+    } else if (agent && agent.graphMode === 'direct') {
+      result = await runDirectAgent(taskId, agent, task.prompt, ctx);
     } else {
-      const graph = buildGraph();
+      const graph = buildGraph(agent);
       const initial: Partial<AgentState> = {
         prompt: task.prompt,
         maxIterations: task.maxIterations,
       };
-      // Cap recursion: planner + (executor+tester+critic) * maxIterations + slack
       const recursionLimit = 4 + task.maxIterations * 4;
       const final = (await graph.invoke(initial, {
         configurable: { runCtx: ctx },

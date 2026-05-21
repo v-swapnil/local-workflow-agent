@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { trpc } from '../../trpc';
 import { TaskView } from './TaskView';
+import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
 
 export function SessionDetail({
   sessionId,
@@ -17,6 +18,9 @@ export function SessionDetail({
   const worktree = trpc.worktree.getForSession.useQuery({ sessionId });
   const openPath = trpc.worktree.openPath.useMutation();
   const [prompt, setPrompt] = useState('');
+  const [modelOverride, setModelOverride] = useState('');
+  const [agentId, setAgentId] = useState('');
+  const [workflowId, setWorkflowId] = useState('');
   const create = trpc.task.create.useMutation({
     onSuccess: async (t) => {
       await utils.task.list.invalidate({ sessionId });
@@ -79,6 +83,9 @@ export function SessionDetail({
           create.mutate({
             sessionId,
             prompt: prompt.trim(),
+            modelOverride: modelOverride || undefined,
+            agentId: agentId || undefined,
+            workflowId: workflowId || undefined,
           });
         }}
       >
@@ -95,10 +102,21 @@ export function SessionDetail({
                 create.mutate({
                   sessionId,
                   prompt: prompt.trim(),
+                  modelOverride: modelOverride || undefined,
+                  agentId: agentId || undefined,
+                  workflowId: workflowId || undefined,
                 });
               }
             }
           }}
+        />
+        <AdvancedOptions
+          modelOverride={modelOverride}
+          agentId={agentId}
+          workflowId={workflowId}
+          onModelOverride={setModelOverride}
+          onAgentId={setAgentId}
+          onWorkflowId={setWorkflowId}
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">

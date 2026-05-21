@@ -10,6 +10,7 @@ const BASE_NAV: { to: string; label: string; hint: string }[] = [
   { to: '/editor', label: 'editor', hint: '04' },
   { to: '/skills', label: 'skills', hint: '05' },
   { to: '/agents', label: 'agents', hint: '06' },
+  { to: '/workflows', label: 'workflows', hint: '06b' },
   { to: '/schedules', label: 'schedules', hint: '07' },
   { to: '/tools', label: 'tools', hint: '08' },
   { to: '/settings', label: 'settings', hint: '09' },

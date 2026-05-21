@@ -127,10 +127,17 @@ export const taskRouter = router({
         prompt: z.string().min(1),
         maxIterations: z.number().int().min(1).max(20).optional(),
         autostart: z.boolean().optional(),
+        modelOverride: z.string().optional(),
+        agentId: z.string().optional(),
+        workflowId: z.string().optional(),
       }),
     )
     .mutation(({ input }) => {
-      const task = createTask(input.sessionId, input.prompt, input.maxIterations);
+      const task = createTask(input.sessionId, input.prompt, input.maxIterations, {
+        modelOverride: input.modelOverride,
+        agentId: input.agentId,
+        workflowId: input.workflowId,
+      });
       addMessage(input.sessionId, 'user', input.prompt);
       if (input.autostart !== false) enqueueTask(task.id);
       return task;

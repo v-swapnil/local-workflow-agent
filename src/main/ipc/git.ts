@@ -8,6 +8,15 @@ import {
   currentBranch,
   createBranch,
   commitAll,
+  stageFiles,
+  unstageFiles,
+  stageAll,
+  unstageAll,
+  commitStaged,
+  pushBranch,
+  checkGhAuth,
+  createPullRequest,
+  getPrStatus,
 } from '../services/git.js';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import { getWorkspace } from '../services/workspaces.js';
@@ -59,5 +68,84 @@ export const gitRouter = router({
     .mutation(async ({ input }) => {
       await setSetting(SETTING_KEYS.GIT_AUTO_BRANCH, input.value ? '1' : '0');
       return { ok: true as const };
+    }),
+
+  stage: publicProcedure
+    .input(workspaceIn.extend({ paths: z.array(z.string().min(1)) }))
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      await stageFiles(cwd, input.paths);
+      return { ok: true as const };
+    }),
+
+  unstage: publicProcedure
+    .input(workspaceIn.extend({ paths: z.array(z.string().min(1)) }))
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      await unstageFiles(cwd, input.paths);
+      return { ok: true as const };
+    }),
+
+  stageAll: publicProcedure
+    .input(workspaceIn)
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      await stageAll(cwd);
+      return { ok: true as const };
+    }),
+
+  unstageAll: publicProcedure
+    .input(workspaceIn)
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      await unstageAll(cwd);
+      return { ok: true as const };
+    }),
+
+  commit: publicProcedure
+    .input(workspaceIn.extend({ message: z.string().min(1).max(500) }))
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      return commitStaged(cwd, input.message);
+    }),
+
+  push: publicProcedure
+    .input(workspaceIn.extend({ setUpstream: z.boolean().optional() }))
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      return pushBranch(cwd, input.setUpstream);
+    }),
+
+  ghAuthStatus: publicProcedure
+    .input(workspaceIn)
+    .query(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      return checkGhAuth(cwd);
+    }),
+
+  createPr: publicProcedure
+    .input(
+      workspaceIn.extend({
+        title: z.string().min(1).max(200),
+        body: z.string().optional(),
+        baseBranch: z.string().optional(),
+        draft: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      return createPullRequest(cwd, {
+        title: input.title,
+        body: input.body,
+        baseBranch: input.baseBranch,
+        draft: input.draft,
+      });
+    }),
+
+  prStatus: publicProcedure
+    .input(workspaceIn)
+    .query(async ({ input }) => {
+      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+      return getPrStatus(cwd);
     }),
 });

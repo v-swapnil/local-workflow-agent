@@ -121,6 +121,26 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   } catch {
     // Column already exists — ignore
   }
+  // Additive migration: Phase A — agents v2 columns
+  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN graph_mode TEXT NOT NULL DEFAULT 'full'`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN max_iterations INTEGER NOT NULL DEFAULT 10`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN description TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama'`); } catch { /* exists */ }
+  // Additive migration: Phase B — tasks v2 columns
+  try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN model_override TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN agent_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN workflow_id TEXT`); } catch { /* exists */ }
+  // Additive migration: Phase D — workflows table
+  try {
+    _sqlite.exec(`CREATE TABLE IF NOT EXISTS workflows (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT,
+      graph_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+  } catch { /* exists */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

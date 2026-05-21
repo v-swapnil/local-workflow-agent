@@ -25,6 +25,9 @@ export interface Task {
   resultJson: string | null;
   iterations: number;
   maxIterations: number;
+  modelOverride: string | null;
+  agentId: string | null;
+  workflowId: string | null;
   createdAt: number;
   startedAt: number | null;
   finishedAt: number | null;
@@ -136,6 +139,7 @@ export function createTask(
   sessionId: string,
   prompt: string,
   maxIterations = 6,
+  opts?: { modelOverride?: string; agentId?: string; workflowId?: string },
 ): Task {
   const t: Task = {
     id: nanoid(10),
@@ -147,6 +151,9 @@ export function createTask(
     resultJson: null,
     iterations: 0,
     maxIterations,
+    modelOverride: opts?.modelOverride ?? null,
+    agentId: opts?.agentId ?? null,
+    workflowId: opts?.workflowId ?? null,
     createdAt: Date.now(),
     startedAt: null,
     finishedAt: null,

@@ -1,8 +1,12 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { simpleGit, StatusResultRenamed, type SimpleGit, type StatusResult } from 'simple-git';
 import { getWorkspace } from './workspaces.js';
 import { logger } from './logger.js';
+
+const execFileAsync = promisify(execFile);
 
 const log = logger.child({ mod: 'git' });
 
@@ -226,4 +230,125 @@ export async function currentBranch(workspaceId: string): Promise<string | null>
   if (!(await isRepo(ws.path))) return null;
   const s = await gitFor(ws.path).status();
   return s.current;
+}
+
+// ───────── Stage / Unstage ─────────
+
+export async function stageFiles(cwd: string, paths: string[]): Promise<void> {
+  await gitFor(cwd).add(paths);
+}
+
+export async function unstageFiles(cwd: string, paths: string[]): Promise<void> {
+  await gitFor(cwd).reset(['--', ...paths]);
+}
+
+export async function stageAll(cwd: string): Promise<void> {
+  await gitFor(cwd).add(['.']);
+}
+
+export async function unstageAll(cwd: string): Promise<void> {
+  await gitFor(cwd).reset([]);
+}
+
+// ───────── Commit / Push ─────────
+
+export async function commitStaged(
+  cwd: string,
+  message: string,
+): Promise<{ ok: boolean; hash?: string; error?: string }> {
+  try {
+    const result = await gitFor(cwd).commit(message);
+    return { ok: true, hash: result.commit };
+  } catch (err: unknown) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function pushBranch(
+  cwd: string,
+  setUpstream = false,
+): Promise<{ ok: boolean; error?: string }> {
+  const g = gitFor(cwd);
+  try {
+    if (setUpstream) {
+      const branch = (await g.branchLocal()).current;
+      await g.push(['--set-upstream', 'origin', branch]);
+    } else {
+      await g.push();
+    }
+    return { ok: true };
+  } catch (err: unknown) {
+    // If the push failed because there is no upstream, retry with --set-upstream
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('no upstream') || msg.includes('has no upstream') || msg.includes('set-upstream')) {
+      try {
+        const branch = (await g.branchLocal()).current;
+        await g.push(['--set-upstream', 'origin', branch]);
+        return { ok: true };
+      } catch (err2: unknown) {
+        return { ok: false, error: err2 instanceof Error ? err2.message : String(err2) };
+      }
+    }
+    return { ok: false, error: msg };
+  }
+}
+
+// ───────── gh CLI helpers ─────────
+
+export async function checkGhAuth(cwd: string): Promise<{
+  authenticated: boolean;
+  installed: boolean;
+  user?: string;
+  error?: string;
+}> {
+  try {
+    const { stdout } = await execFileAsync('gh', ['auth', 'status', '--hostname', 'github.com'], { cwd });
+    const match = stdout.match(/Logged in to .+ as ([^\s]+)/);
+    return { authenticated: true, installed: true, user: match?.[1]?.trim() };
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException & { stderr?: string; message?: string };
+    if (e.code === 'ENOENT') return { authenticated: false, installed: false, error: 'gh CLI not installed' };
+    // gh auth status exits 1 when not authenticated
+    const stderr = e.stderr ?? '';
+    if (stderr.includes('not logged') || stderr.includes('not authenticated')) {
+      return { authenticated: false, installed: true, error: 'not authenticated — run: gh auth login' };
+    }
+    return { authenticated: false, installed: true, error: stderr || e.message };
+  }
+}
+
+export async function createPullRequest(
+  cwd: string,
+  opts: { title: string; body?: string; baseBranch?: string; draft?: boolean },
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const args = ['pr', 'create', '--title', opts.title];
+  if (opts.body) args.push('--body', opts.body);
+  if (opts.baseBranch) args.push('--base', opts.baseBranch);
+  if (opts.draft) args.push('--draft');
+  try {
+    const { stdout } = await execFileAsync('gh', args, { cwd });
+    return { ok: true, url: stdout.trim() };
+  } catch (err: unknown) {
+    const e = err as { stderr?: string; message?: string };
+    return { ok: false, error: e.stderr || e.message };
+  }
+}
+
+export async function getPrStatus(cwd: string): Promise<{
+  hasPr: boolean;
+  url?: string;
+  state?: string;
+  title?: string;
+}> {
+  try {
+    const { stdout } = await execFileAsync(
+      'gh',
+      ['pr', 'view', '--json', 'url,state,title'],
+      { cwd },
+    );
+    const data = JSON.parse(stdout) as { url: string; state: string; title: string };
+    return { hasPr: true, url: data.url, state: data.state, title: data.title };
+  } catch {
+    return { hasPr: false };
+  }
 }

@@ -1,0 +1,179 @@
+import { useState } from 'react';
+import { trpc } from '../../trpc';
+
+interface Props {
+  workspaceId: string;
+  worktreeId?: string;
+  currentBranch: string | null;
+}
+
+function Banner({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded border border-signal-warn/30 bg-signal-warn/10 px-3 py-2 font-mono text-ui-xs text-signal-warn">
+      {children}
+    </div>
+  );
+}
+
+function PrBadge({ url, state, title }: { url?: string; state?: string; title?: string }) {
+  const color =
+    state === 'OPEN'
+      ? 'text-signal-ok border-signal-ok/40 bg-signal-ok/10'
+      : state === 'MERGED'
+        ? 'text-purple-400 border-purple-400/40 bg-purple-400/10'
+        : 'text-signal-err border-signal-err/40 bg-signal-err/10';
+  return (
+    <div className={`inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-ui-xs ${color}`}>
+      <span className="uppercase tracking-widest2">{state ?? 'PR'}</span>
+      {title && <span className="max-w-xs truncate text-ink-200">{title}</span>}
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-ink-400 underline hover:text-ink-100"
+          onClick={(e) => e.stopPropagation()}
+        >
+          open ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [baseBranch, setBaseBranch] = useState('');
+  const [draft, setDraft] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [prUrl, setPrUrl] = useState<string | null>(null);
+  const [prError, setPrError] = useState<string | null>(null);
+
+  const ghAuth = trpc.git.ghAuthStatus.useQuery({ workspaceId, worktreeId });
+  const prStatus = trpc.git.prStatus.useQuery({ workspaceId, worktreeId });
+  const createPr = trpc.git.createPr.useMutation({
+    onSuccess: (data) => {
+      if (data.ok) {
+        setPrUrl(data.url ?? null);
+        setPrError(null);
+        setShowForm(false);
+        prStatus.refetch();
+      } else {
+        setPrError(data.error ?? 'unknown error');
+      }
+    },
+    onError: (err) => setPrError(err.message),
+  });
+
+  if (!currentBranch || currentBranch === 'main' || currentBranch === 'master') return null;
+
+  return (
+    <div className="border-t border-ink-800 p-3">
+      <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+        pull request
+      </div>
+
+      {!ghAuth.data?.installed && (
+        <Banner>gh CLI not installed — brew install gh</Banner>
+      )}
+      {ghAuth.data?.installed && !ghAuth.data?.authenticated && (
+        <Banner>not authenticated — run: gh auth login</Banner>
+      )}
+
+      {ghAuth.data?.authenticated && (
+        <>
+          {prStatus.data?.hasPr ? (
+            <PrBadge
+              url={prStatus.data.url}
+              state={prStatus.data.state}
+              title={prStatus.data.title}
+            />
+          ) : (
+            <>
+              {prUrl && !prStatus.data?.hasPr && (
+                <div className="mb-2 font-mono text-ui-xs text-signal-ok">
+                  PR created:{' '}
+                  <a href={prUrl} target="_blank" rel="noreferrer" className="underline">
+                    {prUrl}
+                  </a>
+                </div>
+              )}
+              {!showForm ? (
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setTitle(currentBranch.replace(/[/-]/g, ' ').replace(/^ase /, ''));
+                  }}
+                  className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-xs text-ink-300 hover:border-amber-700/40 hover:text-amber-300"
+                >
+                  create pull request
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="PR title"
+                    className="w-full rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-100 focus:border-amber-700/60 focus:outline-none"
+                  />
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="Description (optional)…"
+                    rows={3}
+                    className="w-full resize-none rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-sm text-ink-100 placeholder:text-ink-600 focus:border-amber-700/60 focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      value={baseBranch}
+                      onChange={(e) => setBaseBranch(e.target.value)}
+                      placeholder="base branch (default: main)"
+                      className="flex-1 rounded border border-ink-700 bg-ink-950 px-3 py-1.5 font-mono text-ui-xs text-ink-200 focus:border-amber-700/60 focus:outline-none"
+                    />
+                    <label className="flex items-center gap-1.5 font-mono text-ui-xs text-ink-400">
+                      <input
+                        type="checkbox"
+                        checked={draft}
+                        onChange={(e) => setDraft(e.target.checked)}
+                        className="accent-amber-500"
+                      />
+                      draft
+                    </label>
+                  </div>
+                  {prError && (
+                    <div className="font-mono text-ui-xs text-signal-err">{prError}</div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        createPr.mutate({
+                          workspaceId,
+                          worktreeId,
+                          title,
+                          body: body || undefined,
+                          baseBranch: baseBranch || undefined,
+                          draft,
+                        })
+                      }
+                      disabled={createPr.isPending || !title.trim()}
+                      className="rounded border border-amber-700/60 bg-amber-950/30 px-3 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber-300 hover:bg-amber-950/60 disabled:opacity-40"
+                    >
+                      {createPr.isPending ? '…' : 'create PR'}
+                    </button>
+                    <button
+                      onClick={() => setShowForm(false)}
+                      className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-xs text-ink-400 hover:text-ink-200"
+                    >
+                      cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

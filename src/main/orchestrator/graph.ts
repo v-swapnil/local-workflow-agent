@@ -1,14 +1,12 @@
-import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
+import { StateGraph, START, END } from '@langchain/langgraph';
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { hasTestsConfigured } from '../services/tools/shell.js';
-import { fileTree } from '../services/workspaces.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
-import { readdir } from 'node:fs/promises';
 import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
 import {
   PLANNER_SYSTEM,
@@ -25,6 +23,7 @@ import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import { logger } from '../services/logger.js';
 import { AgentState, StateAnnotation } from './state.js';
+import type { AgentRecord } from '../services/agents.js';
 
 const log = logger.child({ mod: 'orchestrator' });
 
@@ -526,10 +525,128 @@ function routeAfterExecutor(state: AgentState): 'tester' | 'critic' {
 
 /* ───────── Graph factory ───────── */
 
-export function buildGraph() {
+export function buildGraph(agent?: AgentRecord | null) {
+  // When a 'full' agent is provided, prepend its system prompt to planner + executor
+  const plannerSys = agent?.systemPrompt
+    ? `${agent.systemPrompt}\n\n---\n\n${PLANNER_SYSTEM}`
+    : PLANNER_SYSTEM;
+  const executorSys = agent?.systemPrompt
+    ? `${agent.systemPrompt}\n\n---\n\n${EXECUTOR_SYSTEM}`
+    : EXECUTOR_SYSTEM;
+  const temp = agent?.temperature;
+
+  // Closure-captured overrides used in node functions
+  const plannerNodeWithAgent = async (
+    state: AgentState,
+    config?: RunnableConfig,
+  ): Promise<Partial<AgentState>> => {
+    const ctx = ctxOf(config);
+    const { stepId } = emitStepStarted(ctx, 'planner', undefined, { prompt: state.prompt });
+    try {
+      const catalog = await skillCatalog();
+      const env = await gatherEnvContext(ctx);
+      const plan = await llmJson<Plan>(
+        ctx,
+        'planner',
+        plannerSys,
+        plannerUser(state.prompt, catalog, env, ctx.sessionMemory),
+        temp,
+      );
+      if (!plan?.steps?.length) throw new Error('planner returned empty plan');
+      plan.steps = plan.steps.map((s, i) => ({ ...s, id: s.id || `s${i + 1}` }));
+      const validNames = new Set(catalog.map((c) => c.name));
+      const raw =
+        (plan as Plan & { selected_skills?: string[] }).selected_skills ?? plan.selectedSkills ?? [];
+      plan.selectedSkills = raw.filter((n) => validNames.has(n));
+      updateTask(ctx.taskId, { planJson: JSON.stringify(plan).slice(0, 100_000) });
+      emitStepFinished(ctx, stepId, true, plan);
+      taskBus.emit(ctx.taskId, { type: 'plan', taskId: ctx.taskId, ts: Date.now(), plan });
+      return { plan };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      emitStepFinished(ctx, stepId, false, null, msg);
+      throw err;
+    }
+  };
+
+  const executorNodeWithAgent = async (
+    state: AgentState,
+    config?: RunnableConfig,
+  ): Promise<Partial<AgentState>> => {
+    const ctx = ctxOf(config);
+    const plan = state.plan;
+    if (!plan) throw new Error('executor: no plan in state');
+
+    const newObs: Observation[] = [];
+    const hint = ctx.hint;
+    ctx.hint = undefined;
+
+    const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
+    const env = await gatherEnvContext(ctx);
+    const testsConfigured = await hasTestsConfigured(ctx.workspacePath);
+
+    for (const planStep of plan.steps) {
+      let stepBudget = EXECUTOR_BUDGET_PER_STEP;
+      let stepHint = hint;
+      while (stepBudget-- > 0) {
+        if (ctx.signal.aborted) throw new Error('aborted');
+
+        const histForLLM = state.history.concat(newObs);
+        const response = await llmWithTools(
+          ctx,
+          'executor',
+          executorSys,
+          executorUser(state.prompt, plan, planStep.id, histForLLM, skills, env, stepHint, ctx.sessionMemory),
+          temp,
+        );
+        stepHint = undefined;
+
+        if (response.done || !response.toolCalls?.length) break;
+
+        const tc = response.toolCalls[0]!;
+        const tool = tc.name as ToolName;
+        const args = tc.arguments;
+        const { stepId } = emitStepStarted(ctx, 'executor', tool, { planStepId: planStep.id, args });
+
+        const result = await invokeTool(tool, args, {
+          workspaceId: ctx.workspaceId,
+          workspacePath: ctx.workspacePath,
+          taskId: ctx.taskId,
+          signal: ctx.signal,
+          onLog: ({ stream, text }) => {
+            taskBus.emit(ctx.taskId, {
+              type: 'log',
+              taskId: ctx.taskId,
+              ts: Date.now(),
+              stream,
+              text,
+              stepId,
+            });
+          },
+        });
+
+        const outStr = safeStr(result.ok ? result.output : null);
+        emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+
+        const obs: Observation = {
+          stepId: planStep.id,
+          tool,
+          args: (args ?? {}) as Record<string, unknown>,
+          ok: result.ok,
+          output: outStr,
+          error: result.error,
+          durationMs: result.durationMs,
+        };
+        newObs.push(obs);
+      }
+    }
+
+    return { history: newObs, testsConfigured };
+  };
+
   return new StateGraph(StateAnnotation)
-    .addNode('planner', plannerNode)
-    .addNode('executor', executorNode)
+    .addNode('planner', agent ? plannerNodeWithAgent : plannerNode)
+    .addNode('executor', agent ? executorNodeWithAgent : executorNode)
     .addNode('tester', testerNode)
     .addNode('critic', criticNode)
     .addEdge(START, 'planner')

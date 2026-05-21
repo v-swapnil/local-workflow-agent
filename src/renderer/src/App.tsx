@@ -14,6 +14,7 @@ import { trpc } from './trpc';
 import { useUI } from './store/ui';
 import { Changes } from './pages/Changes';
 import { Worktrees } from './pages/Worktrees';
+import { Workflows } from './pages/Workflows';
 
 const NAV_ROUTES = [
   '/sessions',
@@ -112,6 +113,7 @@ export function App() {
             <Route path="/editor" element={<Editor />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/agents" element={<Agents />} />
+            <Route path="/workflows" element={<Workflows />} />
             <Route path="/schedules" element={<Schedules />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/settings" element={<Settings />} />

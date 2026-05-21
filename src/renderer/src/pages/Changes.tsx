@@ -4,6 +4,8 @@ import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { langFor } from '../components/MonacoPane';
 import { DiffEditor } from '@monaco-editor/react';
 import { useUI } from '../store/ui';
+import { CommitPanel } from '../components/changes/CommitPanel';
+import { PrSection } from '../components/changes/PrSection';
 
 type ChangeKind = 'modified' | 'created' | 'deleted' | 'renamed' | 'conflicted' | 'untracked';
 
@@ -104,10 +106,14 @@ function ChangedFileList({
   files,
   activePath,
   onSelect,
+  onStage,
+  onUnstage,
 }: {
   files: ChangedFile[];
   activePath: string | null;
   onSelect: (path: string) => void;
+  onStage?: (path: string) => void;
+  onUnstage?: (path: string) => void;
 }) {
   if (files.length === 0) {
     return <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">No files</div>;
@@ -125,10 +131,31 @@ function ChangedFileList({
             : meta.label;
 
         return (
-          <li key={`${file.section}:${file.path}:${file.kind}`}>
+          <li key={`${file.section}:${file.path}:${file.kind}`} className="flex items-center gap-1">
+            {/* Stage/Unstage button */}
+            {file.section === 'working' && onStage && (
+              <button
+                type="button"
+                title="Stage file"
+                onClick={(e) => { e.stopPropagation(); onStage(file.path); }}
+                className="shrink-0 w-5 text-center font-mono text-ui-xs text-ink-500 hover:text-signal-ok"
+              >
+                +
+              </button>
+            )}
+            {file.section === 'staged' && onUnstage && (
+              <button
+                type="button"
+                title="Unstage file"
+                onClick={(e) => { e.stopPropagation(); onUnstage(file.path); }}
+                className="shrink-0 w-5 text-center font-mono text-ui-xs text-ink-500 hover:text-signal-err"
+              >
+                −
+              </button>
+            )}
             <button
               type="button"
-              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+              className={`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
                 isActive
                   ? 'bg-ink-800 text-ink-100 shadow-inset-hair'
                   : 'text-ink-300 hover:bg-ink-800/60 hover:text-ink-100'
@@ -238,10 +265,16 @@ function DiffPanel({
 }) {
   const [worktreeId, setWorktreeId] = useState<string>('');
 
+  const utils = trpc.useUtils();
   const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });
 
   const workspace = trpc.workspace.get.useQuery({ id: workspaceId });
   const worktrees = trpc.worktree.list.useQuery();
+
+  const invalidateStatus = () => utils.git.status.invalidate({ workspaceId, worktreeId });
+
+  const stage = trpc.git.stage.useMutation({ onSuccess: invalidateStatus });
+  const unstage = trpc.git.unstage.useMutation({ onSuccess: invalidateStatus });
 
   useEffect(() => {
     const activeIds = new Set(
@@ -406,6 +439,7 @@ function DiffPanel({
                     });
                   }
                 }}
+                onUnstage={(path) => unstage.mutate({ workspaceId, worktreeId, paths: [path] })}
               />
             )}
           </div>
@@ -433,9 +467,26 @@ function DiffPanel({
                     });
                   }
                 }}
+                onStage={(path) => stage.mutate({ workspaceId, worktreeId, paths: [path] })}
               />
             )}
           </div>
+          {/* Commit panel */}
+          {status.data?.isRepo && (
+            <CommitPanel
+              workspaceId={workspaceId}
+              worktreeId={worktreeId || undefined}
+              onDone={invalidateStatus}
+            />
+          )}
+          {/* PR section */}
+          {status.data?.isRepo && (
+            <PrSection
+              workspaceId={workspaceId}
+              worktreeId={worktreeId || undefined}
+              currentBranch={status.data.branch ?? null}
+            />
+          )}
         </aside>
 
         <section className="flex min-h-0 flex-1 flex-col">
