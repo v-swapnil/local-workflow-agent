@@ -1,6 +1,5 @@
 import { cn } from '../../lib/utils';
 import { trpc } from '../../trpc';
-import { StatusPill } from './StatusPill';
 
 export function SessionTreeNode({
   session,
@@ -125,10 +124,25 @@ export function SessionTreeNode({
                         : 'border-transparent hover:border-ink-800/40 hover:bg-ink-800/15',
                     )}
                   >
-                    <StatusPill status={t.status} compact />
+                    {/* Status dot */}
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      {t.status === 'running' && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-40" />
+                      )}
+                      <span className={cn(
+                        'relative inline-flex h-2 w-2 rounded-full',
+                        t.status === 'running' ? 'bg-amber' :
+                        t.status === 'succeeded' ? 'bg-emerald-400' :
+                        t.status === 'failed' ? 'bg-rose-400' :
+                        t.status === 'cancelled' ? 'bg-ink-600' :
+                        'bg-ink-500',
+                      )} />
+                    </span>
                     <span
                       className={cn(
                         'min-w-0 flex-1 truncate font-mono text-ui-xs',
+                        t.status === 'failed' ? 'text-rose-300/80' :
+                        t.status === 'cancelled' ? 'text-ink-500' :
                         isFocused ? 'text-ink-100' : 'text-ink-300'
                       )}
                     >

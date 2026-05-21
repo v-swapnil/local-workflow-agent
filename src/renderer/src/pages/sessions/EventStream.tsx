@@ -198,6 +198,23 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
           ✓ {ev.answer || '(skipped)'}
         </Line>
       );
+    case 'task.retry':
+      return (
+        <div className="my-2 flex items-center gap-3">
+          <div className="h-px flex-1 bg-sky-500/20" />
+          <span className="flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
+            <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2 8a6 6 0 0 1 10.3-4.2" />
+              <path d="M14 8a6 6 0 0 1-10.3 4.2" />
+              <polyline points="12 2 12.5 5.5 9 5" />
+              <polyline points="4 14 3.5 10.5 7 11" />
+            </svg>
+            retry
+          </span>
+          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
+          <div className="h-px flex-1 bg-sky-500/20" />
+        </div>
+      );
     default:
       return null;
   }

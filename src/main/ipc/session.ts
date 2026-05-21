@@ -166,6 +166,8 @@ export const taskRouter = router({
 
   retry: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
     const orig = getTask(input.id);
+    // Emit retry event before resetting
+    taskBus.emit(orig.id, { type: 'task.retry', taskId: orig.id, ts: Date.now() });
     // Reset the same task and re-enqueue instead of creating a new one
     updateTask(orig.id, {
       status: 'queued',

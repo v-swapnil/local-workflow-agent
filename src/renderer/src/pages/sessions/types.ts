@@ -79,7 +79,8 @@ export type TaskEvent =
       ts: number;
       requestId: string;
       answer: string;
-    };
+    }
+  | { type: 'task.retry'; taskId: string; ts: number };
 
 export interface ApprovalReq {
   id: string;
