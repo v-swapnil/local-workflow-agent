@@ -2,10 +2,10 @@ import { request as httpRequest } from 'node:http';
 import { Ollama } from 'ollama';
 import { OLLAMA_URL } from '@shared/constants';
 import { logger } from '../logger.js';
+import { BaseLLMProvider } from './provider.js';
 import type {
   ChatOptions,
   ChatResult,
-  LLMProvider,
   ModelInfo,
   PullProgress,
   ToolCallResult,
@@ -24,13 +24,14 @@ export interface OllamaPingDetails {
   attempts: OllamaPingAttempt[];
 }
 
-export class OllamaProvider implements LLMProvider {
+export class OllamaProvider extends BaseLLMProvider {
   readonly id = 'ollama';
   readonly label = 'Ollama (local)';
   private readonly baseUrls: string[];
   private preferredBaseUrl: string | null = null;
 
   constructor(baseUrl = OLLAMA_URL) {
+    super();
     this.baseUrls = candidateBaseUrls(baseUrl);
   }
 

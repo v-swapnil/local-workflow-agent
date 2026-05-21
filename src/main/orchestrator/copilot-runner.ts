@@ -11,6 +11,7 @@ import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
 import { getTask } from '../services/store.js';
+import type { AgentRecord } from '../services/agents.js';
 
 /** Mirrors UserInputRequest / UserInputResponse from @github/copilot-sdk */
 interface UserInputRequest {
@@ -29,11 +30,15 @@ export async function runTaskViaCopilot(
   taskId: string,
   workspace: { workspaceId: string; workspacePath: string; memoryText?: string | null },
   signal: AbortSignal,
+  agent?: AgentRecord | null,
 ): Promise<TaskResult> {
   const service = getCopilotService();
   const client = await service.getClient();
 
-  const model = (await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL;
+  const model =
+    agent?.provider === 'copilot' && agent.model
+      ? agent.model
+      : ((await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL);
 
   let iterationCount = 0;
 
@@ -77,7 +82,13 @@ export async function runTaskViaCopilot(
   try {
     const task = await getTask(taskId);
     const memory = workspace.memoryText?.trim();
-    const prompt = memory ? `${task.prompt}\n\nSession memory:\n${memory}` : task.prompt;
+    const agentInstruction = agent?.systemPrompt?.trim();
+    const promptParts = [
+      agentInstruction ? `Agent instructions:\n${agentInstruction}` : '',
+      task.prompt,
+      memory ? `Session memory:\n${memory}` : '',
+    ].filter(Boolean);
+    const prompt = promptParts.join('\n\n');
     const result = await session.sendAndWait({ prompt }, 10 * 60 * 1000);
 
     const succeeded = !!result;
