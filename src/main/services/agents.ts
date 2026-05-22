@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { agents } from '../db/schema.js';
+import { PROVIDERS } from '@shared/constants';
 
 export interface AgentRecord {
   id: string;
@@ -61,7 +62,7 @@ export function upsertAgent(input: UpsertAgentInput): AgentRecord {
     graphMode: input.graphMode,
     maxIterations: input.maxIterations ?? 10,
     description: input.description ?? null,
-    provider: input.provider ?? 'ollama',
+    provider: input.provider ?? PROVIDERS.OLLAMA,
   };
 
   getDb()

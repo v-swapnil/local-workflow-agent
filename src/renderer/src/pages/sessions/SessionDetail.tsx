@@ -40,7 +40,9 @@ export function SessionDetail({
       {/* Header */}
       <header className="mb-4 flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-ui-lg font-medium tracking-tight text-ink-50">{session.data?.title ?? '…'}</h1>
+          <h1 className="font-serif text-ui-lg font-medium tracking-tight text-ink-50">
+            {session.data?.title ?? '…'}
+          </h1>
           <div className="mt-1 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
             <span>{session.data?.id.slice(0, 8)}</span>
             <span className="text-ink-700">·</span>
@@ -49,18 +51,26 @@ export function SessionDetail({
         </div>
         {worktree.data && (
           <div className="flex items-center gap-2 rounded-md border border-ink-800/50 bg-ink-900/30 px-3 py-1.5">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" className="h-3.5 w-3.5 text-ink-500">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              className="h-3.5 w-3.5 text-ink-500"
+            >
               <path d="M6 3v10M10 3v10M6 8h4" />
-              <circle cx="6" cy="3" r="1.5" /><circle cx="10" cy="3" r="1.5" />
-              <circle cx="6" cy="13" r="1.5" /><circle cx="10" cy="13" r="1.5" />
+              <circle cx="6" cy="3" r="1.5" />
+              <circle cx="10" cy="3" r="1.5" />
+              <circle cx="6" cy="13" r="1.5" />
+              <circle cx="10" cy="13" r="1.5" />
             </svg>
             <span className="font-mono text-ui-xs text-amber">{worktree.data.branch}</span>
             <span
               className={cn(
-                'rounded-full px-1.5 py-px font-mono text-ui-2xs uppercase tracking-widest2',
+                'rounded-full px-1.5 py-px text-ui-2xs font-mono uppercase tracking-widest2',
                 worktree.data.status === 'active'
                   ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-ink-800/50 text-ink-500'
+                  : 'bg-ink-800/50 text-ink-500',
               )}
             >
               {worktree.data.status}
@@ -78,7 +88,13 @@ export function SessionDetail({
           <TaskView taskId={focusedTaskId} key={focusedTaskId} />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="h-8 w-8 text-ink-700">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              className="h-8 w-8 text-ink-700"
+            >
               <path d="M12 20V10M18 20V4M6 20v-4" />
             </svg>
             <div className="font-mono text-ui-xs text-ink-500">submit a prompt to begin</div>

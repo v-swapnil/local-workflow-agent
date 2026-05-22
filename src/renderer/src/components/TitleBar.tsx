@@ -10,11 +10,11 @@ export function TitleBar() {
   });
   const theme = useUI((s) => s.theme);
   const setThemeLocal = useUI((s) => s.setTheme);
-  const ollamaOk = health.data?.ollama.ok;
+  const providerHealth = trpc.llm.health.useQuery(undefined, { refetchInterval: 8000 });
   const version = health.data?.app.version ?? '';
 
   return (
-    <div className="app-drag relative z-30 flex h-11 items-center justify-between border-b border-ink-800/60 bg-ink-950/90 pl-[80px] pr-4 backdrop-blur-md">
+    <div className="app-drag relative z-30 flex h-11 items-center justify-between border-b border-ink-800/60 bg-ink-950/90 pl-4 pr-4 backdrop-blur-md">
       <div className="flex items-center gap-2.5 font-mono text-ui-xs tracking-widest2 text-ink-500">
         <span className="uppercase">autonomous software engineer</span>
         {version && (
@@ -46,9 +46,8 @@ export function TitleBar() {
         <WorkspaceSwitcher />
         <div className="mx-1 h-4 w-px bg-ink-800/60" />
         <StatusDot
-          label="ollama"
-          ok={ollamaOk}
-          detail={ollamaOk ? `${health.data?.ollama.models?.length ?? 0}` : undefined}
+          label={providerHealth.data?.provider ?? 'llm'}
+          ok={providerHealth.data?.ok}
         />
         <StatusDot label="db" ok={health.data?.db.ok} />
       </div>

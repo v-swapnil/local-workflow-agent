@@ -8,7 +8,7 @@ interface Msg {
 }
 
 export function DebugChat() {
-  const active = trpc.llm.activeModel.useQuery();
+  const activeModel = trpc.llm.activeModel.useQuery();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [draft, setDraft] = useState('');
   const [streaming, setStreaming] = useState<{ active: boolean; buf: string }>({
@@ -75,7 +75,7 @@ export function DebugChat() {
       <div className="flex items-center justify-between border-b border-ink-800 px-4 py-2 font-mono text-ui-xs uppercase tracking-widest2">
         <span className="text-ink-400">debug chat</span>
         <span className="text-ink-500">
-          model: <span className="text-amber">{active.data ?? '—'}</span>
+          model: <span className="text-amber">{activeModel.data ?? '—'}</span>
         </span>
       </div>
 

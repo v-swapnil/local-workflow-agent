@@ -1,5 +1,6 @@
 import { getWorkspace } from '../services/workspaces.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
+import { PROVIDERS } from '@shared/constants';
 import { taskBus } from '../services/events.js';
 import { getTask, updateTask, setSessionKanbanLane, type Task } from '../services/store.js';
 import { getAgentOrNull } from '../services/agents.js';
@@ -87,7 +88,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 
   // Priority: task.modelOverride > agent.model > global ACTIVE_MODEL setting
   const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
-  const globalModel = (await getSetting(SETTING_KEYS.ACTIVE_MODEL)) ?? '';
+  const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
   const model = task.modelOverride ?? agent?.model ?? globalModel;
 
   if (!model) {
@@ -147,13 +148,13 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 
   try {
     // Dispatch based on active provider and task/agent configuration
-    const provider = (await getSetting(SETTING_KEYS.ACTIVE_PROVIDER)) ?? 'ollama';
+    const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
     updateTask(taskId, { provider });
 
     let result: TaskResult;
     if (task.workflowId) {
       result = await runWorkflow(taskId, task.workflowId, ctx);
-    } else if (provider === 'copilot') {
+    } else if (provider === PROVIDERS.COPILOT) {
       result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent);
     } else if (agent && agent.graphMode === 'direct') {
       result = await runDirectAgent(taskId, agent, task.prompt, ctx);

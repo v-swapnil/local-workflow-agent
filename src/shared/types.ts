@@ -1,5 +1,7 @@
 // Domain types shared across processes. Expanded in later phases.
 
+import { PROVIDERS } from './constants';
+
 export type TaskStatus =
   | 'queued'
   | 'running'
@@ -17,25 +19,9 @@ export interface AppHealth {
   ollama: { ok: boolean; url: string; models?: string[] };
 }
 
-// ───────── Kanban ─────────
+export type ProviderId = (typeof PROVIDERS)[keyof typeof PROVIDERS];
 
 export type KanbanLane = 'todo' | 'in_progress' | 'done' | 'need_help';
-
-export function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
-  if (taskStatuses.length === 0) return 'todo';
-
-  const hasAwaiting = taskStatuses.includes('awaiting_approval');
-  const hasFailed = taskStatuses.includes('failed');
-  const hasCancelled = taskStatuses.includes('cancelled');
-  const hasRunning = taskStatuses.includes('running');
-  const hasQueued = taskStatuses.includes('queued');
-  const allSucceeded = taskStatuses.every((s) => s === 'succeeded');
-
-  if (hasAwaiting || hasFailed || hasCancelled) return 'need_help';
-  if (hasRunning || hasQueued) return 'in_progress';
-  if (allSucceeded) return 'done';
-  return 'todo';
-}
 
 export interface KanbanCard {
   sessionId: string;

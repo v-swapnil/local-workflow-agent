@@ -1,4 +1,5 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
+import { PROVIDERS } from '@shared/constants';
 
 export const workspaces = sqliteTable('workspaces', {
   id: text('id').primaryKey(),
@@ -122,7 +123,7 @@ export const agents = sqliteTable('agents', {
   graphMode: text('graph_mode').notNull().default('full'),
   maxIterations: integer('max_iterations').notNull().default(10),
   description: text('description'),
-  provider: text('provider').notNull().default('ollama'),
+  provider: text('provider').notNull().default(PROVIDERS.OLLAMA),
 });
 
 export const workflows = sqliteTable('workflows', {

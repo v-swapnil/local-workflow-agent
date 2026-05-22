@@ -7,7 +7,7 @@ import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { requestApproval, requestUserInput } from '../services/approvals.js';
 import { logger } from '../services/logger.js';
-import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
+import { DEFAULT_COPILOT_MODEL, PROVIDERS } from '@shared/constants';
 import type { TaskResult } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
 import { getTask } from '../services/store.js';
@@ -35,10 +35,8 @@ export async function runTaskViaCopilot(
   const service = getCopilotService();
   const client = await service.getClient();
 
-  const model =
-    agent?.provider === 'copilot' && agent.model
-      ? agent.model
-      : ((await getSetting(SETTING_KEYS.COPILOT_MODEL)) ?? DEFAULT_COPILOT_MODEL);
+  const primaryModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, DEFAULT_COPILOT_MODEL);
+  const model = agent?.model || primaryModel;
 
   let iterationCount = 0;
 

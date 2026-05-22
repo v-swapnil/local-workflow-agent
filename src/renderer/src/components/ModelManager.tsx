@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { trpc } from '../trpc';
-import { OLLAMA_URL } from '@shared/constants';
-import type { ProviderId } from '@shared/constants';
-
-interface PullState {
-  status: string;
-  completed?: number;
-  total?: number;
-  error?: string;
-  done?: boolean;
-}
+import { OLLAMA_URL, PROVIDERS } from '@shared/constants';
+import type { ProviderId } from '@shared/types';
 
 export function ModelManager() {
   const utils = trpc.useUtils();
@@ -20,7 +12,7 @@ export function ModelManager() {
     },
   });
 
-  const provider: ProviderId = activeProvider.data ?? 'ollama';
+  const provider: ProviderId = activeProvider.data ?? PROVIDERS.OLLAMA;
 
   return (
     <div className="space-y-6">
@@ -30,7 +22,7 @@ export function ModelManager() {
           active provider
         </div>
         <div className="flex items-center gap-2">
-          {(['ollama', 'copilot'] as const).map((id) => (
+          {Object.values(PROVIDERS).map((id) => (
             <button
               key={id}
               className={`rounded border px-4 py-2 font-mono text-ui-sm uppercase tracking-widest2 transition-colors ${
@@ -41,13 +33,13 @@ export function ModelManager() {
               onClick={() => setActiveProvider.mutate({ provider: id })}
               disabled={setActiveProvider.isPending}
             >
-              {id === 'ollama' ? 'Ollama (local)' : 'Copilot CLI'}
+              {id === PROVIDERS.OLLAMA ? 'Ollama (local)' : 'Copilot CLI'}
             </button>
           ))}
         </div>
       </div>
 
-      {provider === 'ollama' ? <OllamaPanel /> : <CopilotPanel />}
+      {provider === PROVIDERS.OLLAMA ? <OllamaPanel /> : <CopilotPanel />}
     </div>
   );
 }
@@ -56,45 +48,23 @@ export function ModelManager() {
 
 function OllamaPanel() {
   const utils = trpc.useUtils();
-  const health = trpc.llm.health.useQuery(undefined, { refetchInterval: 5000 });
+  const health = trpc.llm.ollamaHealth.useQuery(undefined, { refetchInterval: 5000 });
   const models = trpc.llm.listModels.useQuery(undefined, { refetchInterval: 8000 });
   const active = trpc.llm.activeModel.useQuery();
   const setActive = trpc.llm.setActiveModel.useMutation({
     onSuccess: () => utils.llm.activeModel.invalidate(),
   });
+  const secondary = trpc.llm.secondaryModel.useQuery();
+  const setSecondary = trpc.llm.setSecondaryModel.useMutation({
+    onSuccess: () => utils.llm.secondaryModel.invalidate(),
+  });
   const del = trpc.llm.deleteModel.useMutation({
     onSuccess: () => utils.llm.listModels.invalidate(),
   });
 
-  const [pullName, setPullName] = useState('qwen2.5-coder:7b');
-  const [pullState, setPullState] = useState<PullState | null>(null);
-
-  trpc.llm.pullModel.useSubscription(
-    { name: pullName },
-    {
-      enabled: pullState?.status === 'starting',
-      onData: (msg) => {
-        if ('error' in msg) {
-          setPullState({ status: 'error', error: msg.error });
-          return;
-        }
-        if (msg.status === 'done') {
-          setPullState({ status: 'done', done: true });
-          utils.llm.listModels.invalidate();
-          return;
-        }
-        setPullState({
-          status: msg.status,
-          completed: 'completed' in msg ? msg.completed : undefined,
-          total: 'total' in msg ? msg.total : undefined,
-        });
-      },
-      onError: (err) => setPullState({ status: 'error', error: err.message }),
-    },
-  );
-
   const ollamaOk = health.data?.ok === true;
   const ollamaState = health.isLoading ? 'checking' : ollamaOk ? 'online' : 'offline';
+  const modelList = models.data ?? [];
 
   return (
     <>
@@ -132,116 +102,63 @@ function OllamaPanel() {
         )}
       </div>
 
-      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15">
-        <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
-          <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-            installed models
-          </div>
-          <div className="font-mono text-ui-2xs text-ink-500">
-            active: <span className="text-amber">{active.data ?? '—'}</span>
-          </div>
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
+        <div className="mb-4 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+          installed models
         </div>
         {!ollamaOk ? (
-          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">—</div>
-        ) : models.data && models.data.length === 0 ? (
-          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">
-            no models installed yet. pull one below.
+          <div className="font-mono text-ui-xs text-ink-500">—</div>
+        ) : modelList.length === 0 ? (
+          <div className="font-mono text-ui-xs text-ink-500">
+            no models installed yet. run{' '}
+            <code className="text-amber">ollama pull &lt;model&gt;</code> in your terminal.
           </div>
         ) : (
-          <ul>
-            {models.data?.map((m) => {
-              const isActive = m.name === active.data;
-              return (
-                <li
-                  key={m.name}
-                  className="flex items-center justify-between border-b border-ink-800/30 px-5 py-2.5 last:border-b-0"
-                >
-                  <div>
-                    <div className="font-mono text-ui-sm text-ink-100">
-                      {m.name}
-                      {isActive && <span className="ml-2 text-amber">●</span>}
+          <div className="space-y-4">
+            <ModelDropdown
+              label="main model"
+              description="Primary model used for tasks and chat"
+              models={modelList}
+              value={active.data ?? ''}
+              onChange={(name) => setActive.mutate({ name })}
+            />
+            <ModelDropdown
+              label="secondary model"
+              description="Lighter model for sub-tasks and minor operations"
+              models={modelList}
+              value={secondary.data ?? ''}
+              onChange={(name) => setSecondary.mutate({ name })}
+            />
+            <div className="border-t border-ink-800/30 pt-4">
+              <div className="mb-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+                manage models
+              </div>
+              <ul className="space-y-1">
+                {modelList.map((m) => (
+                  <li
+                    key={m.name}
+                    className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-ink-800/20"
+                  >
+                    <div>
+                      <span className="font-mono text-ui-sm text-ink-100">{m.name}</span>
+                      <span className="ml-2 font-mono text-ui-2xs text-ink-500">
+                        {m.sizeBytes ? formatBytes(m.sizeBytes) : ''}
+                      </span>
                     </div>
-                    <div className="font-mono text-ui-2xs text-ink-500">
-                      {m.sizeBytes ? formatBytes(m.sizeBytes) : ''}
-                      {m.modifiedAt ? `  ·  ${new Date(m.modifiedAt).toLocaleDateString()}` : ''}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!isActive && (
-                      <button
-                        onClick={() => setActive.mutate({ name: m.name })}
-                        className="btn-primary !py-1 !px-2">
-                        use
-                      </button>
-                    )}
                     <button
                       onClick={() => {
                         if (window.confirm(`Delete ${m.name}?`)) del.mutate({ name: m.name });
                       }}
-                      className="btn-danger !py-1 !px-2">
+                      className="btn-danger !py-0.5 !px-2 text-ui-2xs"
+                    >
                       remove
                     </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         )}
-      </div>
-
-      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
-        <div className="mb-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-          pull a model
-        </div>
-        <div className="flex gap-2">
-          <input
-            value={pullName}
-            onChange={(e) => setPullName(e.target.value)}
-            disabled={
-              !ollamaOk ||
-              pullState?.status === 'starting' ||
-              (pullState?.status !== undefined && !pullState.done && pullState.status !== 'error')
-            }
-            className="flex-1 rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none disabled:opacity-50"
-            placeholder="qwen2.5-coder:7b"
-          />
-          <button
-            disabled={
-              !ollamaOk ||
-              !pullName ||
-              (pullState !== null && !pullState.done && pullState.status !== 'error')
-            }
-            onClick={() => setPullState({ status: 'starting' })}
-            className="btn-primary !py-1.5"
-          >
-            pull →
-          </button>
-        </div>
-
-        {pullState && <PullProgressBar state={pullState} />}
-        <div className="mt-3 font-mono text-ui-2xs text-ink-500">
-          tip: try{' '}
-          <button
-            onClick={() => setPullName('qwen2.5-coder:7b')}
-            className="text-amber underline-offset-2 hover:underline"
-          >
-            qwen2.5-coder:7b
-          </button>
-          {' · '}
-          <button
-            onClick={() => setPullName('llama3.1:8b')}
-            className="text-amber underline-offset-2 hover:underline"
-          >
-            llama3.1:8b
-          </button>
-          {' · '}
-          <button
-            onClick={() => setPullName('phi3.5')}
-            className="text-amber underline-offset-2 hover:underline"
-          >
-            phi3.5
-          </button>
-        </div>
       </div>
     </>
   );
@@ -255,9 +172,13 @@ function CopilotPanel() {
   const copilotModels = trpc.llm.copilotModels.useQuery(undefined, {
     refetchInterval: 15000,
   });
-  const activeModel = trpc.llm.activeCopilotModel.useQuery();
-  const setActiveModel = trpc.llm.setActiveCopilotModel.useMutation({
-    onSuccess: () => utils.llm.activeCopilotModel.invalidate(),
+  const activeModel = trpc.llm.activeModel.useQuery();
+  const setActiveModel = trpc.llm.setActiveModel.useMutation({
+    onSuccess: () => utils.llm.activeModel.invalidate(),
+  });
+  const secondary = trpc.llm.secondaryModel.useQuery();
+  const setSecondary = trpc.llm.setSecondaryModel.useMutation({
+    onSuccess: () => utils.llm.secondaryModel.invalidate(),
   });
   const cliUrl = trpc.llm.copilotCliUrl.useQuery();
   const setCliUrl = trpc.llm.setCopilotCliUrl.useMutation({
@@ -278,6 +199,7 @@ function CopilotPanel() {
 
   const ok = copilotHealth.data?.ok === true;
   const state = copilotHealth.isLoading ? 'checking' : ok ? 'online' : 'offline';
+  const modelList = copilotModels.data ?? [];
 
   return (
     <>
@@ -287,7 +209,9 @@ function CopilotPanel() {
             <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
               provider
             </div>
-            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">GitHub Copilot</div>
+            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">
+              GitHub Copilot
+            </div>
             <div className="font-mono text-ui-xs text-ink-500">
               {editing ? (
                 <form
@@ -355,74 +279,68 @@ function CopilotPanel() {
         )}
       </div>
 
-      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15">
-        <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
-          <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-            available models
-          </div>
-          <div className="font-mono text-ui-2xs text-ink-500">
-            active: <span className="text-amber">{activeModel.data ?? '—'}</span>
-          </div>
+      <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-5">
+        <div className="mb-4 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+          available models
         </div>
         {!ok ? (
-          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">—</div>
-        ) : copilotModels.data && copilotModels.data.length === 0 ? (
-          <div className="px-5 py-6 font-mono text-ui-xs text-ink-500">
+          <div className="font-mono text-ui-xs text-ink-500">—</div>
+        ) : modelList.length === 0 ? (
+          <div className="font-mono text-ui-xs text-ink-500">
             no models returned — check authentication
           </div>
         ) : (
-          <ul>
-            {copilotModels.data?.map((m) => {
-              const isActive = m.name === activeModel.data;
-              return (
-                <li
-                  key={m.name}
-                  className="flex items-center justify-between border-b border-ink-800/30 px-5 py-2.5 last:border-b-0"
-                >
-                  <div className="font-mono text-ui-sm text-ink-100">
-                    {m.name}
-                    {isActive && <span className="ml-2 text-amber">●</span>}
-                  </div>
-                  {!isActive && (
-                    <button
-                      onClick={() => setActiveModel.mutate({ name: m.name })}
-                      className="btn-primary !py-1 !px-2"
-                    >
-                      use
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-4">
+            <ModelDropdown
+              label="main model"
+              description="Primary model for tasks, planning, and chat"
+              models={modelList}
+              value={activeModel.data ?? ''}
+              onChange={(name) => setActiveModel.mutate({ name })}
+            />
+            <ModelDropdown
+              label="secondary model"
+              description="Lighter model for sub-tasks and minor operations"
+              models={modelList}
+              value={secondary.data ?? ''}
+              onChange={(name) => setSecondary.mutate({ name })}
+            />
+          </div>
         )}
       </div>
     </>
   );
 }
 
-function PullProgressBar({ state }: { state: PullState }) {
-  const pct =
-    state.completed && state.total ? Math.min(100, (state.completed / state.total) * 100) : null;
-  const bg = state.status === 'error' ? 'bg-signal-err' : state.done ? 'bg-signal-ok' : 'bg-amber';
+function ModelDropdown({
+  label,
+  description,
+  models,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  models: { name: string; sizeBytes?: number }[];
+  value: string;
+  onChange: (name: string) => void;
+}) {
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between font-mono text-ui-xs uppercase tracking-widest2">
-        <span className={state.status === 'error' ? 'text-signal-err' : 'text-ink-300'}>
-          {state.error ?? state.status}
-        </span>
-        <span className="text-ink-500">
-          {state.completed && state.total
-            ? `${formatBytes(state.completed)} / ${formatBytes(state.total)}`
-            : ''}
-        </span>
-      </div>
-      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-ink-800">
-        <div
-          className={`h-full ${bg} transition-all`}
-          style={{ width: `${pct ?? (state.done ? 100 : 8)}%` }}
-        />
-      </div>
+    <div>
+      <div className="mb-1 font-mono text-ui-xs font-medium text-ink-200">{label}</div>
+      <div className="mb-2 font-mono text-ui-2xs text-ink-500">{description}</div>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-2 font-mono text-ui-sm text-ink-100 transition-colors focus:border-amber/30 focus:outline-none"
+      >
+        {models.map((m) => (
+          <option key={m.name} value={m.name}>
+            {m.name}
+            {m.sizeBytes ? ` (${formatBytes(m.sizeBytes)})` : ''}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

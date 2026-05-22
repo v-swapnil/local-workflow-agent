@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
-import { OLLAMA_URL } from '@shared/constants';
+import { OLLAMA_URL, PROVIDERS } from '@shared/constants';
 import type { AppHealth } from '@shared/types';
 import { dbPath } from '../util/paths.js';
 import { workspaceRouter, fileRouter } from './workspace.js';
@@ -18,7 +18,7 @@ import { agentRouter } from './agent.js';
 import { workflowRouter } from './workflow.js';
 
 async function checkOllama(): Promise<AppHealth['ollama']> {
-  const provider = getProvider('ollama');
+  const provider = getProvider(PROVIDERS.OLLAMA);
   const ok = await provider.ping();
   if (!ok) return { ok: false, url: OLLAMA_URL };
   try {

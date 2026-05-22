@@ -2,9 +2,11 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { settings } from '../db/schema.js';
 
-export async function getSetting(key: string): Promise<string | undefined> {
+export async function getSetting(key: string): Promise<string | undefined>;
+export async function getSetting<D extends string>(key: string, defaultValue: D): Promise<string>;
+export async function getSetting(key: string, defaultValue?: string): Promise<string | undefined> {
   const row = getDb().select().from(settings).where(eq(settings.key, key)).get();
-  return row?.value;
+  return row?.value ?? defaultValue;
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
@@ -23,9 +25,9 @@ export async function deleteSetting(key: string): Promise<void> {
 
 export const SETTING_KEYS = {
   ACTIVE_WORKSPACE: 'activeWorkspaceId',
-  ACTIVE_MODEL: 'activeModel',
   ACTIVE_PROVIDER: 'activeProvider',
-  COPILOT_MODEL: 'copilotModel',
+  PRIMARY_MODEL: 'primaryModel',
+  SECONDARY_MODEL: 'secondaryModel',
   COPILOT_CLI_URL: 'copilotCliUrl',
   GIT_AUTO_BRANCH: 'gitAutoBranch',
   UI_THEME: 'uiTheme',

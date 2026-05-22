@@ -1,4 +1,6 @@
 import { getProvider } from '../services/llm/index.js';
+import { PROVIDERS } from '@shared/constants';
+import type { ProviderId } from '@shared/types';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { taskBus } from '../services/events.js';
 import { addStep, updateStep } from '../services/store.js';
@@ -60,7 +62,7 @@ export async function runDirectAgent(
   prompt: string,
   ctx: RunCtx,
 ): Promise<TaskResult> {
-  const provider = getProvider(agent.provider === 'copilot' ? 'copilot' : 'ollama');
+  const provider = getProvider((agent.provider as ProviderId) || PROVIDERS.OLLAMA);
   const model = ctx.model;
   const maxIter = agent.maxIterations ?? 10;
 
@@ -172,7 +174,10 @@ export async function runDirectAgent(
     iterations,
     plan: null,
     testReport: null,
-    verdict: { done: succeeded, reason: succeeded ? 'direct agent completed' : (lastError ?? 'aborted') },
+    verdict: {
+      done: succeeded,
+      reason: succeeded ? 'direct agent completed' : (lastError ?? 'aborted'),
+    },
     reason: succeeded ? undefined : (lastError ?? 'aborted'),
   };
 }

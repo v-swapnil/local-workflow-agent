@@ -18,7 +18,7 @@ export class CopilotService {
 
   /** Get (or lazily connect to) the CopilotClient. */
   async getClient(): Promise<CopilotClient> {
-    const url = (await getSetting(SETTING_KEYS.COPILOT_CLI_URL)) ?? COPILOT_CLI_URL;
+    const url = await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
     // Reconnect if the URL changed
     if (this.client && this.lastUrl === url) return this.client;
     if (this.connecting) {

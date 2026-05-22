@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { trpc } from '../trpc';
 import { cn } from '../lib/utils';
+import { PROVIDERS } from '@shared/constants';
+import type { ProviderId } from '@shared/types';
 
 interface AgentFormState {
   id?: string;
@@ -13,7 +15,7 @@ interface AgentFormState {
   graphMode: 'full' | 'direct';
   maxIterations: number;
   description: string;
-  provider: 'ollama' | 'copilot';
+  provider: ProviderId;
 }
 
 const BLANK: AgentFormState = {
@@ -26,7 +28,7 @@ const BLANK: AgentFormState = {
   graphMode: 'full',
   maxIterations: 10,
   description: '',
-  provider: 'ollama',
+  provider: PROVIDERS.OLLAMA,
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -112,7 +114,7 @@ export function Agents() {
       graphMode: (a.graphMode as 'full' | 'direct') ?? 'full',
       maxIterations: (a as { maxIterations?: number }).maxIterations ?? 10,
       description: (a as { description?: string }).description ?? '',
-      provider: ((a as { provider?: string }).provider as 'ollama' | 'copilot') ?? 'ollama',
+      provider: ((a as { provider?: string }).provider as ProviderId) ?? PROVIDERS.OLLAMA,
     });
   }
 
@@ -188,7 +190,7 @@ export function Agents() {
                       <span className="truncate font-mono text-ui-sm font-medium">{a.name}</span>
                       <RoleBadge role={a.role} />
                     </div>
-                    <ModelTag model={a.model} provider={(a as { provider?: string }).provider ?? 'ollama'} />
+                    <ModelTag model={a.model} provider={(a as { provider?: string }).provider ?? PROVIDERS.OLLAMA} />
                   </button>
                 </li>
               ))}
@@ -242,11 +244,11 @@ export function Agents() {
           <FormField label="provider">
             <select
               value={form.provider}
-              onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value as 'ollama' | 'copilot', model: '' }))}
+              onChange={(e) => setForm((f) => ({ ...f, provider: e.target.value as ProviderId, model: '' }))}
               className={selectClass}
             >
-              <option value="ollama">Ollama (local)</option>
-              <option value="copilot">Copilot CLI</option>
+              <option value={PROVIDERS.OLLAMA}>Ollama (local)</option>
+              <option value={PROVIDERS.COPILOT}>Copilot CLI</option>
             </select>
           </FormField>
 

@@ -2,6 +2,7 @@ import { StateGraph, START, END } from '@langchain/langgraph';
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
+import { PROVIDERS } from '@shared/constants';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
 import { hasTestsConfigured } from '../services/tools/shell.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
@@ -58,7 +59,7 @@ async function llmJson<T>(
   user: string,
   temperature = 0.2,
 ): Promise<T> {
-  const provider = getProvider('ollama');
+  const provider = getProvider(PROVIDERS.OLLAMA);
   const buf: string[] = [];
   const t0 = Date.now();
   const messages = [
@@ -128,7 +129,7 @@ async function llmWithTools(
   user: string,
   temperature = 0.2,
 ): Promise<ToolCallResponse | DoneResponse> {
-  const provider = getProvider('ollama');
+  const provider = getProvider(PROVIDERS.OLLAMA);
   const tools = listToolsForLLM();
   const buf: string[] = [];
   const t0 = Date.now();
