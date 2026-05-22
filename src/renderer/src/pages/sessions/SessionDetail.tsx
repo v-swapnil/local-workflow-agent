@@ -38,7 +38,7 @@ export function SessionDetail({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <header className="mb-4 flex items-start justify-between">
+      <header className="shrink-0 mb-4 flex items-start justify-between">
         <div>
           <h1 className="font-serif text-ui-lg font-medium tracking-tight text-ink-50">
             {session.data?.title ?? '…'}
@@ -80,7 +80,7 @@ export function SessionDetail({
       </header>
 
       {/* Divider */}
-      <div className="divider-h mb-4" />
+      <div className="divider-h mb-4 shrink-0" />
 
       {/* Task view */}
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -104,7 +104,7 @@ export function SessionDetail({
 
       {/* Prompt form */}
       <form
-        className="mt-4 border-t border-ink-800/40 pt-4"
+        className="shrink-0 mt-4 border-t border-ink-800/40 pt-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!prompt.trim()) return;

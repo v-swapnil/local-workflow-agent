@@ -123,7 +123,7 @@ export function Sessions() {
       </aside>
 
       {/* Main content */}
-      <main className="min-w-0 p-5">
+      <main className="flex min-h-0 min-w-0 flex-col overflow-hidden p-5">
         {sessionId ? (
           <SessionDetail
             sessionId={sessionId}

@@ -22,7 +22,7 @@ export function ModelManager() {
           active provider
         </div>
         <div className="flex items-center gap-2">
-          {Object.values(PROVIDERS).map((id) => (
+          {[PROVIDERS.OLLAMA, PROVIDERS.COPILOT].map((id) => (
             <button
               key={id}
               className={`rounded border px-4 py-2 font-mono text-ui-sm uppercase tracking-widest2 transition-colors ${
