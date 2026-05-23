@@ -7,7 +7,8 @@ export interface WorkflowRecord {
   id: string;
   name: string;
   description: string | null;
-  graphJson: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
   createdAt: number;
   updatedAt: number;
 }
@@ -33,21 +34,46 @@ export interface WorkflowDefinition {
   edges: WorkflowEdge[];
 }
 
+/** Raw shape returned by Drizzle before we parse the JSON columns. */
+interface WorkflowRow {
+  id: string;
+  name: string;
+  description: string | null;
+  nodes: string;
+  edges: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+function parseRow(row: WorkflowRow): WorkflowRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    nodes: JSON.parse(row.nodes || '[]') as WorkflowNode[],
+    edges: JSON.parse(row.edges || '[]') as WorkflowEdge[],
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
 export function listWorkflows(): WorkflowRecord[] {
-  return getDb().select().from(workflows).all() as WorkflowRecord[];
+  const rows = getDb().select().from(workflows).all() as WorkflowRow[];
+  return rows.map(parseRow);
 }
 
 export function getWorkflow(id: string): WorkflowRecord {
-  const row = getDb().select().from(workflows).where(eq(workflows.id, id)).get();
+  const row = getDb().select().from(workflows).where(eq(workflows.id, id)).get() as WorkflowRow | undefined;
   if (!row) throw new Error(`workflow not found: ${id}`);
-  return row as WorkflowRecord;
+  return parseRow(row);
 }
 
 export interface UpsertWorkflowInput {
   id?: string;
   name: string;
   description?: string;
-  graphJson: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
 }
 
 export function upsertWorkflow(input: UpsertWorkflowInput): WorkflowRecord {
@@ -58,7 +84,8 @@ export function upsertWorkflow(input: UpsertWorkflowInput): WorkflowRecord {
     id,
     name: input.name,
     description: input.description ?? null,
-    graphJson: input.graphJson,
+    nodes: JSON.stringify(input.nodes),
+    edges: JSON.stringify(input.edges),
     createdAt: now,
     updatedAt: now,
   };

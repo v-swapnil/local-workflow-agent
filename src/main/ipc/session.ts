@@ -168,7 +168,7 @@ export const taskRouter = router({
     // Reset the same task and re-enqueue instead of creating a new one
     updateTask(orig.id, {
       status: 'queued',
-      resultJson: null,
+      result: null,
       iterations: 0,
       startedAt: null,
       finishedAt: null,

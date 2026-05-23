@@ -29,7 +29,7 @@ export async function exportTaskReport(taskId: string): Promise<ExportedTaskRepo
     session,
     workspace,
     plan: task.plan,
-    result: tryParseJson(task.resultJson),
+    result: tryParseJson(task.result),
     steps: steps.map((s) => ({
       ...s,
       input: tryParseJson(s.inputJson),

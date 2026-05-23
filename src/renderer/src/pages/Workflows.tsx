@@ -115,7 +115,7 @@ export function Workflows() {
   });
 
   const validate = trpc.workflow.validate.useQuery(
-    { graphJson: currentDef ? JSON.stringify(currentDef) : '{}' },
+    { nodes: currentDef?.nodes ?? [], edges: currentDef?.edges ?? [] },
     { enabled: !!currentDef },
   );
 
@@ -125,11 +125,7 @@ export function Workflows() {
     setSelectedId(id);
     setName(w.name);
     setDescription(w.description ?? '');
-    try {
-      setCurrentDef(JSON.parse(w.graphJson) as WorkflowDefinition);
-    } catch {
-      setCurrentDef(null);
-    }
+    setCurrentDef({ nodes: w.nodes, edges: w.edges });
     setSaveError(null);
     setValidationResult(null);
   }
@@ -149,7 +145,8 @@ export function Workflows() {
       id: selectedId ?? undefined,
       name: name.trim(),
       description: description || undefined,
-      graphJson: currentDef ? JSON.stringify(currentDef) : '{"nodes":[],"edges":[]}',
+      nodes: currentDef?.nodes ?? [],
+      edges: currentDef?.edges ?? [],
     });
   }
 

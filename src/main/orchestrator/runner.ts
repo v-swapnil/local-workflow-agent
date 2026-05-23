@@ -214,7 +214,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 function finish(task: Task, result: TaskResult): TaskResult {
   updateTask(task.id, {
     status: result.status,
-    resultJson: JSON.stringify(result),
+    result: JSON.stringify(result),
     iterations: result.iterations,
     finishedAt: Date.now(),
   });

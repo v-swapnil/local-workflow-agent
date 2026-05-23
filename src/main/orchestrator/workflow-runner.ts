@@ -49,7 +49,10 @@ export async function runWorkflow(
   ctx: RunCtx,
 ): Promise<TaskResult> {
   const workflowRecord = getWorkflow(workflowId);
-  const definition: WorkflowDefinition = JSON.parse(workflowRecord.graphJson);
+  const definition: WorkflowDefinition = {
+    nodes: workflowRecord.nodes,
+    edges: workflowRecord.edges,
+  };
 
   taskBus.emit(taskId, {
     type: 'log',

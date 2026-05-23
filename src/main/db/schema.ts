@@ -44,7 +44,7 @@ export const tasks = sqliteTable(
     status: text('status').notNull().default('queued'),
     provider: text('provider'),
     plan: text('plan'),
-    resultJson: text('result_json'),
+    result: text('result'),
     iterations: integer('iterations').notNull().default(0),
     maxIterations: integer('max_iterations').notNull().default(6),
     model: text('model'),
@@ -132,7 +132,8 @@ export const workflows = sqliteTable('workflows', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   description: text('description'),
-  graphJson: text('graph_json').notNull(),
+  nodes: text('nodes').notNull().default('[]'),
+  edges: text('edges').notNull().default('[]'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });

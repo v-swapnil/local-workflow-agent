@@ -6,14 +6,30 @@ import {
   upsertWorkflow,
   deleteWorkflow,
   validateWorkflowDefinition,
-  type WorkflowDefinition,
 } from '../services/workflows.js';
+
+const nodeSchema = z.object({
+  id: z.string(),
+  type: z.enum(['start', 'end', 'agent', 'condition', 'approval']),
+  position: z.object({ x: z.number(), y: z.number() }),
+  data: z.record(z.unknown()),
+});
+
+const edgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  sourceHandle: z.string().optional(),
+  label: z.string().optional(),
+  maxIterations: z.number().optional(),
+});
 
 const workflowSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
-  graphJson: z.string().min(1),
+  nodes: z.array(nodeSchema),
+  edges: z.array(edgeSchema),
 });
 
 export const workflowRouter = router({
@@ -35,13 +51,6 @@ export const workflowRouter = router({
     }),
 
   validate: publicProcedure
-    .input(z.object({ graphJson: z.string() }))
-    .query(({ input }) => {
-      try {
-        const def = JSON.parse(input.graphJson) as WorkflowDefinition;
-        return validateWorkflowDefinition(def);
-      } catch {
-        return { valid: false, errors: ['Invalid JSON'] };
-      }
-    }),
+    .input(z.object({ nodes: z.array(nodeSchema), edges: z.array(edgeSchema) }))
+    .query(({ input }) => validateWorkflowDefinition(input)),
 });

@@ -142,6 +142,19 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
       updated_at INTEGER NOT NULL
     )`);
   } catch { /* exists */ }
+  // Additive migration: split graph_json → nodes + edges columns on workflows
+  try { _sqlite.exec(`ALTER TABLE workflows ADD COLUMN nodes TEXT NOT NULL DEFAULT '[]'`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE workflows ADD COLUMN edges TEXT NOT NULL DEFAULT '[]'`); } catch { /* exists */ }
+  try {
+    // Backfill nodes/edges from graph_json for existing rows that still have the default '[]'
+    _sqlite.exec(`
+      UPDATE workflows
+      SET
+        nodes = COALESCE(json_extract(graph_json, '$.nodes'), '[]'),
+        edges = COALESCE(json_extract(graph_json, '$.edges'), '[]')
+      WHERE nodes = '[]' AND edges = '[]' AND graph_json != '{}'
+    `);
+  } catch { /* ignore — graph_json may already be gone */ }
   // Additive migration: rename model_override → model on tasks
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN model_override TO model`); } catch { /* already renamed or doesn't exist */ }
   // Additive migration: rename tools_json → tools on agents + convert data from JSON to CSV
@@ -161,6 +174,7 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`DELETE FROM task_events WHERE type IN ('task.iteration', 'task.retry', 'llm.call')`); } catch { /* ignore */ }
   // Additive migration: rename plan_json → plan on tasks
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN plan_json TO plan`); } catch { /* already renamed or doesn't exist */ }
+  try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN result_json TO result`); } catch { /* ignore */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

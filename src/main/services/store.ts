@@ -22,7 +22,7 @@ export interface Task {
   status: string;
   provider: string | null;
   plan: string | null;
-  resultJson: string | null;
+  result: string | null;
   iterations: number;
   maxIterations: number;
   model: string | null;
@@ -148,7 +148,7 @@ export function createTask(
     status: 'queued',
     provider: null,
     plan: null,
-    resultJson: null,
+    result: null,
     iterations: 0,
     maxIterations,
     model: opts?.model ?? null,
