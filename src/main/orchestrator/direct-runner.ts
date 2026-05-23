@@ -1,7 +1,7 @@
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import type { ProviderId } from '@shared/types';
-import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
+import { invokeTool, listToolsForLLM, isReadOnlyTool } from '../services/tools/registry.js';
 import { taskBus } from '../services/events.js';
 import { addStep, updateStep } from '../services/store.js';
 import type { RunCtx } from './graph.js';
@@ -127,8 +127,8 @@ export async function runDirectAgent(
     // Append assistant message
     messages.push({ role: 'assistant', content: text });
 
-    // Execute each tool call
-    for (const tc of toolCalls) {
+    // Execute tool calls — parallel for read-only, sequential otherwise
+    const invokeOne = async (tc: ToolCallResult) => {
       const toolName = tc.name as ToolName;
       const stepId = emitStep(ctx, toolName, tc.arguments);
 
@@ -150,9 +150,20 @@ export async function runDirectAgent(
       });
 
       finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error);
-      lastError = toolResult.ok ? null : (toolResult.error ?? null);
+      return { toolName, toolResult };
+    };
 
-      // Append tool result as a user-turn observation
+    const allReadOnly = toolCalls.every((tc) => isReadOnlyTool(tc.name));
+    const results = allReadOnly
+      ? await Promise.all(toolCalls.map(invokeOne))
+      : await (async () => {
+          const seq: Awaited<ReturnType<typeof invokeOne>>[] = [];
+          for (const tc of toolCalls) seq.push(await invokeOne(tc));
+          return seq;
+        })();
+
+    for (const { toolName, toolResult } of results) {
+      lastError = toolResult.ok ? null : (toolResult.error ?? null);
       messages.push({
         role: 'user',
         content: `[tool: ${toolName}] ${

@@ -69,6 +69,11 @@ const READ_ONLY_TOOLS: ToolName[] = [
   'read_memories',
 ];
 
+/** Returns true if the given tool is read-only (safe to run in parallel). */
+export function isReadOnlyTool(name: string): boolean {
+  return READ_ONLY_TOOLS.includes(name as ToolName);
+}
+
 export function listReadOnlyToolsForLLM(): ChatToolDef[] {
   return Object.values(REGISTRY)
     .filter((tool) => READ_ONLY_TOOLS.includes(tool.name))

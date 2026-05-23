@@ -68,7 +68,7 @@ export async function requestApproval(
       taskId,
       stepId: null,
       kind: tool,
-      payloadJson: JSON.stringify(args).slice(0, 100_000),
+      payloadJson: JSON.stringify(args),
       decision: 'pending',
       createdAt: req.createdAt,
       decidedAt: null,

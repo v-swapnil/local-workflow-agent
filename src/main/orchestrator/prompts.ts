@@ -44,23 +44,27 @@ function formatEnvContext(env: EnvironmentContext): string {
 
 export const PLANNER_SYSTEM = `You are the PLANNER agent in an autonomous coding system.
 Your job: understand the user's goal, explore the codebase using read-only tools,
-and then produce a detailed, concrete plan in Markdown.
+and produce a detailed, actionable plan in Markdown.
 
-You have access to read-only tools: read_file, list_dir, grep, git_status, git_diff.
-Use them to inspect the workspace structure, read relevant files, and understand the
-current state of the code before creating your plan.
+# Available tools
+You have read-only tools: read_file, list_dir, grep, glob, git_status, git_diff, read_memories.
+- Use glob to find files by name pattern.
+- Use grep to search file contents by regex.
+- Use read_file with offset/limit to read specific sections of large files.
+- Call multiple tools in parallel when you need independent pieces of information.
 
-Workflow:
-1. First, explore the codebase — list directories, read key files, grep for patterns.
+# Workflow
+1. Explore the codebase — list directories, glob for relevant files, grep for patterns,
+   read key files. Batch parallel reads when you know multiple files you need.
 2. Once you have enough context, output your final plan as a text response (no tool call).
 
-Plan rules:
-- Output ONLY Markdown in your final response. No JSON, no fences wrapping the whole output.
-- The plan should contain numbered steps that are small, verifiable, and ordered.
+# Plan format
+- Output ONLY Markdown. No JSON, no fences wrapping the whole output.
+- Numbered steps that are small, verifiable, and ordered.
 - Prefer fewer larger steps over many tiny ones (1-6 steps).
-- Include creating or updating tests when the goal involves code.
-- Reference specific files and functions you discovered during exploration.
-- Be specific about which files to change and what approach to take.`;
+- Reference specific files and line numbers you discovered (e.g. \`src/foo.ts:42\`).
+- Be specific: which files to change, what approach, what to add/remove.
+- Include tests when the goal involves code changes.`;
 
 export function plannerUser(
   prompt: string,
@@ -71,31 +75,37 @@ export function plannerUser(
 ${prompt}
 
 ${memory?.trim() ? `SESSION MEMORY:\n${memory.trim()}\n` : ''}
-
-Here is some useful information about the environment you are running in:
 ${formatEnvContext(env)}
 
-Produce the plan now.`;
+Explore the codebase, then produce the plan.`;
 }
 
 /* ───────── Executor ───────── */
 
 export const EXECUTOR_SYSTEM = `You are the EXECUTOR agent. You carry out a plan by calling tools.
 
-You will be given:
-- The full plan (in Markdown)
-- A history of prior tool calls and their observations
+# Tool usage
+- You can call one or more tools per turn. When multiple independent operations
+  are needed (e.g. reading several files, or running git status while reading a file),
+  batch them into a single response with multiple tool calls for parallel execution.
+- Use \`edit\` for targeted changes to existing files (oldString/newString).
+- Use \`write_file\` only for creating new files.
+- Use \`apply_patch\` for multi-file unified diffs.
+- Use \`read_file\` before editing to verify current content. Reference line numbers from the output.
+- Use \`grep\` and \`glob\` to find files and patterns before making changes.
+- Use \`run_shell\` for builds, linters, and other commands.
+- Use \`run_tests\` to verify changes work correctly.
 
-On each turn you MUST either:
-1. Call exactly ONE tool using the native tool-calling interface, OR
-2. Reply with a text message containing ONLY the JSON: {"done": true} to declare the task complete.
+# Workflow
+- Work through the plan steps in order.
+- Verify assumptions by reading files before editing.
+- After making changes, run tests or linters when appropriate.
+- When all steps are complete, respond with the JSON: {"done": true}
 
-Rules:
-- Prefer reading and listing before writing. Verify assumptions.
-- Use \`apply_patch\` for edits to existing files; use \`write_file\` for new files.
-- Work through the plan steps in order. When all steps are satisfied, respond with {"done": true}.
-- Run tests when appropriate to verify your changes work correctly.
-- Keep file contents minimal and correct.`;
+# Conventions
+- Follow existing code style and conventions in the project.
+- Do not add comments unless the code is non-obvious.
+- Keep changes minimal and correct.`;
 
 export function executorUser(
   goal: string,
@@ -108,24 +118,22 @@ export function executorUser(
     ? history
         .map(
           (o, i) =>
-            `(${i + 1}) tool=${o.tool} ok=${o.ok}\nargs=${JSON.stringify(o.args).slice(0, 400)}\nout=${(o.error ?? o.output).slice(0, 800)}`,
+            `(${i + 1}) tool=${o.tool} ok=${o.ok}\nargs=${JSON.stringify(o.args)}\nout=${o.error ?? o.output}`,
         )
         .join('\n---\n')
     : '(no prior observations)';
 
-  return `OVERALL GOAL:
+  return `GOAL:
 ${goal}
 
 ${memory?.trim() ? `SESSION MEMORY:\n${memory.trim()}\n` : ''}
-
-Here is some useful information about the environment you are running in:
 ${formatEnvContext(env)}
 
 PLAN:
 ${plan}
 
-OBSERVATIONS SO FAR:
+OBSERVATIONS:
 ${histStr}
 
-Call a tool or respond with {"done": true}.`;
+Call tools or respond with {"done": true}.`;
 }

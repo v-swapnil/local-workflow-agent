@@ -7,6 +7,7 @@ import {
   invokeTool,
   listToolsForLLM,
   listReadOnlyToolsForLLM,
+  isReadOnlyTool,
 } from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
@@ -222,6 +223,62 @@ function emitStepFinished(
 /** Max read-only tool calls the planner can make while exploring. */
 const PLANNER_EXPLORE_BUDGET = 15;
 
+/**
+ * Execute a batch of tool calls. Read-only tools run in parallel;
+ * write tools run sequentially to avoid conflicts.
+ */
+async function executeToolCalls(
+  ctx: RunCtx,
+  agent: string,
+  toolCalls: ToolCallResult[],
+): Promise<{ tool: ToolName; args: Record<string, unknown>; ok: boolean; output: string; error?: string; durationMs: number }[]> {
+  const invokeOne = async (tc: ToolCallResult) => {
+    const tool = tc.name as ToolName;
+    const args = tc.arguments;
+    const { stepId } = emitStepStarted(ctx, agent, tool, { args });
+
+    const result = await invokeTool(tool, args, {
+      workspaceId: ctx.workspaceId,
+      workspacePath: ctx.workspacePath,
+      taskId: ctx.taskId,
+      signal: ctx.signal,
+      onLog: ({ stream, text }) => {
+        taskBus.emit(ctx.taskId, {
+          type: 'log',
+          taskId: ctx.taskId,
+          ts: Date.now(),
+          stream,
+          text,
+          stepId,
+        });
+      },
+    });
+
+    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+
+    return {
+      tool,
+      args: (args ?? {}) as Record<string, unknown>,
+      ok: result.ok,
+      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
+      error: result.error,
+      durationMs: result.durationMs,
+    };
+  };
+
+  // If all tool calls are read-only, execute them in parallel
+  if (toolCalls.every((tc) => isReadOnlyTool(tc.name))) {
+    return Promise.all(toolCalls.map(invokeOne));
+  }
+
+  // Otherwise execute sequentially (write tools need ordering)
+  const results: Awaited<ReturnType<typeof invokeOne>>[] = [];
+  for (const tc of toolCalls) {
+    results.push(await invokeOne(tc));
+  }
+  return results;
+}
+
 async function plannerNode(
   state: AgentState,
   config?: RunnableConfig,
@@ -276,30 +333,9 @@ async function plannerLoop(
       return plan;
     }
 
-    // Execute the read-only tool call
-    const tc = response.toolCalls[0]!;
-    const tool = tc.name as ToolName;
-    const args = tc.arguments;
-    const { stepId } = emitStepStarted(ctx, 'planner', tool, { args });
-
-    const result = await invokeTool(tool, args, {
-      workspaceId: ctx.workspaceId,
-      workspacePath: ctx.workspacePath,
-      taskId: ctx.taskId,
-      signal: ctx.signal,
-      onLog: ({ stream, text }) => {
-        taskBus.emit(ctx.taskId, {
-          type: 'log',
-          taskId: ctx.taskId,
-          ts: Date.now(),
-          stream,
-          text,
-          stepId,
-        });
-      },
-    });
-
-    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+    // Execute all read-only tool calls in parallel
+    const results = await executeToolCalls(ctx, 'planner', response.toolCalls);
+    budget -= results.length;
   }
 
   throw new Error('planner exhausted exploration budget without producing a plan');
@@ -334,42 +370,22 @@ async function executorNode(
 
     if (response.done || !response.toolCalls?.length) break;
 
-    const tc = response.toolCalls[0]!;
-    const tool = tc.name as ToolName;
-    const args = tc.arguments;
-    const { stepId } = emitStepStarted(ctx, 'executor', tool, { args });
+    const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
+    budget -= results.length;
 
-    const result = await invokeTool(tool, args, {
-      workspaceId: ctx.workspaceId,
-      workspacePath: ctx.workspacePath,
-      taskId: ctx.taskId,
-      signal: ctx.signal,
-      onLog: ({ stream, text }) => {
-        taskBus.emit(ctx.taskId, {
-          type: 'log',
-          taskId: ctx.taskId,
-          ts: Date.now(),
-          stream,
-          text,
-          stepId,
-        });
-      },
-    });
+    for (const r of results) {
+      newObs.push({
+        tool: r.tool,
+        args: r.args,
+        ok: r.ok,
+        output: r.output,
+        error: r.error,
+        durationMs: r.durationMs,
+      });
+    }
 
-    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
-
-    const obs: Observation = {
-      tool,
-      args: (args ?? {}) as Record<string, unknown>,
-      ok: result.ok,
-      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
-      error: result.error,
-      durationMs: result.durationMs,
-    };
-    newObs.push(obs);
-
-    if (!result.ok && budget === 0) {
-      log.warn({ tool, error: result.error }, 'executor exhausted budget on failure');
+    if (results.some((r) => !r.ok) && budget <= 0) {
+      log.warn('executor exhausted budget on failure');
     }
   }
 
@@ -436,39 +452,19 @@ export function buildGraph(agent?: AgentRecord | null) {
 
       if (response.done || !response.toolCalls?.length) break;
 
-      const tc = response.toolCalls[0]!;
-      const tool = tc.name as ToolName;
-      const args = tc.arguments;
-      const { stepId } = emitStepStarted(ctx, 'executor', tool, { args });
+      const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
+      budget -= results.length;
 
-      const result = await invokeTool(tool, args, {
-        workspaceId: ctx.workspaceId,
-        workspacePath: ctx.workspacePath,
-        taskId: ctx.taskId,
-        signal: ctx.signal,
-        onLog: ({ stream, text }) => {
-          taskBus.emit(ctx.taskId, {
-            type: 'log',
-            taskId: ctx.taskId,
-            ts: Date.now(),
-            stream,
-            text,
-            stepId,
-          });
-        },
-      });
-
-      emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
-
-      const obs: Observation = {
-        tool,
-        args: (args ?? {}) as Record<string, unknown>,
-        ok: result.ok,
-        output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
-        error: result.error,
-        durationMs: result.durationMs,
-      };
-      newObs.push(obs);
+      for (const r of results) {
+        newObs.push({
+          tool: r.tool,
+          args: r.args,
+          ok: r.ok,
+          output: r.output,
+          error: r.error,
+          durationMs: r.durationMs,
+        });
+      }
     }
 
     return { history: newObs };
