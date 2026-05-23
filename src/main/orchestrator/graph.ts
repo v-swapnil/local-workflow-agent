@@ -4,7 +4,6 @@ import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
-import { hasTestsConfigured } from '../services/tools/shell.js';
 import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
@@ -14,11 +13,9 @@ import {
   plannerUser,
   EXECUTOR_SYSTEM,
   executorUser,
-  CRITIC_SYSTEM,
-  criticUser,
 } from './prompts.js';
 import type { EnvironmentContext } from './prompts.js';
-import type { Plan, Observation, TestReport, Verdict } from '@shared/agent';
+import type { Plan, Observation } from '@shared/agent';
 import type { ToolName } from '../services/tools/types.js';
 import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
@@ -38,8 +35,6 @@ export interface RunCtx {
   signal: AbortSignal;
   /** Monotonic step index counter, mutated as we add steps. */
   stepIdx: { n: number };
-  /** Hint surfaced by the critic when looping back. */
-  hint?: string;
   /** Persisted session memory included in all task prompts. */
   sessionMemory?: string | null;
 }
@@ -92,18 +87,6 @@ async function llmJson<T>(
     },
   });
   const text = result.content || buf.join('');
-
-  // Persist full request + response for conversation history inspection
-  taskBus.emit(ctx.taskId, {
-    type: 'llm.call',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    agent,
-    model: ctx.model,
-    messages,
-    response: text.slice(0, 100_000),
-    durationMs: Date.now() - t0,
-  });
 
   return extractJson<T>(text);
 }
@@ -164,17 +147,6 @@ async function llmWithTools(
     },
   });
   const text = result.content || buf.join('');
-
-  taskBus.emit(ctx.taskId, {
-    type: 'llm.call',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    agent,
-    model: ctx.model,
-    messages,
-    response: text.slice(0, 100_000),
-    durationMs: Date.now() - t0,
-  });
 
   // If the model returned native tool calls, use them.
   if (result.toolCalls?.length) {
@@ -336,22 +308,17 @@ async function executorNode(
   if (!plan) throw new Error('executor: no plan in state');
 
   const newObs: Observation[] = [];
-  const hint = ctx.hint;
-  ctx.hint = undefined;
 
   const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
   const env = await gatherEnvContext(ctx);
-  const testsConfigured = await hasTestsConfigured(ctx.workspacePath);
 
   for (const planStep of plan.steps) {
     let stepBudget = EXECUTOR_BUDGET_PER_STEP;
-    let stepHint = hint;
     while (stepBudget-- > 0) {
       if (ctx.signal.aborted) throw new Error('aborted');
 
       const histForLLM = state.history
-        .concat(newObs)
-        .filter((o) => o.stepId === planStep.id || true);
+        .concat(newObs);
       const response = await llmWithTools(
         ctx,
         'executor',
@@ -363,11 +330,10 @@ async function executorNode(
           histForLLM,
           skills,
           env,
-          stepHint,
+          undefined,
           ctx.sessionMemory,
         ),
       );
-      stepHint = undefined;
 
       if (response.done || !response.toolCalls?.length) break;
 
@@ -414,114 +380,7 @@ async function executorNode(
     }
   }
 
-  return { history: newObs, testsConfigured };
-}
-
-async function testerNode(
-  state: AgentState,
-  config?: RunnableConfig,
-): Promise<Partial<AgentState>> {
-  const ctx = ctxOf(config);
-  const { stepId } = emitStepStarted(ctx, 'tester', 'run_tests', {});
-  const logBuf: string[] = [];
-  const result = await invokeTool(
-    'run_tests',
-    {},
-    {
-      workspaceId: ctx.workspaceId,
-      workspacePath: ctx.workspacePath,
-      taskId: ctx.taskId,
-      signal: ctx.signal,
-      onLog: ({ stream, text }) => {
-        logBuf.push(text);
-        taskBus.emit(ctx.taskId, {
-          type: 'log',
-          taskId: ctx.taskId,
-          ts: Date.now(),
-          stream,
-          text,
-          stepId,
-        });
-      },
-    },
-  );
-
-  let report: TestReport;
-  if (!result.ok) {
-    report = {
-      ran: false,
-      ok: false,
-      log: logBuf.join('').slice(-4000),
-      error: result.error,
-    };
-  } else {
-    const out = result.output as {
-      exitCode: number;
-      stdout: string;
-      stderr: string;
-      durationMs: number;
-      detected?: string;
-    };
-    report = {
-      ran: true,
-      ok: out.exitCode === 0,
-      detected: out.detected,
-      exitCode: out.exitCode,
-      durationMs: out.durationMs,
-      log: (out.stdout + out.stderr).slice(-4000),
-    };
-  }
-
-  emitStepFinished(ctx, stepId, report.ok, report);
-  return { testReport: report };
-}
-
-async function criticNode(
-  state: AgentState,
-  config?: RunnableConfig,
-): Promise<Partial<AgentState>> {
-  const ctx = ctxOf(config);
-  const { stepId } = emitStepStarted(ctx, 'critic', undefined, {
-    iteration: state.iteration,
-  });
-  try {
-    const testReport = state.testReport ?? {
-      ran: false,
-      ok: true,
-      log: 'tests skipped: no test setup detected',
-    };
-    const verdict = await llmJson<Verdict>(
-      ctx,
-      'critic',
-      CRITIC_SYSTEM,
-      criticUser(state.prompt, state.plan!, state.history, testReport, ctx.sessionMemory),
-    );
-    emitStepFinished(ctx, stepId, true, verdict);
-    taskBus.emit(ctx.taskId, {
-      type: 'critic',
-      taskId: ctx.taskId,
-      ts: Date.now(),
-      verdict,
-    });
-    if (!verdict.done && verdict.nextHint) ctx.hint = verdict.nextHint;
-    return { verdict, iteration: state.iteration + 1 };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    emitStepFinished(ctx, stepId, false, null, msg);
-    // Don't throw — treat parse failure as "not done, retry" if we have budget.
-    const fallback: Verdict = { done: false, reason: `critic parse failed: ${msg}` };
-    return { verdict: fallback, iteration: state.iteration + 1 };
-  }
-}
-
-function routeAfterCritic(state: AgentState): 'executor' | typeof END {
-  if (state.verdict?.done) return END;
-  if (state.iteration >= state.maxIterations) return END;
-  return 'executor';
-}
-
-function routeAfterExecutor(state: AgentState): 'tester' | 'critic' {
-  return state.testsConfigured ? 'tester' : 'critic';
+  return { history: newObs };
 }
 
 /* ───────── Graph factory ───────── */
@@ -579,16 +438,12 @@ export function buildGraph(agent?: AgentRecord | null) {
     if (!plan) throw new Error('executor: no plan in state');
 
     const newObs: Observation[] = [];
-    const hint = ctx.hint;
-    ctx.hint = undefined;
 
     const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
     const env = await gatherEnvContext(ctx);
-    const testsConfigured = await hasTestsConfigured(ctx.workspacePath);
 
     for (const planStep of plan.steps) {
       let stepBudget = EXECUTOR_BUDGET_PER_STEP;
-      let stepHint = hint;
       while (stepBudget-- > 0) {
         if (ctx.signal.aborted) throw new Error('aborted');
 
@@ -597,10 +452,9 @@ export function buildGraph(agent?: AgentRecord | null) {
           ctx,
           'executor',
           executorSys,
-          executorUser(state.prompt, plan, planStep.id, histForLLM, skills, env, stepHint, ctx.sessionMemory),
+          executorUser(state.prompt, plan, planStep.id, histForLLM, skills, env, undefined, ctx.sessionMemory),
           temp,
         );
-        stepHint = undefined;
 
         if (response.done || !response.toolCalls?.length) break;
 
@@ -642,25 +496,15 @@ export function buildGraph(agent?: AgentRecord | null) {
       }
     }
 
-    return { history: newObs, testsConfigured };
+    return { history: newObs };
   };
 
   return new StateGraph(StateAnnotation)
     .addNode('planner', agent ? plannerNodeWithAgent : plannerNode)
     .addNode('executor', agent ? executorNodeWithAgent : executorNode)
-    .addNode('tester', testerNode)
-    .addNode('critic', criticNode)
     .addEdge(START, 'planner')
     .addEdge('planner', 'executor')
-    .addConditionalEdges('executor', routeAfterExecutor, {
-      tester: 'tester',
-      critic: 'critic',
-    })
-    .addEdge('tester', 'critic')
-    .addConditionalEdges('critic', routeAfterCritic, {
-      executor: 'executor',
-      [END]: END,
-    })
+    .addEdge('executor', END)
     .compile();
 }
 

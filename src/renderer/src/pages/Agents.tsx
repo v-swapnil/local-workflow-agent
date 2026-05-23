@@ -10,7 +10,7 @@ interface AgentFormState {
   role: string;
   model: string;
   systemPrompt: string;
-  toolsJson: string;
+  tools: string;
   temperature: number;
   graphMode: 'full' | 'direct';
   maxIterations: number;
@@ -23,7 +23,7 @@ const BLANK: AgentFormState = {
   role: '',
   model: '',
   systemPrompt: '',
-  toolsJson: '',
+  tools: '',
   temperature: 0.2,
   graphMode: 'full',
   maxIterations: 10,
@@ -109,7 +109,7 @@ export function Agents() {
       role: a.role,
       model: a.model,
       systemPrompt: a.systemPrompt,
-      toolsJson: a.toolsJson ?? '',
+      tools: a.tools ?? '',
       temperature: a.temperature,
       graphMode: (a.graphMode as 'full' | 'direct') ?? 'full',
       maxIterations: (a as { maxIterations?: number }).maxIterations ?? 10,
@@ -132,7 +132,7 @@ export function Agents() {
       role: form.role,
       model: form.model,
       systemPrompt: form.systemPrompt,
-      toolsJson: form.toolsJson || null,
+      tools: form.tools || null,
       temperature: form.temperature,
       graphMode: form.graphMode,
       maxIterations: form.maxIterations,
@@ -335,11 +335,11 @@ export function Agents() {
         </div>
 
         <div className="mt-4">
-          <FormField label="allowed tools (JSON array, empty = all)">
+          <FormField label="allowed tools (comma-separated, empty = all)">
             <input
-              value={form.toolsJson}
-              onChange={(e) => setForm((f) => ({ ...f, toolsJson: e.target.value }))}
-              placeholder='["read_file","write_file","run_shell"]'
+              value={form.tools}
+              onChange={(e) => setForm((f) => ({ ...f, tools: e.target.value }))}
+              placeholder='read_file,write_file,run_shell'
               className={inputClass}
             />
           </FormField>

@@ -12,7 +12,7 @@ const agentSchema = z.object({
   role: z.string().min(1),
   model: z.string().min(1),
   systemPrompt: z.string().min(1),
-  toolsJson: z.string().nullable().optional(),
+  tools: z.string().nullable().optional(),
   temperature: z.number().min(0).max(2),
   graphMode: z.enum(['full', 'direct']),
   maxIterations: z.number().int().min(1).max(50).optional(),
@@ -28,7 +28,7 @@ export const agentRouter = router({
   upsert: publicProcedure.input(agentSchema).mutation(({ input }) =>
     upsertAgent({
       ...input,
-      toolsJson: input.toolsJson ?? null,
+      tools: input.tools ?? null,
       graphMode: input.graphMode as 'full' | 'direct',
     }),
   ),

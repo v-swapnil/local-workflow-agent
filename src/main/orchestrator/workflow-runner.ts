@@ -184,8 +184,6 @@ export async function runWorkflow(
       status: 'succeeded',
       iterations: 1,
       plan: null,
-      testReport: null,
-      verdict: { done: true, reason: `workflow "${workflowRecord.name}" completed` },
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -193,8 +191,6 @@ export async function runWorkflow(
       status: 'failed',
       iterations: 1,
       plan: null,
-      testReport: null,
-      verdict: { done: false, reason: msg },
       reason: msg,
     };
   }

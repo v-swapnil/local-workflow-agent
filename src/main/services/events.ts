@@ -13,7 +13,6 @@ export type TaskEvent =
       result?: unknown;
       error?: string;
     }
-  | { type: 'task.iteration'; taskId: string; ts: number; iteration: number }
   | { type: 'plan'; taskId: string; ts: number; plan: unknown }
   | {
       type: 'step.started';
@@ -41,24 +40,8 @@ export type TaskEvent =
       text: string;
       stepId?: string;
     }
-  | {
-      type: 'llm.call';
-      taskId: string;
-      ts: number;
-      agent: string;
-      model: string;
-      messages: { role: string; content: string }[];
-      response: string;
-      durationMs: number;
-    }
   | { type: 'llm.delta'; taskId: string; ts: number; agent: string; content: string }
   | { type: 'llm.thinking_delta'; taskId: string; ts: number; agent: string; content: string }
-  | {
-      type: 'critic';
-      taskId: string;
-      ts: number;
-      verdict: { done: boolean; reason: string; nextHint?: string };
-    }
   | {
       type: 'approval.requested';
       taskId: string;
@@ -89,8 +72,7 @@ export type TaskEvent =
       ts: number;
       requestId: string;
       answer: string;
-    }
-  | { type: 'task.retry'; taskId: string; ts: number };
+    };
 
 class TaskBus {
   private bus = new EventEmitter();

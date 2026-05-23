@@ -66,16 +66,12 @@ export async function runDirectAgent(
   const model = ctx.model;
   const maxIter = agent.maxIterations ?? 10;
 
-  // Determine tool subset from agent's toolsJson
+  // Determine tool subset from agent's tools (comma-separated)
   const allTools = listToolsForLLM();
   let tools = allTools;
-  if (agent.toolsJson) {
-    try {
-      const allowed = new Set<string>(JSON.parse(agent.toolsJson) as string[]);
-      tools = allTools.filter((t) => allowed.has(t.function.name));
-    } catch {
-      tools = allTools;
-    }
+  if (agent.tools) {
+    const allowed = new Set<string>(agent.tools.split(',').map((t) => t.trim()).filter(Boolean));
+    tools = allTools.filter((t) => allowed.has(t.function.name));
   }
 
   const messages: ChatMessage[] = [
@@ -173,11 +169,6 @@ export async function runDirectAgent(
     status: succeeded ? 'succeeded' : 'failed',
     iterations,
     plan: null,
-    testReport: null,
-    verdict: {
-      done: succeeded,
-      reason: succeeded ? 'direct agent completed' : (lastError ?? 'aborted'),
-    },
     reason: succeeded ? undefined : (lastError ?? 'aborted'),
   };
 }

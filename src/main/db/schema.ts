@@ -43,11 +43,11 @@ export const tasks = sqliteTable(
     prompt: text('prompt').notNull(),
     status: text('status').notNull().default('queued'),
     provider: text('provider'),
-    planJson: text('plan_json'),
+    plan: text('plan'),
     resultJson: text('result_json'),
     iterations: integer('iterations').notNull().default(0),
     maxIterations: integer('max_iterations').notNull().default(6),
-    modelOverride: text('model_override'),
+    model: text('model'),
     agentId: text('agent_id'),
     workflowId: text('workflow_id'),
     createdAt: integer('created_at').notNull(),
@@ -94,6 +94,7 @@ export const skills = sqliteTable('skills', {
   builtin: integer('builtin', { mode: 'boolean' }).notNull().default(false),
   updatedAt: integer('updated_at').notNull(),
 });
+
 export const worktrees = sqliteTable(
   'worktrees',
   {
@@ -112,13 +113,14 @@ export const worktrees = sqliteTable(
     sessIdx: index('idx_worktrees_session').on(t.sessionId),
   }),
 );
+
 export const agents = sqliteTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   role: text('role').notNull(),
   model: text('model').notNull(),
   systemPrompt: text('system_prompt').notNull(),
-  toolsJson: text('tools_json'),
+  tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
   graphMode: text('graph_mode').notNull().default('full'),
   maxIterations: integer('max_iterations').notNull().default(10),

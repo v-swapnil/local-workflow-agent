@@ -10,8 +10,8 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled';
 
-export type AgentRole = 'planner' | 'executor' | 'tester' | 'critic';
-export type StepStatus = 'pending' | 'running' | 'ok' | 'error' | 'skipped';
+export type AgentRole = 'planner' | 'executor';
+export type StepStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'skipped';
 
 export interface AppHealth {
   app: { name: string; version: string };

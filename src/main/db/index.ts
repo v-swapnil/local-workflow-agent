@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   plan_json TEXT, result_json TEXT,
   iterations INTEGER NOT NULL DEFAULT 0,
   max_iterations INTEGER NOT NULL DEFAULT 6,
+  model TEXT, agent_id TEXT, workflow_id TEXT,
   created_at INTEGER NOT NULL, started_at INTEGER, finished_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_session ON tasks(session_id);
@@ -57,7 +58,7 @@ CREATE TABLE IF NOT EXISTS skills (
 CREATE TABLE IF NOT EXISTS agents (
   id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, role TEXT NOT NULL,
   model TEXT NOT NULL, system_prompt TEXT NOT NULL,
-  tools_json TEXT, temperature REAL NOT NULL DEFAULT 0.2
+  tools TEXT, temperature REAL NOT NULL DEFAULT 0.2
 );
 CREATE TABLE IF NOT EXISTS schedules (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, cron TEXT NOT NULL,
@@ -127,7 +128,7 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN description TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama'`); } catch { /* exists */ }
   // Additive migration: Phase B — tasks v2 columns
-  try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN model_override TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN model TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN agent_id TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE tasks ADD COLUMN workflow_id TEXT`); } catch { /* exists */ }
   // Additive migration: Phase D — workflows table
@@ -141,6 +142,25 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
       updated_at INTEGER NOT NULL
     )`);
   } catch { /* exists */ }
+  // Additive migration: rename model_override → model on tasks
+  try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN model_override TO model`); } catch { /* already renamed or doesn't exist */ }
+  // Additive migration: rename tools_json → tools on agents + convert data from JSON to CSV
+  try { _sqlite.exec(`ALTER TABLE agents RENAME COLUMN tools_json TO tools`); } catch { /* already renamed or doesn't exist */ }
+  try {
+    // Convert existing JSON arrays to CSV format: ["a","b"] → "a,b"
+    const rows = _sqlite.prepare(`SELECT id, tools FROM agents WHERE tools IS NOT NULL AND tools LIKE '[%'`).all() as { id: string; tools: string }[];
+    for (const row of rows) {
+      try {
+        const arr = JSON.parse(row.tools) as string[];
+        const csv = arr.filter(Boolean).join(',');
+        _sqlite.prepare(`UPDATE agents SET tools = ? WHERE id = ?`).run(csv, row.id);
+      } catch { /* skip unparseable rows */ }
+    }
+  } catch { /* no rows to convert */ }
+  // Cleanup: remove dead event types
+  try { _sqlite.exec(`DELETE FROM task_events WHERE type IN ('task.iteration', 'task.retry', 'llm.call')`); } catch { /* ignore */ }
+  // Additive migration: rename plan_json → plan on tasks
+  try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN plan_json TO plan`); } catch { /* already renamed or doesn't exist */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

@@ -126,14 +126,14 @@ export const taskRouter = router({
         prompt: z.string().min(1),
         maxIterations: z.number().int().min(1).max(20).optional(),
         autostart: z.boolean().optional(),
-        modelOverride: z.string().optional(),
+        model: z.string().optional(),
         agentId: z.string().optional(),
         workflowId: z.string().optional(),
       }),
     )
     .mutation(({ input }) => {
       const task = createTask(input.sessionId, input.prompt, input.maxIterations, {
-        modelOverride: input.modelOverride,
+        model: input.model,
         agentId: input.agentId,
         workflowId: input.workflowId,
       });
@@ -165,8 +165,6 @@ export const taskRouter = router({
 
   retry: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
     const orig = getTask(input.id);
-    // Emit retry event before resetting
-    taskBus.emit(orig.id, { type: 'task.retry', taskId: orig.id, ts: Date.now() });
     // Reset the same task and re-enqueue instead of creating a new one
     updateTask(orig.id, {
       status: 'queued',
@@ -212,15 +210,6 @@ export const taskRouter = router({
 
     type HistoryEntry =
       | {
-          kind: 'llm.call';
-          ts: number;
-          agent: string;
-          model: string;
-          messages: { role: string; content: string }[];
-          response: string;
-          durationMs: number;
-        }
-      | {
           kind: 'tool.call';
           ts: number;
           stepId: string;
@@ -233,11 +222,6 @@ export const taskRouter = router({
           durationMs?: number;
         }
       | { kind: 'plan'; ts: number; plan: unknown }
-      | {
-          kind: 'critic';
-          ts: number;
-          verdict: { done: boolean; reason: string; nextHint?: string };
-        }
       | {
           kind: 'approval';
           ts: number;
@@ -252,22 +236,8 @@ export const taskRouter = router({
 
     for (const ev of events) {
       switch (ev.type) {
-        case 'llm.call':
-          history.push({
-            kind: 'llm.call',
-            ts: ev.ts,
-            agent: ev.agent,
-            model: ev.model,
-            messages: ev.messages,
-            response: ev.response,
-            durationMs: ev.durationMs,
-          });
-          break;
         case 'plan':
           history.push({ kind: 'plan', ts: ev.ts, plan: ev.plan });
-          break;
-        case 'critic':
-          history.push({ kind: 'critic', ts: ev.ts, verdict: ev.verdict });
           break;
         case 'task.started':
           history.push({ kind: 'task.status', ts: ev.ts, status: 'running' });
@@ -328,7 +298,7 @@ export const taskRouter = router({
       prompt: task.prompt,
       status: task.status,
       iterations: task.iterations,
-      plan: task.planJson ? tryParse(task.planJson) : null,
+      plan: task.plan,
       history,
     };
   }),

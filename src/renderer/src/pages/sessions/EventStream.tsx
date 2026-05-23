@@ -74,29 +74,9 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
               plan
             </span>
           </div>
-          <div className="mt-1.5 font-mono text-ui-xs leading-relaxed text-ink-100">
-            {ev.plan.summary}
+          <div className="mt-1.5 whitespace-pre-wrap font-mono text-ui-xs leading-relaxed text-ink-200">
+            {ev.plan}
           </div>
-          {ev.plan.selectedSkills && ev.plan.selectedSkills.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {ev.plan.selectedSkills.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full border border-amber/15 bg-amber/5 px-2 py-0.5 font-mono text-ui-2xs text-amber/80"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-          <ol className="mt-2 space-y-0.5 border-t border-amber/8 pt-2">
-            {ev.plan.steps.map((s, i) => (
-              <li key={s.id} className="flex items-start gap-2 font-mono text-ui-xs text-ink-300">
-                <span className="shrink-0 w-4 text-right text-ink-600">{i + 1}.</span>
-                <span>{s.goal}</span>
-              </li>
-            ))}
-          </ol>
         </div>
       );
     case 'step.started':
@@ -122,30 +102,6 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
         <Line ts={t} tone={ev.stream === 'stderr' ? 'rose' : 'ink'} dim>
           {ev.text.replace(/\n+$/, '')}
         </Line>
-      );
-    case 'critic':
-      return (
-        <div className="my-2 rounded-lg border border-ink-800/40 bg-ink-900/20 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
-            <span
-              className={cn(
-                'rounded-full px-2 py-px font-mono text-ui-2xs uppercase tracking-widest2',
-                ev.verdict.done ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber/10 text-amber',
-              )}
-            >
-              {ev.verdict.done ? 'done' : 'continue'}
-            </span>
-          </div>
-          <div className="mt-1.5 font-mono text-ui-2xs leading-relaxed text-ink-200">
-            {ev.verdict.reason}
-          </div>
-          {ev.verdict.nextHint && (
-            <div className="mt-1 font-mono text-ui-2xs text-ink-500">
-              → {ev.verdict.nextHint}
-            </div>
-          )}
-        </div>
       );
     case 'approval.requested':
       return (
@@ -176,16 +132,6 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
           {ev.content}
         </Line>
       );
-    case 'task.iteration':
-      return (
-        <div className="my-1.5 flex items-center gap-2">
-          <div className="h-px flex-1 bg-ink-800/40" />
-          <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-            iteration {ev.iteration}
-          </span>
-          <div className="h-px flex-1 bg-ink-800/40" />
-        </div>
-      );
     case 'user_input.requested':
       return (
         <Line ts={t} tone="sky">
@@ -197,23 +143,6 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
         <Line ts={t} tone="sky">
           ✓ {ev.answer || '(skipped)'}
         </Line>
-      );
-    case 'task.retry':
-      return (
-        <div className="my-2 flex items-center gap-3">
-          <div className="h-px flex-1 bg-sky-500/20" />
-          <span className="flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
-            <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M2 8a6 6 0 0 1 10.3-4.2" />
-              <path d="M14 8a6 6 0 0 1-10.3 4.2" />
-              <polyline points="12 2 12.5 5.5 9 5" />
-              <polyline points="4 14 3.5 10.5 7 11" />
-            </svg>
-            retry
-          </span>
-          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
-          <div className="h-px flex-1 bg-sky-500/20" />
-        </div>
       );
     default:
       return null;

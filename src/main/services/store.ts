@@ -21,11 +21,11 @@ export interface Task {
   prompt: string;
   status: string;
   provider: string | null;
-  planJson: string | null;
+  plan: string | null;
   resultJson: string | null;
   iterations: number;
   maxIterations: number;
-  modelOverride: string | null;
+  model: string | null;
   agentId: string | null;
   workflowId: string | null;
   createdAt: number;
@@ -139,7 +139,7 @@ export function createTask(
   sessionId: string,
   prompt: string,
   maxIterations = 6,
-  opts?: { modelOverride?: string; agentId?: string; workflowId?: string },
+  opts?: { model?: string; agentId?: string; workflowId?: string },
 ): Task {
   const t: Task = {
     id: nanoid(10),
@@ -147,11 +147,11 @@ export function createTask(
     prompt,
     status: 'queued',
     provider: null,
-    planJson: null,
+    plan: null,
     resultJson: null,
     iterations: 0,
     maxIterations,
-    modelOverride: opts?.modelOverride ?? null,
+    model: opts?.model ?? null,
     agentId: opts?.agentId ?? null,
     workflowId: opts?.workflowId ?? null,
     createdAt: Date.now(),

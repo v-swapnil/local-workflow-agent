@@ -37,7 +37,7 @@ export function SessionDetail({
     create.mutate({
       sessionId,
       prompt: prompt.trim(),
-      modelOverride: modelOverride || undefined,
+      model: modelOverride || undefined,
       agentId: agentId || undefined,
       workflowId: workflowId || undefined,
     });

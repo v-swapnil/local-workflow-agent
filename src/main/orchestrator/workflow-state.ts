@@ -1,5 +1,5 @@
 import { Annotation } from '@langchain/langgraph';
-import type { Observation, TestReport } from '@shared/agent';
+import type { Observation } from '@shared/agent';
 
 export const WorkflowStateAnnotation = Annotation.Root({
   prompt: Annotation<string>(),
@@ -9,7 +9,6 @@ export const WorkflowStateAnnotation = Annotation.Root({
     reducer: (a, b) => ({ ...a, ...b }),
     default: () => ({}),
   }),
-  testReport: Annotation<TestReport | null>({ reducer: (_, n) => n, default: () => null }),
   iteration: Annotation<number>({ reducer: (_, n) => n, default: () => 0 }),
   loopCounts: Annotation<Record<string, number>>({
     reducer: (a, b) => ({ ...a, ...b }),

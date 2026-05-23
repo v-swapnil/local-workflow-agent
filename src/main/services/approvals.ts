@@ -5,6 +5,7 @@ import { getDb } from '../db/index.js';
 import { approvals } from '../db/schema.js';
 import { taskBus } from './events.js';
 import { getSetting, setSetting } from './settings.js';
+import { updateTask } from './store.js';
 import type { ToolName } from './tools/types.js';
 
 export type ApprovalDecision = 'approve' | 'approve_session' | 'deny';
@@ -74,6 +75,8 @@ export async function requestApproval(
     })
     .run();
 
+  updateTask(taskId, { status: 'awaiting_approval' });
+
   return new Promise<ApprovalDecision>((resolve, reject) => {
     pending.set(req.id, { request: req, resolve });
     taskBus.emit(taskId, {
@@ -116,6 +119,8 @@ export function decideApproval(id: string, decision: ApprovalDecision): boolean 
     }
     set.add(p.request.tool);
   }
+
+  updateTask(p.request.taskId, { status: 'running' });
 
   taskBus.emit(p.request.taskId, {
     type: 'approval.decided',

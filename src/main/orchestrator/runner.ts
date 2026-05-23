@@ -86,18 +86,16 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   const task = getTask(taskId);
   const session = await loadSessionWorkspace(task);
 
-  // Priority: task.modelOverride > agent.model > global ACTIVE_MODEL setting
+  // Priority: task.model > agent.model > global ACTIVE_MODEL setting
   const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
   const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
-  const model = task.modelOverride ?? agent?.model ?? globalModel;
+  const model = task.model ?? agent?.model ?? globalModel;
 
   if (!model) {
     return finish(task, {
       status: 'failed',
       iterations: 0,
       plan: null,
-      testReport: null,
-      verdict: null,
       reason: 'no active model configured (Settings → Models)',
     });
   }
@@ -162,27 +160,18 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       const graph = buildGraph(agent);
       const initial: Partial<AgentState> = {
         prompt: task.prompt,
-        maxIterations: task.maxIterations,
       };
-      const recursionLimit = 4 + task.maxIterations * 4;
+      const recursionLimit = 10;
       const final = (await graph.invoke(initial, {
         configurable: { runCtx: ctx },
         recursionLimit,
         signal: ctrl.signal,
       })) as AgentState;
 
-      const testsRan = !!final.testReport?.ran;
-      const testsOk = !testsRan || !!final.testReport?.ok;
-      const succeeded = !!final.verdict?.done && testsOk;
       result = {
-        status: succeeded ? 'succeeded' : 'failed',
-        iterations: final.iteration,
+        status: 'succeeded',
+        iterations: 1,
         plan: final.plan,
-        testReport: final.testReport,
-        verdict: final.verdict,
-        reason: succeeded
-          ? final.verdict?.reason
-          : (final.verdict?.reason ?? 'iteration cap reached'),
       };
     }
 
@@ -217,8 +206,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       status: aborted ? 'cancelled' : 'failed',
       iterations: 0,
       plan: null,
-      testReport: null,
-      verdict: null,
       reason: msg,
     });
   }

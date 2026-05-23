@@ -15,34 +15,18 @@ export type ToolName =
   | 'read_session_memories'
   | 'add_session_memory';
 
-/** ───────── Plan ───────── */
-
-export interface PlanStep {
-  id: string;
-  goal: string;
-  rationale: string;
-}
-
-export interface Plan {
-  summary: string;
-  steps: PlanStep[];
-  /** Skill names the planner judged useful for this task. */
-  selectedSkills?: string[];
-}
-
 /** ───────── Executor I/O ───────── */
 
 export interface ExecutorAction {
   thought: string;
   /** null = nothing more to do for this step */
   action: { tool: ToolName; args: Record<string, unknown> } | null;
-  /** When true, the executor declares the current plan step complete. */
+  /** When true, the executor declares the task complete. */
   done: boolean;
 }
 
 /** Observation appended to the executor's working memory after a tool call. */
 export interface Observation {
-  stepId: string;
   tool: ToolName;
   args: Record<string, unknown>;
   ok: boolean;
@@ -52,33 +36,11 @@ export interface Observation {
   durationMs: number;
 }
 
-/** ───────── Tester / Critic ───────── */
-
-export interface TestReport {
-  ran: boolean;
-  ok: boolean;
-  detected?: string;
-  exitCode?: number;
-  durationMs?: number;
-  /** Tail of stdout/stderr. */
-  log: string;
-  error?: string;
-}
-
-export interface Verdict {
-  done: boolean;
-  reason: string;
-  /** Hint to feed back into the next executor pass when not done. */
-  nextHint?: string;
-}
-
 /** ───────── Final task result ───────── */
 
 export interface TaskResult {
   status: 'succeeded' | 'failed' | 'cancelled';
   iterations: number;
-  plan: Plan | null;
-  testReport: TestReport | null;
-  verdict: Verdict | null;
+  plan: string | null;
   reason?: string;
 }

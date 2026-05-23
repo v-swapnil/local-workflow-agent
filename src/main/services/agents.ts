@@ -10,7 +10,7 @@ export interface AgentRecord {
   role: string;
   model: string;
   systemPrompt: string;
-  toolsJson: string | null;
+  tools: string | null;
   temperature: number;
   graphMode: string;
   maxIterations: number;
@@ -39,7 +39,7 @@ export interface UpsertAgentInput {
   role: string;
   model: string;
   systemPrompt: string;
-  toolsJson?: string | null;
+  tools?: string | null;
   temperature: number;
   graphMode: 'full' | 'direct';
   maxIterations?: number;
@@ -57,7 +57,7 @@ export function upsertAgent(input: UpsertAgentInput): AgentRecord {
     role: input.role,
     model: input.model,
     systemPrompt: input.systemPrompt,
-    toolsJson: input.toolsJson ?? null,
+    tools: input.tools ?? null,
     temperature: input.temperature,
     graphMode: input.graphMode,
     maxIterations: input.maxIterations ?? 10,

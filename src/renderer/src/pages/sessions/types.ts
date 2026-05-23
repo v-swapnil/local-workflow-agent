@@ -8,12 +8,11 @@ export type TaskEvent =
       result?: unknown;
       error?: string;
     }
-  | { type: 'task.iteration'; taskId: string; ts: number; iteration: number }
   | {
       type: 'plan';
       taskId: string;
       ts: number;
-      plan: { summary: string; steps: { id: string; goal: string }[]; selectedSkills?: string[] };
+      plan: string;
     }
   | {
       type: 'step.started';
@@ -44,12 +43,6 @@ export type TaskEvent =
   | { type: 'llm.delta'; taskId: string; ts: number; agent: string; content: string }
   | { type: 'llm.thinking_delta'; taskId: string; ts: number; agent: string; content: string }
   | {
-      type: 'critic';
-      taskId: string;
-      ts: number;
-      verdict: { done: boolean; reason: string; nextHint?: string };
-    }
-  | {
       type: 'approval.requested';
       taskId: string;
       ts: number;
@@ -79,8 +72,7 @@ export type TaskEvent =
       ts: number;
       requestId: string;
       answer: string;
-    }
-  | { type: 'task.retry'; taskId: string; ts: number };
+    };
 
 export interface ApprovalReq {
   id: string;

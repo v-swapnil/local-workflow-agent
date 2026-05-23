@@ -94,8 +94,6 @@ export async function runTaskViaCopilot(
       status: succeeded ? 'succeeded' : 'failed',
       iterations: iterationCount,
       plan: null,
-      testReport: null,
-      verdict: succeeded ? { done: true, reason: 'Copilot completed the task' } : null,
       reason: succeeded ? undefined : 'Copilot session ended without response',
     };
   } catch (err) {
@@ -106,8 +104,6 @@ export async function runTaskViaCopilot(
       status: aborted ? 'cancelled' : 'failed',
       iterations: iterationCount,
       plan: null,
-      testReport: null,
-      verdict: null,
       reason: msg,
     };
   } finally {
