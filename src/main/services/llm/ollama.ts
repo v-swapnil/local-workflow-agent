@@ -1,14 +1,16 @@
 import { request as httpRequest } from 'node:http';
 import { Ollama } from 'ollama';
+import { nanoid } from 'nanoid';
 import { OLLAMA_URL } from '@shared/constants';
 import { logger } from '../logger.js';
 import { BaseLLMProvider } from './provider.js';
 import type {
+  ChatMessage,
   ChatOptions,
   ChatResult,
   ModelInfo,
   PullProgress,
-  ToolCallResult,
+  ToolCall,
 } from './provider.js';
 
 export interface OllamaPingAttempt {
@@ -84,7 +86,7 @@ export class OllamaProvider extends BaseLLMProvider {
     const ol = await this.clientWithFallback();
     const response = await ol.chat({
       model: opts.model,
-      messages: opts.messages,
+      messages: opts.messages.map(toOllamaMessage),
       stream: true,
       tools: opts.tools,
       options: {
@@ -98,7 +100,7 @@ export class OllamaProvider extends BaseLLMProvider {
     let totalDurationMs: number | undefined;
     let promptTokens: number | undefined;
     let completionTokens: number | undefined;
-    let toolCalls: ToolCallResult[] | undefined;
+    let toolCalls: ToolCall[] | undefined;
 
     for await (const chunk of response) {
       if (chunk.message?.thinking) {
@@ -114,8 +116,9 @@ export class OllamaProvider extends BaseLLMProvider {
         toolCalls ??= [];
         for (const tc of chunk.message.tool_calls) {
           toolCalls.push({
+            id: `call_${nanoid(8)}`,
             name: tc.function.name,
-            arguments: tc.function.arguments,
+            arguments: tc.function.arguments as Record<string, unknown>,
           });
         }
       }
@@ -127,12 +130,14 @@ export class OllamaProvider extends BaseLLMProvider {
       }
     }
 
+    const finishReason = toolCalls?.length ? 'tool_calls' : 'stop';
     return {
       content,
       thinking: thinking || undefined,
       model,
       toolCalls,
       usage: { promptTokens, completionTokens, totalDurationMs },
+      finishReason,
     };
   }
 
@@ -237,4 +242,31 @@ function rawHttpPing(url: string, timeoutMs: number): Promise<RawPingResult> {
       done({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   });
+}
+
+/**
+ * Map our ChatMessage discriminated union to the shape the Ollama JS client expects.
+ * - assistant messages: camelCase toolCalls → snake_case tool_calls
+ * - tool result messages: include tool_name field
+ */
+function toOllamaMessage(msg: ChatMessage): {
+  role: string;
+  content: string;
+  tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[];
+  tool_name?: string;
+} {
+  if (msg.role === 'assistant' && msg.toolCalls?.length) {
+    return {
+      role: 'assistant',
+      content: msg.content,
+      tool_calls: msg.toolCalls.map((tc) => ({
+        type: 'function',
+        function: { name: tc.name, arguments: tc.arguments },
+      })),
+    };
+  }
+  if (msg.role === 'tool') {
+    return { role: 'tool', content: msg.content, tool_name: msg.name };
+  }
+  return { role: msg.role, content: msg.content };
 }

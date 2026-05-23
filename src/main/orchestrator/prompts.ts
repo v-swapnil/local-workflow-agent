@@ -1,4 +1,4 @@
-import type { Observation } from '@shared/agent';
+
 
 /* ───────── Environment context ───────── */
 
@@ -110,19 +110,9 @@ export const EXECUTOR_SYSTEM = `You are the EXECUTOR agent. You carry out a plan
 export function executorUser(
   goal: string,
   plan: string,
-  history: Observation[],
   env: EnvironmentContext,
   memory?: string | null,
 ): string {
-  const histStr = history.length
-    ? history
-        .map(
-          (o, i) =>
-            `(${i + 1}) tool=${o.tool} ok=${o.ok}\nargs=${JSON.stringify(o.args)}\nout=${o.error ?? o.output}`,
-        )
-        .join('\n---\n')
-    : '(no prior observations)';
-
   return `GOAL:
 ${goal}
 
@@ -132,8 +122,5 @@ ${formatEnvContext(env)}
 PLAN:
 ${plan}
 
-OBSERVATIONS:
-${histStr}
-
-Call tools or respond with {"done": true}.`;
+Call tools to execute the plan, or respond with {"done": true} when finished.`;
 }

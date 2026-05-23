@@ -7,7 +7,7 @@ import { addStep, updateStep } from '../services/store.js';
 import type { RunCtx } from './graph.js';
 import type { AgentRecord } from '../services/agents.js';
 import type { TaskResult } from '@shared/agent';
-import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
+import type { ChatMessage, ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
 
 function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
@@ -87,7 +87,7 @@ export async function runDirectAgent(
     iterations = i + 1;
 
     const buf: string[] = [];
-    let toolCalls: ToolCallResult[] = [];
+    let toolCalls: ToolCall[] = [];
 
     const result = await provider.chat({
       model,
@@ -124,11 +124,11 @@ export async function runDirectAgent(
       break;
     }
 
-    // Append assistant message
-    messages.push({ role: 'assistant', content: text });
+    // Append assistant message with tool calls for native multi-turn.
+    messages.push({ role: 'assistant', content: text, toolCalls });
 
     // Execute tool calls — parallel for read-only, sequential otherwise
-    const invokeOne = async (tc: ToolCallResult) => {
+    const invokeOne = async (tc: ToolCall) => {
       const toolName = tc.name as ToolName;
       const stepId = emitStep(ctx, toolName, tc.arguments);
 
@@ -150,7 +150,7 @@ export async function runDirectAgent(
       });
 
       finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error);
-      return { toolName, toolResult };
+      return { tc, toolName, toolResult };
     };
 
     const allReadOnly = toolCalls.every((tc) => isReadOnlyTool(tc.name));
@@ -162,16 +162,13 @@ export async function runDirectAgent(
           return seq;
         })();
 
-    for (const { toolName, toolResult } of results) {
+    for (const { tc, toolName, toolResult } of results) {
       lastError = toolResult.ok ? null : (toolResult.error ?? null);
-      messages.push({
-        role: 'user',
-        content: `[tool: ${toolName}] ${
-          toolResult.ok
-            ? JSON.stringify(toolResult.output ?? {})
-            : `ERROR: ${toolResult.error ?? 'unknown error'}`
-        }`,
-      });
+      const content = toolResult.ok
+        ? JSON.stringify(toolResult.output ?? {})
+        : `ERROR: ${toolResult.error ?? 'unknown error'}`;
+      // Use role:tool with the tool call ID so the model sees a proper multi-turn exchange.
+      messages.push({ role: 'tool', toolCallId: tc.id, name: toolName, content });
     }
   }
 

@@ -15,10 +15,27 @@ import {
 import type { ProviderId } from '@shared/types';
 import type { PullProgress } from '../services/llm/provider.js';
 
-const messageSchema = z.object({
-  role: z.enum(['system', 'user', 'assistant']),
-  content: z.string(),
+const toolCallSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  arguments: z.record(z.unknown()),
 });
+
+const messageSchema = z.discriminatedUnion('role', [
+  z.object({ role: z.literal('system'), content: z.string() }),
+  z.object({ role: z.literal('user'), content: z.string() }),
+  z.object({
+    role: z.literal('assistant'),
+    content: z.string(),
+    toolCalls: z.array(toolCallSchema).optional(),
+  }),
+  z.object({
+    role: z.literal('tool'),
+    toolCallId: z.string(),
+    name: z.string(),
+    content: z.string(),
+  }),
+]);
 
 export const llmRouter = router({
   ollamaHealth: publicProcedure.query(async () => {

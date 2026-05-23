@@ -11,10 +11,12 @@ import {
 } from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
-import type { ChatMessage, ChatToolDef, ToolCallResult } from '../services/llm/provider.js';
+import { nanoid } from 'nanoid';
+import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
 import { PLANNER_SYSTEM, plannerUser, EXECUTOR_SYSTEM, executorUser } from './prompts.js';
 import type { EnvironmentContext } from './prompts.js';
 import type { Observation } from '@shared/agent';
+import { Conversation } from './conversation.js';
 import type { ToolName } from '../services/tools/types.js';
 import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
@@ -47,7 +49,9 @@ function ctxOf(config?: RunnableConfig): RunCtx {
 /* ───────── Helpers ───────── */
 
 interface ToolCallResponse {
-  toolCalls: ToolCallResult[];
+  toolCalls: ToolCall[];
+  /** Text content of the assistant message (may be empty string). */
+  text: string;
   done: false;
 }
 interface DoneResponse {
@@ -58,27 +62,20 @@ interface DoneResponse {
 }
 
 /**
- * LLM call with native Ollama tool calling.
- * Returns either the first tool call from the model or a "done" signal
- * (model replied with text containing `{"done": true}` or no tool calls).
- * Optionally accepts a custom tools list (defaults to all tools).
+ * Send the current conversation messages to the LLM and return either
+ * tool calls (with IDs for correlation) or a "done" signal.
+ * Replaces the old `llmWithTools()` which rebuilt messages from scratch each call.
  */
-async function llmWithTools(
+async function llmChat(
   ctx: RunCtx,
   agent: string,
-  system: string,
-  user: string,
+  messages: ChatMessage[],
   temperature = 0.2,
   toolsDef?: ChatToolDef[],
 ): Promise<ToolCallResponse | DoneResponse> {
   const provider = getProvider(PROVIDERS.OLLAMA);
   const tools = toolsDef ?? listToolsForLLM();
   const buf: string[] = [];
-  const t0 = Date.now();
-  const messages: ChatMessage[] = [
-    { role: 'system', content: system },
-    { role: 'user', content: user },
-  ];
   const result = await provider.chat({
     model: ctx.model,
     temperature,
@@ -107,13 +104,13 @@ async function llmWithTools(
   });
   const text = result.content || buf.join('');
 
-  // If the model returned native tool calls, use them.
+  // Native tool calls — return them with their IDs.
   if (result.toolCalls?.length) {
-    return { toolCalls: result.toolCalls, done: false };
+    return { toolCalls: result.toolCalls, text, done: false };
   }
 
   // Fallback: model replied with text — check for {"done": true} signal or
-  // try to parse a legacy JSON action (backwards-compat for models without tool support).
+  // a legacy JSON action (backwards-compat for models without tool support).
   try {
     const parsed = extractJson<{
       done?: boolean;
@@ -122,7 +119,8 @@ async function llmWithTools(
     if (parsed.done) return { done: true, text };
     if (parsed.action) {
       return {
-        toolCalls: [{ name: parsed.action.tool, arguments: parsed.action.args }],
+        toolCalls: [{ id: `call_${nanoid(8)}`, name: parsed.action.tool, arguments: parsed.action.args }],
+        text,
         done: false,
       };
     }
@@ -230,9 +228,9 @@ const PLANNER_EXPLORE_BUDGET = 15;
 async function executeToolCalls(
   ctx: RunCtx,
   agent: string,
-  toolCalls: ToolCallResult[],
+  toolCalls: ToolCall[],
 ): Promise<{ tool: ToolName; args: Record<string, unknown>; ok: boolean; output: string; error?: string; durationMs: number }[]> {
-  const invokeOne = async (tc: ToolCallResult) => {
+  const invokeOne = async (tc: ToolCall) => {
     const tool = tc.name as ToolName;
     const args = tc.arguments;
     const { stepId } = emitStepStarted(ctx, agent, tool, { args });
@@ -300,8 +298,10 @@ async function plannerNode(
 }
 
 /**
- * Planner exploration loop: calls read-only tools to inspect the codebase,
- * then returns the final markdown plan when the LLM responds with text.
+ * Planner exploration loop.
+ * Builds a Conversation and appends tool results natively so the LLM can see
+ * what it already explored before deciding on the next step.
+ * Returns the final markdown plan when the LLM responds with text only.
  */
 async function plannerLoop(
   ctx: RunCtx,
@@ -311,20 +311,15 @@ async function plannerLoop(
   temperature?: number,
 ): Promise<string> {
   const readOnlyTools = listReadOnlyToolsForLLM();
-  const user = plannerUser(userPrompt, env, ctx.sessionMemory);
+  const conv = new Conversation({ system: systemPrompt });
+  conv.addUserMessage(plannerUser(userPrompt, env, ctx.sessionMemory));
+
   let budget = PLANNER_EXPLORE_BUDGET;
 
   while (budget-- > 0) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
-    const response = await llmWithTools(
-      ctx,
-      'planner',
-      systemPrompt,
-      user,
-      temperature,
-      readOnlyTools,
-    );
+    const response = await llmChat(ctx, 'planner', conv.getMessages(), temperature, readOnlyTools);
 
     // LLM responded with text (no tool call) — that's the plan.
     if (response.done) {
@@ -333,9 +328,17 @@ async function plannerLoop(
       return plan;
     }
 
-    // Execute all read-only tool calls in parallel
+    // Record assistant message with tool calls, then execute them.
+    conv.addAssistantMessage(response.text, response.toolCalls);
     const results = await executeToolCalls(ctx, 'planner', response.toolCalls);
     budget -= results.length;
+
+    // Append each tool result to the conversation so the LLM can see the output.
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]!;
+      const tc = response.toolCalls[i]!;
+      conv.addToolResult(tc.id, r.tool, r.ok ? r.output : `ERROR: ${r.error ?? 'unknown error'}`);
+    }
   }
 
   throw new Error('planner exhausted exploration budget without producing a plan');
@@ -344,36 +347,44 @@ async function plannerLoop(
 /** Max tool calls the executor can make in a single pass. */
 const EXECUTOR_BUDGET = 30;
 
-async function executorNode(
+/**
+ * Shared executor loop logic. Creates a Conversation and drives it to
+ * completion, returning accumulated Observations for state/UI display.
+ */
+async function runExecutorLoop(
+  ctx: RunCtx,
+  systemPrompt: string,
   state: AgentState,
-  config?: RunnableConfig,
-): Promise<Partial<AgentState>> {
-  const ctx = ctxOf(config);
+  temperature?: number,
+): Promise<Observation[]> {
   const plan = state.plan;
   if (!plan) throw new Error('executor: no plan in state');
 
-  const newObs: Observation[] = [];
-
   const env = await gatherEnvContext(ctx);
+  const conv = new Conversation({ system: systemPrompt });
+  conv.addUserMessage(executorUser(state.prompt, plan, env, ctx.sessionMemory));
 
+  const newObs: Observation[] = [];
   let budget = EXECUTOR_BUDGET;
+
   while (budget-- > 0) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
-    const histForLLM = state.history.concat(newObs);
-    const response = await llmWithTools(
-      ctx,
-      'executor',
-      EXECUTOR_SYSTEM,
-      executorUser(state.prompt, plan, histForLLM, env, ctx.sessionMemory),
-    );
-
+    const response = await llmChat(ctx, 'executor', conv.getMessages(), temperature);
     if (response.done || !response.toolCalls?.length) break;
+
+    // Append assistant message (with tool calls) to conversation.
+    conv.addAssistantMessage(response.text, response.toolCalls);
 
     const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
     budget -= results.length;
 
-    for (const r of results) {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]!;
+      const tc = response.toolCalls[i]!;
+      // Append tool result to conversation (native multi-turn).
+      conv.addToolResult(tc.id, r.tool, r.ok ? r.output : `ERROR: ${r.error ?? 'unknown error'}`);
+      // Also collect in Observation[] for state/UI display.
       newObs.push({
         tool: r.tool,
         args: r.args,
@@ -389,6 +400,15 @@ async function executorNode(
     }
   }
 
+  return newObs;
+}
+
+async function executorNode(
+  state: AgentState,
+  config?: RunnableConfig,
+): Promise<Partial<AgentState>> {
+  const ctx = ctxOf(config);
+  const newObs = await runExecutorLoop(ctx, EXECUTOR_SYSTEM, state);
   return { history: newObs };
 }
 
@@ -430,43 +450,7 @@ export function buildGraph(agent?: AgentRecord | null) {
     config?: RunnableConfig,
   ): Promise<Partial<AgentState>> => {
     const ctx = ctxOf(config);
-    const plan = state.plan;
-    if (!plan) throw new Error('executor: no plan in state');
-
-    const newObs: Observation[] = [];
-
-    const env = await gatherEnvContext(ctx);
-
-    let budget = EXECUTOR_BUDGET;
-    while (budget-- > 0) {
-      if (ctx.signal.aborted) throw new Error('aborted');
-
-      const histForLLM = state.history.concat(newObs);
-      const response = await llmWithTools(
-        ctx,
-        'executor',
-        executorSys,
-        executorUser(state.prompt, plan, histForLLM, env, ctx.sessionMemory),
-        temp,
-      );
-
-      if (response.done || !response.toolCalls?.length) break;
-
-      const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
-      budget -= results.length;
-
-      for (const r of results) {
-        newObs.push({
-          tool: r.tool,
-          args: r.args,
-          ok: r.ok,
-          output: r.output,
-          error: r.error,
-          durationMs: r.durationMs,
-        });
-      }
-    }
-
+    const newObs = await runExecutorLoop(ctx, executorSys, state, temp);
     return { history: newObs };
   };
 
@@ -478,5 +462,3 @@ export function buildGraph(agent?: AgentRecord | null) {
     .addEdge('executor', END)
     .compile();
 }
-
-

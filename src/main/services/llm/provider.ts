@@ -1,14 +1,27 @@
-export type ChatRole = 'system' | 'user' | 'assistant';
+export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
-export interface ChatMessage {
-  role: ChatRole;
-  content: string;
-}
-
-export interface ToolCallResult {
+/** A tool call returned by the LLM, or sent back as a tool result header. */
+export interface ToolCall {
+  /** Unique ID used to correlate assistant tool_calls with tool result messages. */
+  id: string;
   name: string;
   arguments: Record<string, unknown>;
 }
+
+/** @deprecated Use ToolCall. */
+export type ToolCallResult = ToolCall;
+
+/**
+ * Discriminated union covering all message roles.
+ * - system / user: plain text
+ * - assistant: optional tool calls emitted by the LLM
+ * - tool: result of a tool execution, correlated via toolCallId
+ */
+export type ChatMessage =
+  | { role: 'system'; content: string }
+  | { role: 'user'; content: string }
+  | { role: 'assistant'; content: string; toolCalls?: ToolCall[] }
+  | { role: 'tool'; toolCallId: string; name: string; content: string };
 
 export interface ChatToolDef {
   type: 'function';
@@ -33,8 +46,9 @@ export interface ChatResult {
   content: string;
   thinking?: string;
   model: string;
-  toolCalls?: ToolCallResult[];
+  toolCalls?: ToolCall[];
   usage?: { promptTokens?: number; completionTokens?: number; totalDurationMs?: number };
+  finishReason?: 'stop' | 'tool_calls' | 'length' | 'error';
 }
 
 export interface ModelInfo {

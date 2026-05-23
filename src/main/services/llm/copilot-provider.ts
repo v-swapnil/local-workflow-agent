@@ -9,11 +9,23 @@ function eventDeltaContent(event: SessionEvent): string {
   return data?.deltaContent ?? '';
 }
 
+/**
+ * Render the full ChatMessage history as a plain-text prompt for the Copilot SDK.
+ * Tool messages are formatted inline since the SDK doesn't support multi-turn natively.
+ */
 function toPrompt(messages: ChatMessage[]): string {
   return messages
     .map((m) => {
-      const role = m.role.toUpperCase();
-      return `${role}:\n${m.content}`;
+      if (m.role === 'tool') {
+        return `TOOL RESULT (${m.name}):\n${m.content}`;
+      }
+      if (m.role === 'assistant' && m.toolCalls?.length) {
+        const calls = m.toolCalls
+          .map((tc) => `  call ${tc.name}(${JSON.stringify(tc.arguments)})`)
+          .join('\n');
+        return `ASSISTANT:\n${m.content}\n[Tool calls:\n${calls}\n]`;
+      }
+      return `${m.role.toUpperCase()}:\n${m.content}`;
     })
     .join('\n\n');
 }
