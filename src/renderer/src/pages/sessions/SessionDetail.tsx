@@ -17,11 +17,12 @@ export function SessionDetail({
   const session = trpc.session.get.useQuery({ id: sessionId });
   const tasks = trpc.task.list.useQuery({ sessionId }, { refetchInterval: 2000 });
   const worktree = trpc.worktree.getForSession.useQuery({ sessionId });
-  const openPath = trpc.worktree.openPath.useMutation();
+
   const [prompt, setPrompt] = useState('');
   const [modelOverride, setModelOverride] = useState('');
   const [agentId, setAgentId] = useState('');
   const [workflowId, setWorkflowId] = useState('');
+
   const create = trpc.task.create.useMutation({
     onSuccess: async (t) => {
       await utils.task.list.invalidate({ sessionId });
@@ -30,6 +31,17 @@ export function SessionDetail({
       setPrompt('');
     },
   });
+
+  const handleCreateTask = () => {
+    if (!prompt.trim()) return;
+    create.mutate({
+      sessionId,
+      prompt: prompt.trim(),
+      modelOverride: modelOverride || undefined,
+      agentId: agentId || undefined,
+      workflowId: workflowId || undefined,
+    });
+  };
 
   useEffect(() => {
     if (!focusedTaskId && tasks.data?.length) onTaskFocus(tasks.data[0]!.id);
@@ -40,12 +52,12 @@ export function SessionDetail({
       {/* Header */}
       <header className="shrink-0 mb-4 flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-ui-lg font-medium tracking-tight text-ink-50">
+          <h1 className="text-xl font-medium leading-tight tracking-tight text-ink-50">
             {session.data?.title ?? '…'}
           </h1>
           <div className="mt-1 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
             <span>{session.data?.id.slice(0, 8)}</span>
-            <span className="text-ink-700">·</span>
+            <span className="text-ink-400">·</span>
             <span>{tasks.data?.length ?? 0} tasks</span>
           </div>
         </div>
@@ -107,14 +119,7 @@ export function SessionDetail({
         className="shrink-0 mt-4 border-t border-ink-800/40 pt-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!prompt.trim()) return;
-          create.mutate({
-            sessionId,
-            prompt: prompt.trim(),
-            modelOverride: modelOverride || undefined,
-            agentId: agentId || undefined,
-            workflowId: workflowId || undefined,
-          });
+          handleCreateTask();
         }}
       >
         <div className="rounded-lg border border-ink-700/60 bg-ink-900/30 transition-all focus-within:border-amber/30 focus-within:bg-ink-900/50">
@@ -127,15 +132,7 @@ export function SessionDetail({
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                 e.preventDefault();
-                if (prompt.trim()) {
-                  create.mutate({
-                    sessionId,
-                    prompt: prompt.trim(),
-                    modelOverride: modelOverride || undefined,
-                    agentId: agentId || undefined,
-                    workflowId: workflowId || undefined,
-                  });
-                }
+                handleCreateTask();
               }
             }}
           />

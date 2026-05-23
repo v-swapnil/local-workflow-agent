@@ -46,7 +46,7 @@ export function Node({
           isActive && 'bg-ink-800 text-amber',
         )}
       >
-        <span className="text-ink-600">·</span>
+        <span className="text-ink-400">·</span>
         <span className="truncate">{node.name}</span>
       </button>
     );

@@ -108,10 +108,10 @@ export function KanbanBoard() {
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-6 py-4">
         <div>
-          <h1 className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+          <h1 className="text-xl font-medium leading-tight tracking-tight text-ink-50">
             Kanban Board
           </h1>
-          <p className="mt-0.5 font-mono text-ui-xs text-ink-500">
+          <p className="mt-1 text-ui-sm leading-relaxed text-ink-400">
             {totalCards} session{totalCards !== 1 ? 's' : ''}
           </p>
         </div>

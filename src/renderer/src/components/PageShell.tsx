@@ -15,7 +15,7 @@ export function PageShell({
 }) {
   return (
     <div className="mx-auto flex min-h-full flex-col px-6 py-6 animate-fade-in">
-      <header className="mb-6 flex items-end justify-between gap-6">
+      <header className="mb-6 flex items-center justify-between gap-6">
         <div>
           <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             <span className="text-ink-600">~/ase</span>
@@ -24,7 +24,7 @@ export function PageShell({
           </div>
           <h1 className="mt-2 text-xl font-medium leading-tight tracking-tight text-ink-50">{title}</h1>
           {subtitle && (
-            <p className="mt-1 max-w-xl text-ui-sm leading-relaxed text-ink-400">{subtitle}</p>
+            <p className="mt-1 text-ui-sm leading-relaxed text-ink-400">{subtitle}</p>
           )}
         </div>
         {actions && <div className="animate-fade-in">{actions}</div>}

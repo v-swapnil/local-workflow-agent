@@ -131,25 +131,50 @@ function ChangedFileList({
             : meta.label;
 
         return (
-          <li key={`${file.section}:${file.path}:${file.kind}`} className="flex items-center gap-0.5">
+          <li
+            key={`${file.section}:${file.path}:${file.kind}`}
+            className="flex items-center gap-0.5"
+          >
             {file.section === 'working' && onStage && (
               <button
                 type="button"
                 title="Stage file"
-                onClick={(e) => { e.stopPropagation(); onStage(file.path); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStage(file.path);
+                }}
                 className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-emerald-500/10 hover:text-signal-ok"
               >
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3"><path d="M6 2v8M2 6h8" /></svg>
+                <svg
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="h-3 w-3"
+                >
+                  <path d="M6 2v8M2 6h8" />
+                </svg>
               </button>
             )}
             {file.section === 'staged' && onUnstage && (
               <button
                 type="button"
                 title="Unstage file"
-                onClick={(e) => { e.stopPropagation(); onUnstage(file.path); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnstage(file.path);
+                }}
                 className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-rose-500/10 hover:text-signal-err"
               >
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3"><path d="M2 6h8" /></svg>
+                <svg
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="h-3 w-3"
+                >
+                  <path d="M2 6h8" />
+                </svg>
               </button>
             )}
             <button
@@ -223,7 +248,11 @@ function DiffPanelEditor({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-ink-800/40 bg-ink-900/20 px-4 py-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`shrink-0 font-mono text-ui-2xs font-medium ${changeMeta(kind).className}`}>{changeMeta(kind).code}</span>
+          <span
+            className={`shrink-0 font-mono text-ui-2xs font-medium ${changeMeta(kind).className}`}
+          >
+            {changeMeta(kind).code}
+          </span>
           <span className="min-w-0 truncate font-mono text-ui-sm text-ink-100">{path}</span>
         </div>
         <button
@@ -380,18 +409,16 @@ function DiffPanel({
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink-950">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-ink-800/40 px-5 py-3">
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="font-serif text-ui-lg tracking-tight text-ink-100">
-              {workspace.data?.name ?? '—'}
-            </h2>
-            <div className="mt-0.5 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
-              <span>⎇ {status.data?.branch ?? '—'}</span>
-              <span className="text-ink-700">·</span>
-              <span>{summary || 'clean'}</span>
-            </div>
-          </div>
+      <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-6 py-4">
+        <div>
+          <h1 className="text-xl font-medium leading-tight tracking-tight text-ink-50">
+            {workspace.data?.name ?? '—'}
+          </h1>
+          <p className="mt-1 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
+            <span>⎇ {status.data?.branch ?? '—'}</span>
+            <span className="text-ink-400">·</span>
+            <span>{summary || 'clean'}</span>
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
