@@ -43,14 +43,23 @@ function formatEnvContext(env: EnvironmentContext): string {
 /* ───────── Planner ───────── */
 
 export const PLANNER_SYSTEM = `You are the PLANNER agent in an autonomous coding system.
-Your job: read the user's goal and produce a detailed, concrete plan in Markdown.
+Your job: understand the user's goal, explore the codebase using read-only tools,
+and then produce a detailed, concrete plan in Markdown.
 
-Rules:
-- Output ONLY Markdown. No JSON, no fences wrapping the whole output.
+You have access to read-only tools: read_file, list_dir, grep, git_status, git_diff.
+Use them to inspect the workspace structure, read relevant files, and understand the
+current state of the code before creating your plan.
+
+Workflow:
+1. First, explore the codebase — list directories, read key files, grep for patterns.
+2. Once you have enough context, output your final plan as a text response (no tool call).
+
+Plan rules:
+- Output ONLY Markdown in your final response. No JSON, no fences wrapping the whole output.
 - The plan should contain numbered steps that are small, verifiable, and ordered.
 - Prefer fewer larger steps over many tiny ones (1-6 steps).
 - Include creating or updating tests when the goal involves code.
-- Do not invent files that do not exist; rely on the executor to inspect the workspace.
+- Reference specific files and functions you discovered during exploration.
 - Be specific about which files to change and what approach to take.`;
 
 export function plannerUser(

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getWorkspace } from '../workspaces.js';
-import { readFileTool, writeFileTool, listDirTool, grepTool, applyPatchTool } from './fs.js';
+import { readFileTool, writeFileTool, listDirTool, grepTool, globTool, applyPatchTool, editTool } from './fs.js';
 import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { askUserTool } from './user.js';
-import { readSessionMemoriesTool, addSessionMemoryTool } from './memory.js';
+import { readMemoriesTool, addMemoryTool } from './memory.js';
 import { requestApproval } from '../approvals.js';
 import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
@@ -13,9 +13,11 @@ import type { ChatToolDef } from '../llm/provider.js';
 const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_file: readFileTool as Tool<unknown, unknown>,
   write_file: writeFileTool as Tool<unknown, unknown>,
+  edit: editTool as Tool<unknown, unknown>,
   apply_patch: applyPatchTool as Tool<unknown, unknown>,
   list_dir: listDirTool as Tool<unknown, unknown>,
   grep: grepTool as Tool<unknown, unknown>,
+  glob: globTool as Tool<unknown, unknown>,
   run_shell: runShellTool as Tool<unknown, unknown>,
   run_tests: runTestsTool as Tool<unknown, unknown>,
   git_status: gitStatusTool as Tool<unknown, unknown>,
@@ -23,8 +25,8 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   git_branch: gitBranchTool as Tool<unknown, unknown>,
   git_commit: gitCommitTool as Tool<unknown, unknown>,
   ask_user: askUserTool as Tool<unknown, unknown>,
-  read_session_memories: readSessionMemoriesTool as Tool<unknown, unknown>,
-  add_session_memory: addSessionMemoryTool as Tool<unknown, unknown>,
+  read_memories: readMemoriesTool as Tool<unknown, unknown>,
+  add_memory: addMemoryTool as Tool<unknown, unknown>,
 };
 
 export function listTools(): {
@@ -54,6 +56,33 @@ export function listToolsForLLM(): ChatToolDef[] {
       parameters: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
     },
   }));
+}
+
+/** Read-only subset of tools safe for the planner to explore the workspace. */
+const READ_ONLY_TOOLS: ToolName[] = [
+  'read_file',
+  'list_dir',
+  'grep',
+  'glob',
+  'git_status',
+  'git_diff',
+  'read_memories',
+];
+
+export function listReadOnlyToolsForLLM(): ChatToolDef[] {
+  return Object.values(REGISTRY)
+    .filter((tool) => READ_ONLY_TOOLS.includes(tool.name))
+    .map((tool) => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters: zodToJsonSchema(tool.schema, { target: 'jsonSchema7' }) as Record<
+          string,
+          unknown
+        >,
+      },
+    }));
 }
 
 export function getTool(name: ToolName): Tool<unknown, unknown> {

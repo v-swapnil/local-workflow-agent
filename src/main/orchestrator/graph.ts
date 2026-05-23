@@ -3,19 +3,17 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
-import { invokeTool, listToolsForLLM } from '../services/tools/registry.js';
-import { skillCatalog, resolveSkillBodies } from '../services/skills.js';
+import {
+  invokeTool,
+  listToolsForLLM,
+  listReadOnlyToolsForLLM,
+} from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
 import { extractJson } from '../util/json.js';
-import type { ChatMessage, ToolCallResult } from '../services/llm/provider.js';
-import {
-  PLANNER_SYSTEM,
-  plannerUser,
-  EXECUTOR_SYSTEM,
-  executorUser,
-} from './prompts.js';
+import type { ChatMessage, ChatToolDef, ToolCallResult } from '../services/llm/provider.js';
+import { PLANNER_SYSTEM, plannerUser, EXECUTOR_SYSTEM, executorUser } from './prompts.js';
 import type { EnvironmentContext } from './prompts.js';
-import type { Plan, Observation } from '@shared/agent';
+import type { Observation } from '@shared/agent';
 import type { ToolName } from '../services/tools/types.js';
 import { addStep, updateStep, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
@@ -47,50 +45,6 @@ function ctxOf(config?: RunnableConfig): RunCtx {
 
 /* ───────── Helpers ───────── */
 
-async function llmJson<T>(
-  ctx: RunCtx,
-  agent: string,
-  system: string,
-  user: string,
-  temperature = 0.2,
-): Promise<T> {
-  const provider = getProvider(PROVIDERS.OLLAMA);
-  const buf: string[] = [];
-  const t0 = Date.now();
-  const messages = [
-    { role: 'system' as const, content: system },
-    { role: 'user' as const, content: user },
-  ];
-  const result = await provider.chat({
-    model: ctx.model,
-    temperature,
-    signal: ctx.signal,
-    messages,
-    onDelta: (d) => {
-      buf.push(d);
-      taskBus.emit(ctx.taskId, {
-        type: 'llm.delta',
-        taskId: ctx.taskId,
-        ts: Date.now(),
-        agent,
-        content: d,
-      });
-    },
-    onThinkingDelta: (d) => {
-      taskBus.emit(ctx.taskId, {
-        type: 'llm.thinking_delta',
-        taskId: ctx.taskId,
-        ts: Date.now(),
-        agent,
-        content: d,
-      });
-    },
-  });
-  const text = result.content || buf.join('');
-
-  return extractJson<T>(text);
-}
-
 interface ToolCallResponse {
   toolCalls: ToolCallResult[];
   done: false;
@@ -98,12 +52,15 @@ interface ToolCallResponse {
 interface DoneResponse {
   toolCalls?: undefined;
   done: true;
+  /** Text content from the final LLM response (used by planner to extract the plan). */
+  text: string;
 }
 
 /**
  * LLM call with native Ollama tool calling.
  * Returns either the first tool call from the model or a "done" signal
  * (model replied with text containing `{"done": true}` or no tool calls).
+ * Optionally accepts a custom tools list (defaults to all tools).
  */
 async function llmWithTools(
   ctx: RunCtx,
@@ -111,9 +68,10 @@ async function llmWithTools(
   system: string,
   user: string,
   temperature = 0.2,
+  toolsDef?: ChatToolDef[],
 ): Promise<ToolCallResponse | DoneResponse> {
   const provider = getProvider(PROVIDERS.OLLAMA);
-  const tools = listToolsForLLM();
+  const tools = toolsDef ?? listToolsForLLM();
   const buf: string[] = [];
   const t0 = Date.now();
   const messages: ChatMessage[] = [
@@ -160,7 +118,7 @@ async function llmWithTools(
       done?: boolean;
       action?: { tool: string; args: Record<string, unknown> };
     }>(text);
-    if (parsed.done) return { done: true };
+    if (parsed.done) return { done: true, text };
     if (parsed.action) {
       return {
         toolCalls: [{ name: parsed.action.tool, arguments: parsed.action.args }],
@@ -171,7 +129,7 @@ async function llmWithTools(
     /* not valid JSON, treat as done */
   }
 
-  return { done: true };
+  return { done: true, text };
 }
 
 async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
@@ -218,7 +176,7 @@ function emitStepStarted(
     idx,
     agent,
     tool: tool ?? null,
-    inputJson: input != null ? JSON.stringify(input).slice(0, 100_000) : null,
+    inputJson: input != null ? JSON.stringify(input) : null,
     outputJson: null,
     status: 'running',
     startedAt: Date.now(),
@@ -244,7 +202,7 @@ function emitStepFinished(
   error?: string,
 ): void {
   updateStep(stepId, {
-    outputJson: output != null ? JSON.stringify(output).slice(0, 100_000) : null,
+    outputJson: output != null ? JSON.stringify(output) : null,
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
@@ -261,6 +219,9 @@ function emitStepFinished(
 
 /* ───────── Nodes ───────── */
 
+/** Max read-only tool calls the planner can make while exploring. */
+const PLANNER_EXPLORE_BUDGET = 15;
+
 async function plannerNode(
   state: AgentState,
   config?: RunnableConfig,
@@ -268,26 +229,10 @@ async function plannerNode(
   const ctx = ctxOf(config);
   const { stepId } = emitStepStarted(ctx, 'planner', undefined, { prompt: state.prompt });
   try {
-    const catalog = await skillCatalog();
     const env = await gatherEnvContext(ctx);
-    const plan = await llmJson<Plan>(
-      ctx,
-      'planner',
-      PLANNER_SYSTEM,
-      plannerUser(state.prompt, catalog, env, ctx.sessionMemory),
-    );
-    if (!plan?.steps?.length) throw new Error('planner returned empty plan');
-    plan.steps = plan.steps.map((s, i) => ({
-      ...s,
-      id: s.id || `s${i + 1}`,
-    }));
-    // Filter selectedSkills to only those that actually exist + are enabled.
-    const validNames = new Set(catalog.map((c) => c.name));
-    const raw =
-      (plan as Plan & { selected_skills?: string[] }).selected_skills ?? plan.selectedSkills ?? [];
-    plan.selectedSkills = raw.filter((n) => validNames.has(n));
-    updateTask(ctx.taskId, { planJson: JSON.stringify(plan).slice(0, 100_000) });
-    emitStepFinished(ctx, stepId, true, plan);
+    const plan = await plannerLoop(ctx, PLANNER_SYSTEM, state.prompt, env);
+    updateTask(ctx.taskId, { plan });
+    emitStepFinished(ctx, stepId, true, { plan });
     taskBus.emit(ctx.taskId, { type: 'plan', taskId: ctx.taskId, ts: Date.now(), plan });
     return { plan };
   } catch (err) {
@@ -297,7 +242,71 @@ async function plannerNode(
   }
 }
 
-const EXECUTOR_BUDGET_PER_STEP = 6;
+/**
+ * Planner exploration loop: calls read-only tools to inspect the codebase,
+ * then returns the final markdown plan when the LLM responds with text.
+ */
+async function plannerLoop(
+  ctx: RunCtx,
+  systemPrompt: string,
+  userPrompt: string,
+  env: EnvironmentContext,
+  temperature?: number,
+): Promise<string> {
+  const readOnlyTools = listReadOnlyToolsForLLM();
+  const user = plannerUser(userPrompt, env, ctx.sessionMemory);
+  let budget = PLANNER_EXPLORE_BUDGET;
+
+  while (budget-- > 0) {
+    if (ctx.signal.aborted) throw new Error('aborted');
+
+    const response = await llmWithTools(
+      ctx,
+      'planner',
+      systemPrompt,
+      user,
+      temperature,
+      readOnlyTools,
+    );
+
+    // LLM responded with text (no tool call) — that's the plan.
+    if (response.done) {
+      const plan = response.text;
+      if (!plan?.trim()) throw new Error('planner returned empty plan');
+      return plan;
+    }
+
+    // Execute the read-only tool call
+    const tc = response.toolCalls[0]!;
+    const tool = tc.name as ToolName;
+    const args = tc.arguments;
+    const { stepId } = emitStepStarted(ctx, 'planner', tool, { args });
+
+    const result = await invokeTool(tool, args, {
+      workspaceId: ctx.workspaceId,
+      workspacePath: ctx.workspacePath,
+      taskId: ctx.taskId,
+      signal: ctx.signal,
+      onLog: ({ stream, text }) => {
+        taskBus.emit(ctx.taskId, {
+          type: 'log',
+          taskId: ctx.taskId,
+          ts: Date.now(),
+          stream,
+          text,
+          stepId,
+        });
+      },
+    });
+
+    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+  }
+
+  throw new Error('planner exhausted exploration budget without producing a plan');
+}
+
+/** Max tool calls the executor can make in a single pass. */
+const EXECUTOR_BUDGET = 30;
 
 async function executorNode(
   state: AgentState,
@@ -309,74 +318,58 @@ async function executorNode(
 
   const newObs: Observation[] = [];
 
-  const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
   const env = await gatherEnvContext(ctx);
 
-  for (const planStep of plan.steps) {
-    let stepBudget = EXECUTOR_BUDGET_PER_STEP;
-    while (stepBudget-- > 0) {
-      if (ctx.signal.aborted) throw new Error('aborted');
+  let budget = EXECUTOR_BUDGET;
+  while (budget-- > 0) {
+    if (ctx.signal.aborted) throw new Error('aborted');
 
-      const histForLLM = state.history
-        .concat(newObs);
-      const response = await llmWithTools(
-        ctx,
-        'executor',
-        EXECUTOR_SYSTEM,
-        executorUser(
-          state.prompt,
-          plan,
-          planStep.id,
-          histForLLM,
-          skills,
-          env,
-          undefined,
-          ctx.sessionMemory,
-        ),
-      );
+    const histForLLM = state.history.concat(newObs);
+    const response = await llmWithTools(
+      ctx,
+      'executor',
+      EXECUTOR_SYSTEM,
+      executorUser(state.prompt, plan, histForLLM, env, ctx.sessionMemory),
+    );
 
-      if (response.done || !response.toolCalls?.length) break;
+    if (response.done || !response.toolCalls?.length) break;
 
-      const tc = response.toolCalls[0]!;
-      const tool = tc.name as ToolName;
-      const args = tc.arguments;
-      const { stepId } = emitStepStarted(ctx, 'executor', tool, { planStepId: planStep.id, args });
+    const tc = response.toolCalls[0]!;
+    const tool = tc.name as ToolName;
+    const args = tc.arguments;
+    const { stepId } = emitStepStarted(ctx, 'executor', tool, { args });
 
-      const result = await invokeTool(tool, args, {
-        workspaceId: ctx.workspaceId,
-        workspacePath: ctx.workspacePath,
-        taskId: ctx.taskId,
-        signal: ctx.signal,
-        onLog: ({ stream, text }) => {
-          taskBus.emit(ctx.taskId, {
-            type: 'log',
-            taskId: ctx.taskId,
-            ts: Date.now(),
-            stream,
-            text,
-            stepId,
-          });
-        },
-      });
+    const result = await invokeTool(tool, args, {
+      workspaceId: ctx.workspaceId,
+      workspacePath: ctx.workspacePath,
+      taskId: ctx.taskId,
+      signal: ctx.signal,
+      onLog: ({ stream, text }) => {
+        taskBus.emit(ctx.taskId, {
+          type: 'log',
+          taskId: ctx.taskId,
+          ts: Date.now(),
+          stream,
+          text,
+          stepId,
+        });
+      },
+    });
 
-      const outStr = safeStr(result.ok ? result.output : null);
-      emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
 
-      const obs: Observation = {
-        stepId: planStep.id,
-        tool,
-        args: (args ?? {}) as Record<string, unknown>,
-        ok: result.ok,
-        output: outStr,
-        error: result.error,
-        durationMs: result.durationMs,
-      };
-      newObs.push(obs);
+    const obs: Observation = {
+      tool,
+      args: (args ?? {}) as Record<string, unknown>,
+      ok: result.ok,
+      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
+      error: result.error,
+      durationMs: result.durationMs,
+    };
+    newObs.push(obs);
 
-      // If the tool failed, surface to the LLM next round; let it self-correct.
-      if (!result.ok && stepBudget === 0) {
-        log.warn({ tool, error: result.error }, 'executor exhausted step budget on failure');
-      }
+    if (!result.ok && budget === 0) {
+      log.warn({ tool, error: result.error }, 'executor exhausted budget on failure');
     }
   }
 
@@ -403,23 +396,10 @@ export function buildGraph(agent?: AgentRecord | null) {
     const ctx = ctxOf(config);
     const { stepId } = emitStepStarted(ctx, 'planner', undefined, { prompt: state.prompt });
     try {
-      const catalog = await skillCatalog();
       const env = await gatherEnvContext(ctx);
-      const plan = await llmJson<Plan>(
-        ctx,
-        'planner',
-        plannerSys,
-        plannerUser(state.prompt, catalog, env, ctx.sessionMemory),
-        temp,
-      );
-      if (!plan?.steps?.length) throw new Error('planner returned empty plan');
-      plan.steps = plan.steps.map((s, i) => ({ ...s, id: s.id || `s${i + 1}` }));
-      const validNames = new Set(catalog.map((c) => c.name));
-      const raw =
-        (plan as Plan & { selected_skills?: string[] }).selected_skills ?? plan.selectedSkills ?? [];
-      plan.selectedSkills = raw.filter((n) => validNames.has(n));
-      updateTask(ctx.taskId, { planJson: JSON.stringify(plan).slice(0, 100_000) });
-      emitStepFinished(ctx, stepId, true, plan);
+      const plan = await plannerLoop(ctx, plannerSys, state.prompt, env, temp);
+      updateTask(ctx.taskId, { plan });
+      emitStepFinished(ctx, stepId, true, { plan });
       taskBus.emit(ctx.taskId, { type: 'plan', taskId: ctx.taskId, ts: Date.now(), plan });
       return { plan };
     } catch (err) {
@@ -439,61 +419,56 @@ export function buildGraph(agent?: AgentRecord | null) {
 
     const newObs: Observation[] = [];
 
-    const skills = await resolveSkillBodies(plan.selectedSkills ?? []);
     const env = await gatherEnvContext(ctx);
 
-    for (const planStep of plan.steps) {
-      let stepBudget = EXECUTOR_BUDGET_PER_STEP;
-      while (stepBudget-- > 0) {
-        if (ctx.signal.aborted) throw new Error('aborted');
+    let budget = EXECUTOR_BUDGET;
+    while (budget-- > 0) {
+      if (ctx.signal.aborted) throw new Error('aborted');
 
-        const histForLLM = state.history.concat(newObs);
-        const response = await llmWithTools(
-          ctx,
-          'executor',
-          executorSys,
-          executorUser(state.prompt, plan, planStep.id, histForLLM, skills, env, undefined, ctx.sessionMemory),
-          temp,
-        );
+      const histForLLM = state.history.concat(newObs);
+      const response = await llmWithTools(
+        ctx,
+        'executor',
+        executorSys,
+        executorUser(state.prompt, plan, histForLLM, env, ctx.sessionMemory),
+        temp,
+      );
 
-        if (response.done || !response.toolCalls?.length) break;
+      if (response.done || !response.toolCalls?.length) break;
 
-        const tc = response.toolCalls[0]!;
-        const tool = tc.name as ToolName;
-        const args = tc.arguments;
-        const { stepId } = emitStepStarted(ctx, 'executor', tool, { planStepId: planStep.id, args });
+      const tc = response.toolCalls[0]!;
+      const tool = tc.name as ToolName;
+      const args = tc.arguments;
+      const { stepId } = emitStepStarted(ctx, 'executor', tool, { args });
 
-        const result = await invokeTool(tool, args, {
-          workspaceId: ctx.workspaceId,
-          workspacePath: ctx.workspacePath,
-          taskId: ctx.taskId,
-          signal: ctx.signal,
-          onLog: ({ stream, text }) => {
-            taskBus.emit(ctx.taskId, {
-              type: 'log',
-              taskId: ctx.taskId,
-              ts: Date.now(),
-              stream,
-              text,
-              stepId,
-            });
-          },
-        });
+      const result = await invokeTool(tool, args, {
+        workspaceId: ctx.workspaceId,
+        workspacePath: ctx.workspacePath,
+        taskId: ctx.taskId,
+        signal: ctx.signal,
+        onLog: ({ stream, text }) => {
+          taskBus.emit(ctx.taskId, {
+            type: 'log',
+            taskId: ctx.taskId,
+            ts: Date.now(),
+            stream,
+            text,
+            stepId,
+          });
+        },
+      });
 
-        const outStr = safeStr(result.ok ? result.output : null);
-        emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+      emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
 
-        const obs: Observation = {
-          stepId: planStep.id,
-          tool,
-          args: (args ?? {}) as Record<string, unknown>,
-          ok: result.ok,
-          output: outStr,
-          error: result.error,
-          durationMs: result.durationMs,
-        };
-        newObs.push(obs);
-      }
+      const obs: Observation = {
+        tool,
+        args: (args ?? {}) as Record<string, unknown>,
+        ok: result.ok,
+        output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
+        error: result.error,
+        durationMs: result.durationMs,
+      };
+      newObs.push(obs);
     }
 
     return { history: newObs };
@@ -508,14 +483,4 @@ export function buildGraph(agent?: AgentRecord | null) {
     .compile();
 }
 
-/* ───────── Misc ───────── */
 
-function safeStr(v: unknown): string {
-  if (v == null) return '';
-  if (typeof v === 'string') return v.slice(0, 4000);
-  try {
-    return JSON.stringify(v).slice(0, 4000);
-  } catch {
-    return String(v).slice(0, 4000);
-  }
-}

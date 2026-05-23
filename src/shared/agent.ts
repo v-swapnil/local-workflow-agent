@@ -2,9 +2,11 @@
 export type ToolName =
   | 'read_file'
   | 'write_file'
+  | 'edit'
   | 'apply_patch'
   | 'list_dir'
   | 'grep'
+  | 'glob'
   | 'run_shell'
   | 'run_tests'
   | 'git_status'
@@ -12,8 +14,8 @@ export type ToolName =
   | 'git_branch'
   | 'git_commit'
   | 'ask_user'
-  | 'read_session_memories'
-  | 'add_session_memory';
+  | 'read_memories'
+  | 'add_memory';
 
 /** ───────── Executor I/O ───────── */
 

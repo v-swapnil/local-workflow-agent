@@ -1,21 +1,30 @@
 import { z } from 'zod';
 import { fileTree, readWorkspaceFile, writeWorkspaceFile, getWorkspace } from '../workspaces.js';
+import type { ReadFileResult } from '../workspaces.js';
 import { safeJoin } from '../../util/safePath.js';
 import { planPatch } from '../../util/patch.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { grep } from '../grep.js';
+import { glob } from '../glob.js';
 import type { Tool } from './types.js';
 import { writeWorkspaceFile as writeWS, deleteWorkspacePath } from '../workspaces.js';
 
 export const readFileTool: Tool<
-  { path: string },
-  { content: string; size: number; truncated: boolean }
+  { path: string; offset?: number; limit?: number },
+  ReadFileResult
 > = {
   name: 'read_file',
-  description: 'Read a UTF-8 text file from the workspace.',
-  schema: z.object({ path: z.string().min(1) }),
+  description:
+    'Read a UTF-8 text file from the workspace. Returns lines prefixed with line numbers. ' +
+    'Use offset (1-based start line) and limit (number of lines, default 2000) to read a specific range. ' +
+    'Use the grep tool to find content in large files. Call in parallel when reading multiple files.',
+  schema: z.object({
+    path: z.string().min(1),
+    offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
+    limit: z.number().int().min(1).optional().describe('Number of lines to read from offset (default 2000).'),
+  }),
   needsApproval: false,
-  run: async ({ path }, ctx) => readWorkspaceFile(ctx.workspaceId, path),
+  run: async ({ path, offset, limit }, ctx) => readWorkspaceFile(ctx.workspaceId, path, offset, limit),
 };
 
 export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; bytes: number }> = {
@@ -41,28 +50,47 @@ export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
 };
 
 export const grepTool: Tool<
-  { pattern: string; isRegex?: boolean; caseSensitive?: boolean; path?: string; maxHits?: number },
+  { pattern: string; path?: string; include?: string },
   unknown
 > = {
   name: 'grep',
-  description: 'Search file contents in the workspace for a substring or regex.',
+  description:
+    'Search file contents in the workspace for a regex pattern. ' +
+    'Returns matching lines with file paths and line numbers.',
   schema: z.object({
-    pattern: z.string().min(1),
-    isRegex: z.boolean().optional(),
-    caseSensitive: z.boolean().optional(),
-    path: z.string().optional(),
-    maxHits: z.number().int().min(1).max(2000).optional(),
+    pattern: z.string().min(1).describe('The regex pattern to search for in file contents.'),
+    path: z.string().optional().describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
+    include: z.string().optional().describe('File glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
   }),
   needsApproval: false,
   run: async (args, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
     return grep(ws.path, {
       pattern: args.pattern,
-      isRegex: args.isRegex,
-      caseSensitive: args.caseSensitive,
+      isRegex: true,
+      caseSensitive: false,
       rel: args.path,
-      maxHits: args.maxHits,
+      include: args.include,
     });
+  },
+};
+
+export const globTool: Tool<
+  { pattern: string; path?: string },
+  { files: string[]; count: number; truncated: boolean }
+> = {
+  name: 'glob',
+  description:
+    'Search for files by name pattern in the workspace. ' +
+    'Returns matching file paths sorted by modification time (most recent first).',
+  schema: z.object({
+    pattern: z.string().min(1).describe('Glob pattern to match files (e.g. "**/*.ts", "src/**/*.test.*").'),
+    path: z.string().optional().describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
+  }),
+  needsApproval: false,
+  run: async (args, ctx) => {
+    const ws = await getWorkspace(ctx.workspaceId);
+    return glob(ws.path, { pattern: args.pattern, rel: args.path });
   },
 };
 
@@ -91,5 +119,58 @@ export const applyPatchTool: Tool<
       applied.push({ path: change.path, isNew: change.isNew, isDelete: change.isDelete });
     }
     return { applied };
+  },
+};
+
+export const editTool: Tool<
+  { path: string; oldString: string; newString: string; replaceAll?: boolean },
+  { ok: true }
+> = {
+  name: 'edit',
+  description:
+    'Replace an exact string in a file. The oldString must appear in the file ' +
+    '(exactly once unless replaceAll is true). Use an empty oldString to append to the file.',
+  schema: z.object({
+    path: z.string().min(1).describe('File path relative to workspace root.'),
+    oldString: z.string().describe('The exact text to find and replace.'),
+    newString: z.string().describe('The replacement text (must differ from oldString).'),
+    replaceAll: z.boolean().optional().describe('Replace all occurrences (default false).'),
+  }),
+  needsApproval: true,
+  run: async ({ path, oldString, newString, replaceAll }, ctx) => {
+    if (oldString === newString) throw new Error('oldString and newString are identical');
+    const ws = await getWorkspace(ctx.workspaceId);
+    const abs = safeJoin(ws.path, path);
+    if (!existsSync(abs)) {
+      if (oldString === '') {
+        // Create new file
+        await writeWS(ctx.workspaceId, path, newString);
+        return { ok: true as const };
+      }
+      throw new Error(`file not found: ${path}`);
+    }
+    const content = readFileSync(abs, 'utf8');
+    if (oldString === '') {
+      // Append
+      await writeWS(ctx.workspaceId, path, content + newString);
+      return { ok: true as const };
+    }
+    if (!content.includes(oldString)) {
+      throw new Error('oldString not found in file');
+    }
+    if (!replaceAll) {
+      const first = content.indexOf(oldString);
+      const second = content.indexOf(oldString, first + 1);
+      if (second !== -1) {
+        throw new Error(
+          'oldString appears multiple times. Provide more context to make it unique, or set replaceAll=true.',
+        );
+      }
+    }
+    const updated = replaceAll
+      ? content.replaceAll(oldString, newString)
+      : content.replace(oldString, newString);
+    await writeWS(ctx.workspaceId, path, updated);
+    return { ok: true as const };
   },
 };

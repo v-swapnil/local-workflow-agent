@@ -17,6 +17,9 @@ export interface Workspace {
 
 const IGNORED = new Set(['.git', 'node_modules', '.DS_Store', '.next', 'dist', 'out', '.turbo']);
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+const DEFAULT_READ_LIMIT = 2000;
+const MAX_LINE_LENGTH = 2000;
+const MAX_OUTPUT_BYTES = 50 * 1024; // 50 KB
 
 export async function listWorkspaces(): Promise<Workspace[]> {
   const rows = getDb().select().from(workspaces).all();
@@ -145,27 +148,82 @@ async function walk(root: string, abs: string, depth: number): Promise<FileNode>
   return node;
 }
 
+export interface ReadFileResult {
+  content: string;
+  /** Total bytes of the file on disk. */
+  size: number;
+  /** Total line count in the file. */
+  lines: number;
+  /** Whether the returned content is a subset of the file. */
+  truncated: boolean;
+}
+
 export async function readWorkspaceFile(
   workspaceId: string,
   relPath: string,
-): Promise<{ content: string; size: number; truncated: boolean }> {
+  offset?: number,
+  limit?: number,
+): Promise<ReadFileResult> {
   const ws = await getWorkspace(workspaceId);
-  return readTextFileFromRoot(ws.path, relPath);
+  return readTextFileFromRoot(ws.path, relPath, offset, limit);
 }
 
 export async function readTextFileFromRoot(
   rootPath: string,
   relPath: string,
-): Promise<{ content: string; size: number; truncated: boolean }> {
+  offset?: number,
+  limit?: number,
+): Promise<ReadFileResult> {
   const abs = safeJoin(rootPath, relPath);
   const s = await stat(abs);
   if (s.isDirectory()) throw new Error('is a directory');
-  const truncated = s.size > MAX_FILE_BYTES;
-  const buf = await readFile(abs);
-  const content = truncated
-    ? buf.subarray(0, MAX_FILE_BYTES).toString('utf8')
-    : buf.toString('utf8');
-  return { content, size: s.size, truncated };
+  if (s.size > MAX_FILE_BYTES)
+    throw new Error(`file too large (${s.size} bytes, max ${MAX_FILE_BYTES})`);
+  const raw = await readFile(abs, 'utf8');
+  const allLines = raw.split('\n');
+  const totalLines = allLines.length;
+
+  const start = (offset ?? 1) - 1; // 1-based → 0-based
+  const maxLines = limit ?? DEFAULT_READ_LIMIT;
+
+  const numbered: string[] = [];
+  let bytes = 0;
+  let cut = false;
+  let more = false;
+
+  for (let i = start; i < totalLines; i++) {
+    if (numbered.length >= maxLines) {
+      more = true;
+      break;
+    }
+    let line = allLines[i]!;
+    if (line.length > MAX_LINE_LENGTH) {
+      line = line.substring(0, MAX_LINE_LENGTH) + `... (line truncated)`;
+    }
+    const entry = `${i + 1}: ${line}`;
+    const entryBytes = Buffer.byteLength(entry, 'utf8') + (numbered.length > 0 ? 1 : 0);
+    if (bytes + entryBytes > MAX_OUTPUT_BYTES) {
+      cut = true;
+      more = true;
+      break;
+    }
+    numbered.push(entry);
+    bytes += entryBytes;
+  }
+
+  const last = start + numbered.length;
+  const truncated = more || cut || start > 0;
+  let content = numbered.join('\n');
+
+  if (cut) {
+    content += `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`;
+  } else if (more) {
+    content += `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`;
+  } else {
+    content += `\n\n(End of file — total ${totalLines} lines)`;
+  }
+
+  return { content, size: s.size, lines: totalLines, truncated };
 }
 
 export async function writeWorkspaceFile(

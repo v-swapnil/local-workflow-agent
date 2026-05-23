@@ -3,11 +3,11 @@ import { addSessionMemory, listSessionMemories, MEMORY_TYPES } from '../memories
 import type { Tool } from './types.js';
 import { getTask } from '../store.js';
 
-export const readSessionMemoriesTool: Tool<
+export const readMemoriesTool: Tool<
   { sessionId: string; limit?: number; type?: (typeof MEMORY_TYPES)[number] },
   { sessionId: string; total: number; memories: unknown[] }
 > = {
-  name: 'read_session_memories',
+  name: 'read_memories',
   description: 'Read persisted memories for a specific session.',
   schema: z.object({
     sessionId: z.string().min(1),
@@ -26,7 +26,7 @@ export const readSessionMemoriesTool: Tool<
   },
 };
 
-export const addSessionMemoryTool: Tool<
+export const addMemoryTool: Tool<
   {
     sessionId: string;
     type: (typeof MEMORY_TYPES)[number];
@@ -35,7 +35,7 @@ export const addSessionMemoryTool: Tool<
   },
   { ok: true; memory: unknown }
 > = {
-  name: 'add_session_memory',
+  name: 'add_memory',
   description: 'Add a new persisted memory to a session.',
   schema: z.object({
     sessionId: z.string().min(1),

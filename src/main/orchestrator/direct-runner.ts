@@ -17,7 +17,7 @@ function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
     idx,
     agent: 'direct',
     tool: tool ?? null,
-    inputJson: input != null ? JSON.stringify(input).slice(0, 100_000) : null,
+    inputJson: input != null ? JSON.stringify(input) : null,
     outputJson: null,
     status: 'running',
     startedAt: Date.now(),
@@ -37,7 +37,7 @@ function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
 
 function finishStep(ctx: RunCtx, stepId: string, ok: boolean, output: unknown, error?: string) {
   updateStep(stepId, {
-    outputJson: output != null ? JSON.stringify(output).slice(0, 100_000) : null,
+    outputJson: output != null ? JSON.stringify(output) : null,
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
@@ -157,7 +157,7 @@ export async function runDirectAgent(
         role: 'user',
         content: `[tool: ${toolName}] ${
           toolResult.ok
-            ? JSON.stringify(toolResult.output ?? {}).slice(0, 4000)
+            ? JSON.stringify(toolResult.output ?? {})
             : `ERROR: ${toolResult.error ?? 'unknown error'}`
         }`,
       });

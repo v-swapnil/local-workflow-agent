@@ -27,6 +27,8 @@ export interface GrepOptions {
   isRegex?: boolean;
   caseSensitive?: boolean;
   rel?: string;
+  /** Glob pattern to filter which files are searched (e.g. "*.ts"). */
+  include?: string;
   maxHits?: number;
   /** Skip files larger than this (bytes). */
   maxFileBytes?: number;
@@ -44,7 +46,8 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepHit[]> 
   const matcher = opts.isRegex ? new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i') : null;
   const needle = opts.caseSensitive ? opts.pattern : opts.pattern.toLowerCase();
 
-  const entries = await fg('**/*', {
+  const globPattern = opts.include ?? '**/*';
+  const entries = await fg(globPattern, {
     cwd,
     ignore: DEFAULT_IGNORE,
     onlyFiles: true,
