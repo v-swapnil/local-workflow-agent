@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
-import { langFor } from '../components/MonacoPane';
-import { DiffEditor } from '@monaco-editor/react';
-import { useUI } from '../store/ui';
 import { CommitPanel } from '../components/changes/CommitPanel';
 import { PrSection } from '../components/changes/PrSection';
+
+import { PatchDiff } from '@pierre/diffs/react';
 
 type ChangeKind = 'modified' | 'created' | 'deleted' | 'renamed' | 'conflicted' | 'untracked';
 
@@ -214,35 +213,15 @@ function DiffPanelEditor({
   worktreeId,
   path,
   kind,
-  originalFilePath,
 }: {
   workspaceId: string;
   worktreeId?: string;
   path: string;
   kind: ChangeKind;
-  originalFilePath?: string;
 }) {
-  const theme = useUI((s) => s.theme);
   const [inlineMode, setInlineMode] = useState(false);
 
-  const originalPath = originalFilePath ?? path;
-
-  const original = trpc.git.showFileAtHead.useQuery(
-    { workspaceId, worktreeId, path: originalPath },
-    { enabled: kind !== 'created' && kind !== 'untracked' },
-  );
-
-  const current = trpc.file.readForWorktree.useQuery(
-    { workspaceId, worktreeId, path },
-    { enabled: kind !== 'deleted' },
-  );
-
-  const originalText = kind === 'created' || kind === 'untracked' ? '' : (original.data ?? '');
-  const modifiedText = kind === 'deleted' ? '' : (current.data?.content ?? '');
-
-  const loading =
-    (kind !== 'created' && kind !== 'untracked' && original.isLoading) ||
-    (kind !== 'deleted' && current.isLoading);
+  const fileDiff = trpc.git.fileDiff.useQuery({ path, workspaceId, worktreeId });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -264,21 +243,16 @@ function DiffPanelEditor({
         </button>
       </div>
       <div className="min-h-0 flex-1">
-        <DiffEditor
-          original={originalText}
-          modified={modifiedText}
-          language={langFor(path)}
-          theme={theme === 'dark' ? 'vs-dark' : 'vs'}
-          loading={loading}
-          options={{
-            readOnly: true,
-            renderSideBySide: !inlineMode,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-            fontSize: 13,
-          }}
-        />
+        {fileDiff.data ? (
+          <PatchDiff
+            patch={fileDiff.data}
+            options={{ diffStyle: inlineMode ? 'unified' : 'split' }}
+          />
+        ) : (
+          <div className="p-6 font-mono text-ui-sm text-ink-500">
+            {fileDiff.isLoading ? 'loading diff…' : 'no diff available'}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -528,7 +502,6 @@ function DiffPanel({
               worktreeId={worktreeId}
               path={active.path}
               kind={active.kind}
-              originalFilePath={active.originalPath}
             />
           ) : (
             <Empty>select a file to view changes.</Empty>

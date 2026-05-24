@@ -4,7 +4,7 @@ import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { FileTree } from '../components/FileTree';
 import { MonacoPane } from '../components/MonacoPane';
 
-export function Editor() {
+export function Files() {
   const { workspaceId, isLoading } = useActiveWorkspace();
   const [activePath, setActivePath] = useState<string | null>(null);
 
@@ -20,11 +20,11 @@ export function Editor() {
   }
 
   return (
-    <EditorView workspaceId={workspaceId} activePath={activePath} setActivePath={setActivePath} />
+    <FilesView workspaceId={workspaceId} activePath={activePath} setActivePath={setActivePath} />
   );
 }
 
-function EditorView({
+function FilesView({
   workspaceId,
   activePath,
   setActivePath,
@@ -34,36 +34,18 @@ function EditorView({
   setActivePath: (p: string | null) => void;
 }) {
   const tree = trpc.file.tree.useQuery({ workspaceId, path: '', depth: 4 });
-  const utils = trpc.useUtils();
-  const writeMut = trpc.file.write.useMutation({
-    onSuccess: () => utils.file.tree.invalidate({ workspaceId }),
-  });
-
   const ws = trpc.workspace.get.useQuery({ id: workspaceId });
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink-950">
-      <div className="flex items-center justify-between border-b border-ink-800 px-5 py-3">
-        <div>
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
-            workspace
-          </div>
-          <div className="mt-0.5 font-serif text-lg text-ink-100">
-            {ws.data?.name ?? '—'}
-            <span className="ml-2 font-mono text-ui-xs text-ink-500">{ws.data?.path}</span>
-          </div>
+      <div className="border-b border-ink-800 px-5 py-3">
+        <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+          workspace
         </div>
-        <button
-          onClick={async () => {
-            const name = window.prompt('New file path (relative)?');
-            if (!name) return;
-            await writeMut.mutateAsync({ workspaceId, path: name, content: '' });
-            setActivePath(name);
-          }}
-          className="rounded border border-ink-700 bg-ink-900 px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 text-amber hover:border-amber"
-        >
-          + new file
-        </button>
+        <div className="mt-0.5 font-serif text-lg text-ink-100">
+          {ws.data?.name ?? '—'}
+          <span className="ml-2 font-mono text-ui-xs text-ink-500">{ws.data?.path}</span>
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
@@ -79,8 +61,6 @@ function EditorView({
             {tree.data && (tree.data.children?.length ?? 0) === 0 && (
               <div className="px-3 py-4 font-mono text-ui-sm text-ink-500">
                 empty workspace.
-                <br />
-                create a file →
               </div>
             )}
           </div>

@@ -66,7 +66,9 @@ export const fileRouter = router({
     .input(z.object({ workspaceId: z.string(), path: z.string() }))
     .query(({ input }) => readWorkspaceFile(input.workspaceId, input.path)),
   readForWorktree: publicProcedure
-    .input(z.object({ workspaceId: z.string(), path: z.string(), worktreeId: z.string().optional() }))
+    .input(
+      z.object({ workspaceId: z.string(), path: z.string(), worktreeId: z.string().optional() }),
+    )
     .query(async ({ input }) => {
       if (!input.worktreeId) return readWorkspaceFile(input.workspaceId, input.path);
       const wt = getWorktree(input.worktreeId);

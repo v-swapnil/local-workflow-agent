@@ -4,7 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
 import { Sessions } from './pages/sessions';
 import { KanbanBoard } from './pages/KanbanBoard';
-import { Editor } from './pages/Editor';
+import { Files } from './pages/Files';
 import { Skills } from './pages/Skills';
 import { Agents } from './pages/Agents';
 import { Schedules } from './pages/Schedules';
@@ -20,7 +20,7 @@ const NAV_ROUTES = [
   '/sessions',
   '/board',
   '/changes',
-  '/editor',
+  '/files',
   '/skills',
   '/agents',
   '/schedules',
@@ -110,7 +110,7 @@ export function App() {
             <Route path="/board" element={<KanbanBoard />} />
             <Route path="/changes" element={<Changes />} />
             <Route path="/worktrees" element={<Worktrees />} />
-            <Route path="/editor" element={<Editor />} />
+            <Route path="/files" element={<Files />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/workflows" element={<Workflows />} />

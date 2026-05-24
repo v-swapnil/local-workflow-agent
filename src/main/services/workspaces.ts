@@ -161,18 +161,18 @@ export interface ReadFileResult {
 export async function readWorkspaceFile(
   workspaceId: string,
   relPath: string,
-  offset?: number,
-  limit?: number,
+  startLine?: number,
+  endLine?: number,
 ): Promise<ReadFileResult> {
   const ws = await getWorkspace(workspaceId);
-  return readTextFileFromRoot(ws.path, relPath, offset, limit);
+  return readTextFileFromRoot(ws.path, relPath, startLine, endLine);
 }
 
 export async function readTextFileFromRoot(
   rootPath: string,
   relPath: string,
-  offset?: number,
-  limit?: number,
+  startLine?: number,
+  endLine?: number,
 ): Promise<ReadFileResult> {
   const abs = safeJoin(rootPath, relPath);
   const s = await stat(abs);
@@ -183,16 +183,16 @@ export async function readTextFileFromRoot(
   const allLines = raw.split('\n');
   const totalLines = allLines.length;
 
-  const start = (offset ?? 1) - 1; // 1-based → 0-based
-  const maxLines = limit ?? DEFAULT_READ_LIMIT;
+  const start = (startLine ?? 1) - 1; // 1-based → 0-based
+  const maxLines = endLine != null ? endLine - (startLine ?? 1) + 1 : DEFAULT_READ_LIMIT;
 
-  const numbered: string[] = [];
+  const lines: string[] = [];
   let bytes = 0;
   let cut = false;
   let more = false;
 
   for (let i = start; i < totalLines; i++) {
-    if (numbered.length >= maxLines) {
+    if (lines.length >= maxLines) {
       more = true;
       break;
     }
@@ -200,25 +200,24 @@ export async function readTextFileFromRoot(
     if (line.length > MAX_LINE_LENGTH) {
       line = line.substring(0, MAX_LINE_LENGTH) + `... (line truncated)`;
     }
-    const entry = `${i + 1}: ${line}`;
-    const entryBytes = Buffer.byteLength(entry, 'utf8') + (numbered.length > 0 ? 1 : 0);
+    const entryBytes = Buffer.byteLength(line, 'utf8') + (lines.length > 0 ? 1 : 0);
     if (bytes + entryBytes > MAX_OUTPUT_BYTES) {
       cut = true;
       more = true;
       break;
     }
-    numbered.push(entry);
+    lines.push(line);
     bytes += entryBytes;
   }
 
-  const last = start + numbered.length;
+  const last = start + lines.length;
   const truncated = more || cut || start > 0;
-  let content = numbered.join('\n');
+  let content = lines.join('\n');
 
   if (cut) {
-    content += `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`;
+    content += `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use startLine=${last + 1} to continue.)`;
   } else if (more) {
-    content += `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`;
+    content += `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use startLine=${last + 1} to continue.)`;
   } else {
     content += `\n\n(End of file — total ${totalLines} lines)`;
   }

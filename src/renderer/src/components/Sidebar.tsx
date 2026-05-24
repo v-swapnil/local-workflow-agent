@@ -33,7 +33,7 @@ const ICONS: Record<string, JSX.Element> = {
       <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
     </svg>
   ),
-  editor: (
+  files: (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
       <path d="M5.5 4L3 8l2.5 4M10.5 4L13 8l-2.5 4" />
       <path d="M9 3L7 13" strokeOpacity="0.4" />
@@ -85,7 +85,7 @@ const BASE_NAV: { to: string; label: string; icon: string; hint: string }[] = [
   { to: '/board', label: 'board', icon: 'board', hint: '⌘2' },
   { to: '/changes', label: 'changes', icon: 'changes', hint: '⌘3' },
   { to: '/worktrees', label: 'worktrees', icon: 'worktrees', hint: '' },
-  { to: '/editor', label: 'editor', icon: 'editor', hint: '⌘4' },
+  { to: '/files', label: 'files', icon: 'files', hint: '⌘4' },
   { to: '/skills', label: 'skills', icon: 'skills', hint: '⌘5' },
   { to: '/agents', label: 'agents', icon: 'agents', hint: '⌘6' },
   { to: '/workflows', label: 'workflows', icon: 'workflows', hint: '' },
