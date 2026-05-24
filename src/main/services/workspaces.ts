@@ -158,33 +158,55 @@ export interface ReadFileResult {
   truncated: boolean;
 }
 
+export async function readSourceFile(filePath: string) {
+  const fileStats = await stat(filePath);
+
+  if (fileStats.isDirectory()) {
+    throw new Error('is a directory');
+  }
+
+  const content = await readFile(filePath, 'utf8');
+
+  return { content, size: fileStats.size };
+}
+
 export async function readWorkspaceFile(
   workspaceId: string,
   relPath: string,
-  startLine?: number,
-  endLine?: number,
+  offset?: number,
+  limit?: number,
 ): Promise<ReadFileResult> {
   const ws = await getWorkspace(workspaceId);
-  return readTextFileFromRoot(ws.path, relPath, startLine, endLine);
+  const filePath = safeJoin(ws.path, relPath);
+
+  if (offset === undefined && limit === undefined) {
+    const { content, size } = await readSourceFile(filePath);
+    return {
+      content,
+      size,
+      lines: content.split('\n').length,
+      truncated: false,
+    };
+  }
+
+  return readTextFileFromRoot(filePath, offset, limit);
 }
 
 export async function readTextFileFromRoot(
-  rootPath: string,
-  relPath: string,
-  startLine?: number,
-  endLine?: number,
+  filePath: string,
+  offset?: number,
+  limit?: number,
 ): Promise<ReadFileResult> {
-  const abs = safeJoin(rootPath, relPath);
-  const s = await stat(abs);
-  if (s.isDirectory()) throw new Error('is a directory');
-  if (s.size > MAX_FILE_BYTES)
-    throw new Error(`file too large (${s.size} bytes, max ${MAX_FILE_BYTES})`);
-  const raw = await readFile(abs, 'utf8');
-  const allLines = raw.split('\n');
+  const { content: fileContent, size: fileSize } = await readSourceFile(filePath);
+
+  if (fileSize > MAX_FILE_BYTES)
+    throw new Error(`file too large (${fileSize} bytes, max ${MAX_FILE_BYTES})`);
+
+  const allLines = fileContent.split('\n');
   const totalLines = allLines.length;
 
-  const start = (startLine ?? 1) - 1; // 1-based → 0-based
-  const maxLines = endLine != null ? endLine - (startLine ?? 1) + 1 : DEFAULT_READ_LIMIT;
+  const start = (offset ?? 1) - 1; // 1-based → 0-based
+  const maxLines = limit ?? DEFAULT_READ_LIMIT;
 
   const lines: string[] = [];
   let bytes = 0;
@@ -212,17 +234,31 @@ export async function readTextFileFromRoot(
 
   const last = start + lines.length;
   const truncated = more || cut || start > 0;
-  let content = lines.join('\n');
 
-  if (cut) {
-    content += `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use startLine=${last + 1} to continue.)`;
-  } else if (more) {
-    content += `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use startLine=${last + 1} to continue.)`;
+  let content = [`<path>${filePath}</path>`, `<type>file</type>`, '<content>\n'];
+
+  if (lines.length === 0) {
+    content.push('\n\n(file is empty)');
   } else {
-    content += `\n\n(End of file — total ${totalLines} lines)`;
+    content.push(lines.join('\n'));
   }
 
-  return { content, size: s.size, lines: totalLines, truncated };
+  if (cut) {
+    content.push(`\n\n(output truncated at ${MAX_OUTPUT_BYTES} bytes)`);
+    content.push(
+      `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`,
+    );
+  } else if (more) {
+    content.push(
+      `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`,
+    );
+  } else {
+    content.push(`\n\n(End of file — total ${totalLines} lines)`);
+  }
+
+  content.push('\n</content>');
+
+  return { content: content.join('\n'), size: fileSize, lines: totalLines, truncated };
 }
 
 export async function writeWorkspaceFile(

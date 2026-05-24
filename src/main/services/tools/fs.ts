@@ -10,22 +10,21 @@ import type { Tool } from './types.js';
 import { writeWorkspaceFile as writeWS, deleteWorkspacePath } from '../workspaces.js';
 
 export const readFileTool: Tool<
-  { path: string; startLine?: number; endLine?: number },
+  { path: string; offset?: number; limit?: number },
   ReadFileResult
 > = {
   name: 'read_file',
   description:
     'Read a UTF-8 text file from the workspace. ' +
-    'Use startLine (1-based, inclusive) and endLine (1-based, inclusive) to read a specific range. ' +
-    'Omitting both reads up to the first 2000 lines. ' +
+    'Use offset (1-based start line) and limit (number of lines, default 2000) to read a specific range. ' +
     'Use the grep tool to find content in large files. Call in parallel when reading multiple files.',
   schema: z.object({
     path: z.string().min(1),
-    startLine: z.number().int().min(1).optional().describe('First line to read (1-based, inclusive).'),
-    endLine: z.number().int().min(1).optional().describe('Last line to read (1-based, inclusive).'),
+    offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
+    limit: z.number().int().min(1).optional().describe('Number of lines to read from offset (default 2000).'),
   }),
   needsApproval: false,
-  run: async ({ path, startLine, endLine }, ctx) => readWorkspaceFile(ctx.workspaceId, path, startLine, endLine),
+  run: async ({ path, offset, limit }, ctx) => readWorkspaceFile(ctx.workspaceId, path, offset, limit),
 };
 
 export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; bytes: number }> = {

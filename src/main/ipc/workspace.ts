@@ -12,10 +12,8 @@ import {
   writeWorkspaceFile,
   renameWorkspaceFile,
   deleteWorkspacePath,
-  readTextFileFromRoot,
 } from '../services/workspaces.js';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
-import { getWorktree } from '../services/worktrees.js';
 
 export const workspaceRouter = router({
   list: publicProcedure.query(() => listWorkspaces()),
@@ -65,18 +63,6 @@ export const fileRouter = router({
   read: publicProcedure
     .input(z.object({ workspaceId: z.string(), path: z.string() }))
     .query(({ input }) => readWorkspaceFile(input.workspaceId, input.path)),
-  readForWorktree: publicProcedure
-    .input(
-      z.object({ workspaceId: z.string(), path: z.string(), worktreeId: z.string().optional() }),
-    )
-    .query(async ({ input }) => {
-      if (!input.worktreeId) return readWorkspaceFile(input.workspaceId, input.path);
-      const wt = getWorktree(input.worktreeId);
-      if (!wt || wt.workspaceId !== input.workspaceId || wt.status !== 'active') {
-        return readWorkspaceFile(input.workspaceId, input.path);
-      }
-      return readTextFileFromRoot(wt.path, input.path);
-    }),
   write: publicProcedure
     .input(z.object({ workspaceId: z.string(), path: z.string(), content: z.string() }))
     .mutation(async ({ input }) => {
