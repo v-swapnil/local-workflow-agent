@@ -19,6 +19,34 @@ import type { Tool } from './types.js';
 const MAX_DEFS = 10;
 const MAX_REFS = 100;
 const MAX_CANDIDATE_FILES = 100;
+// High cap — we only use file paths from grep hits, not the individual lines
+const GREP_CANDIDATE_HITS = 5000;
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+async function readSourceFile(absPath: string): Promise<string | null> {
+  try {
+    return await readFile(absPath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+async function grepCandidatePaths(
+  root: string,
+  symbol: string,
+  path: string | undefined,
+): Promise<string[]> {
+  const hits = await grep(root, {
+    pattern: symbol,
+    isRegex: false,
+    caseSensitive: true,
+    rel: path,
+    include: '**/*.{ts,tsx,js,jsx,mjs,cjs,py}',
+    maxHits: GREP_CANDIDATE_HITS,
+  });
+  return [...new Set(hits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
+}
 
 // ─── list_symbols ──────────────────────────────────────────────────────────────
 
@@ -33,15 +61,10 @@ export const listSymbolsTool: Tool<{ path: string }, OutlineSymbol[]> = {
   needsApproval: false,
   run: async ({ path }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
-    const abs = safeJoin(ws.path, path);
     const lang = detectLanguage(path);
     if (!lang) return [];
-    let source: string;
-    try {
-      source = await readFile(abs, 'utf8');
-    } catch {
-      return [];
-    }
+    const source = await readSourceFile(safeJoin(ws.path, path));
+    if (!source) return [];
     return parseOutline(source, lang);
   },
 };
@@ -59,15 +82,10 @@ export const listImportsTool: Tool<{ path: string }, ImportEntry[]> = {
   needsApproval: false,
   run: async ({ path }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
-    const abs = safeJoin(ws.path, path);
     const lang = detectLanguage(path);
     if (!lang) return [];
-    let source: string;
-    try {
-      source = await readFile(abs, 'utf8');
-    } catch {
-      return [];
-    }
+    const source = await readSourceFile(safeJoin(ws.path, path));
+    if (!source) return [];
     return parseImports(source, lang);
   },
 };
@@ -93,38 +111,18 @@ export const findSymbolTool: Tool<
   needsApproval: false,
   run: async ({ symbol, path }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
-
-    const grepHits = await grep(ws.path, {
-      pattern: symbol,
-      isRegex: false,
-      caseSensitive: true,
-      rel: path,
-      include: '**/*.{ts,tsx,js,jsx,mjs,cjs,py}',
-      maxHits: 5000,
-    });
-
-    const candidatePaths = [...new Set(grepHits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
+    const candidatePaths = await grepCandidatePaths(ws.path, symbol, path);
     const results: DefinitionResult[] = [];
 
     for (const relPath of candidatePaths) {
       if (results.length >= MAX_DEFS) break;
       const lang = detectLanguage(relPath);
       if (!lang) continue;
-      let source: string;
-      try {
-        source = await readFile(safeJoin(ws.path, relPath), 'utf8');
-      } catch {
-        continue;
-      }
-      const hits = findSymbolNodes(source, symbol, lang);
-      for (const hit of hits) {
+      const source = await readSourceFile(safeJoin(ws.path, relPath));
+      if (!source) continue;
+      for (const hit of findSymbolNodes(source, symbol, lang)) {
         if (results.length >= MAX_DEFS) break;
-        results.push({
-          path: relPath,
-          line: hit.line,
-          signature: hit.signature,
-          exported: hit.exported,
-        });
+        results.push({ path: relPath, line: hit.line, signature: hit.signature, exported: hit.exported });
       }
     }
 
@@ -154,32 +152,16 @@ export const findReferencesTool: Tool<
   needsApproval: false,
   run: async ({ symbol, path }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
-
-    const grepHits = await grep(ws.path, {
-      pattern: symbol,
-      isRegex: false,
-      caseSensitive: true,
-      rel: path,
-      include: '**/*.{ts,tsx,js,jsx,mjs,cjs,py}',
-      maxHits: 5000,
-    });
-
-    const candidatePaths = [...new Set(grepHits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
+    const candidatePaths = await grepCandidatePaths(ws.path, symbol, path);
     const results: ReferenceResult[] = [];
 
     for (const relPath of candidatePaths) {
       if (results.length >= MAX_REFS) break;
       const lang = detectLanguage(relPath);
       if (!lang) continue;
-      let source: string;
-      try {
-        source = await readFile(safeJoin(ws.path, relPath), 'utf8');
-      } catch {
-        continue;
-      }
-
-      const hits = findReferenceNodes(source, symbol, lang);
-      for (const hit of hits) {
+      const source = await readSourceFile(safeJoin(ws.path, relPath));
+      if (!source) continue;
+      for (const hit of findReferenceNodes(source, symbol, lang)) {
         if (results.length >= MAX_REFS) break;
         results.push({ path: relPath, line: hit.line, text: hit.text });
       }
@@ -188,3 +170,4 @@ export const findReferencesTool: Tool<
     return results;
   },
 };
+
