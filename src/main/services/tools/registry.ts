@@ -6,6 +6,12 @@ import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { askUserTool } from './user.js';
 import { readMemoriesTool, addMemoryTool } from './memory.js';
+import {
+  listSymbolsTool,
+  listImportsTool,
+  findSymbolTool,
+  findReferencesTool,
+} from './codesearch.js';
 import { requestApproval } from '../approvals.js';
 import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
@@ -27,6 +33,11 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   ask_user: askUserTool as Tool<unknown, unknown>,
   read_memories: readMemoriesTool as Tool<unknown, unknown>,
   add_memory: addMemoryTool as Tool<unknown, unknown>,
+  // ── codebase search ──
+  list_symbols:    listSymbolsTool    as Tool<unknown, unknown>,
+  list_imports:    listImportsTool    as Tool<unknown, unknown>,
+  find_symbol:     findSymbolTool     as Tool<unknown, unknown>,
+  find_references: findReferencesTool as Tool<unknown, unknown>,
 };
 
 export function listTools(): {
@@ -67,6 +78,11 @@ const READ_ONLY_TOOLS: ToolName[] = [
   'git_status',
   'git_diff',
   'read_memories',
+  // ── codebase search ──
+  'list_symbols',
+  'list_imports',
+  'find_symbol',
+  'find_references',
 ];
 
 /** Returns true if the given tool is read-only (safe to run in parallel). */

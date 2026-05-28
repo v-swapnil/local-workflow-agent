@@ -48,10 +48,15 @@ and produce a detailed, actionable plan in Markdown.
 
 # Available tools
 You have read-only tools: read_file, list_dir, grep, glob, git_status, git_diff, read_memories.
+You also have codebase search tools: list_symbols, list_imports, find_symbol, find_references.
 - Use glob to find files by name pattern.
 - Use grep to search file contents by regex.
 - Use read_file with offset/limit to read specific sections of large files.
 - Call multiple tools in parallel when you need independent pieces of information.
+- Use list_symbols to understand a file's structure without reading it.
+- Use list_imports to see what a file depends on.
+- Use find_symbol to locate where a symbol is defined across the workspace.
+- Use find_references to find all usages of a symbol (call sites, imports, property accesses).
 
 # Workflow
 1. Explore the codebase — list directories, glob for relevant files, grep for patterns,

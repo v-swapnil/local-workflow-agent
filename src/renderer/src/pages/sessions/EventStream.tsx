@@ -104,7 +104,7 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
           <span className="text-ink-500">→</span>{' '}
           <span className="text-ink-400">{ev.tool}</span>
           <span className="text-ink-600"> · </span>
-          <span className="text-ink-300">{summarizeToolCall(ev.tool, ev.input)}</span>
+          <span className="text-ink-300">{summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}</span>
         </Line>
       );
     case 'tool_call.finished':

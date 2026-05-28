@@ -15,7 +15,12 @@ export type ToolName =
   | 'git_commit'
   | 'ask_user'
   | 'read_memories'
-  | 'add_memory';
+  | 'add_memory'
+  // ── codebase search ──
+  | 'list_symbols'
+  | 'list_imports'
+  | 'find_symbol'
+  | 'find_references';
 
 /** ───────── Executor I/O ───────── */
 
