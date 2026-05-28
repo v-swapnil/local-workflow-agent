@@ -20,8 +20,6 @@ export type TaskEvent =
       ts: number;
       stepId: string;
       agent: string;
-      tool?: string;
-      input?: unknown;
     }
   | {
       type: 'step.finished';
@@ -29,6 +27,25 @@ export type TaskEvent =
       ts: number;
       stepId: string;
       ok: boolean;
+      output?: unknown;
+      error?: string;
+    }
+  | {
+      type: 'tool_call.started';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      agent: string;
+      tool: string;
+      input?: unknown;
+    }
+  | {
+      type: 'tool_call.finished';
+      taskId: string;
+      ts: number;
+      stepId: string;
+      ok: boolean;
+      tool: string;
       output?: unknown;
       error?: string;
     }

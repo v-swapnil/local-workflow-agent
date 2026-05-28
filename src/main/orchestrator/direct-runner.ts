@@ -24,29 +24,37 @@ function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
     finishedAt: null,
   });
   taskBus.emit(ctx.taskId, {
-    type: 'step.started',
+    type: 'tool_call.started',
     taskId: ctx.taskId,
     ts: Date.now(),
     stepId: row.id,
     agent: 'direct',
-    tool,
+    tool: tool!,
     input,
   });
   return row.id;
 }
 
-function finishStep(ctx: RunCtx, stepId: string, ok: boolean, output: unknown, error?: string) {
+function finishStep(
+  ctx: RunCtx,
+  stepId: string,
+  ok: boolean,
+  output: unknown,
+  error?: string,
+  tool?: ToolName,
+) {
   updateStep(stepId, {
     outputJson: output != null ? JSON.stringify(output) : null,
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
   taskBus.emit(ctx.taskId, {
-    type: 'step.finished',
+    type: 'tool_call.finished',
     taskId: ctx.taskId,
     ts: Date.now(),
     stepId,
     ok,
+    tool: tool ?? 'unknown',
     output,
     error,
   });
@@ -70,7 +78,12 @@ export async function runDirectAgent(
   const allTools = listToolsForLLM();
   let tools = allTools;
   if (agent.tools) {
-    const allowed = new Set<string>(agent.tools.split(',').map((t) => t.trim()).filter(Boolean));
+    const allowed = new Set<string>(
+      agent.tools
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    );
     tools = allTools.filter((t) => allowed.has(t.function.name));
   }
 
@@ -149,7 +162,7 @@ export async function runDirectAgent(
         },
       });
 
-      finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error);
+      finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error, toolName);
       return { tc, toolName, toolResult };
     };
 

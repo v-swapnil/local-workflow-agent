@@ -1,5 +1,6 @@
 import { cn } from '../../lib/utils';
 import type { TaskEvent } from './types';
+import { summarizeToolCall, summarizeToolResult } from './toolSummary';
 
 export function EventRow({ ev }: { ev: TaskEvent }) {
   const t = new Date(ev.ts).toLocaleTimeString([], {
@@ -82,18 +83,42 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'step.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span> {ev.agent}
-          {ev.tool ? <span className="text-ink-500">:{ev.tool}</span> : ''}
+          <span className="text-ink-500">→</span>{' '}
+          <span className="text-ink-400">{ev.agent}</span>
         </Line>
       );
     case 'step.finished':
       return (
         <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
-          <span className="text-ink-500">←</span> step{' '}
+          <span className="text-ink-500">←</span>{' '}
           {ev.ok ? (
-            <span className="text-emerald-400">ok</span>
+            <span className="text-emerald-400">✓ done</span>
           ) : (
-            <span className="text-rose-400">fail · {(ev.error ?? '').slice(0, 200)}</span>
+            <span className="text-rose-400">✗ {(ev.error ?? 'failed').slice(0, 200)}</span>
+          )}
+        </Line>
+      );
+    case 'tool_call.started':
+      return (
+        <Line ts={t} tone="ink">
+          <span className="text-ink-500">→</span>{' '}
+          <span className="text-ink-400">{ev.tool}</span>
+          <span className="text-ink-600"> · </span>
+          <span className="text-ink-300">{summarizeToolCall(ev.tool, ev.input)}</span>
+        </Line>
+      );
+    case 'tool_call.finished':
+      return (
+        <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
+          <span className="text-ink-500">←</span>{' '}
+          {ev.ok ? (
+            <span className="text-emerald-400">
+              ✓ {summarizeToolResult(ev.tool, true, ev.output)}
+            </span>
+          ) : (
+            <span className="text-rose-400">
+              ✗ {summarizeToolResult(ev.tool, false, undefined, ev.error)}
+            </span>
           )}
         </Line>
       );
@@ -110,7 +135,7 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
             <svg viewBox="0 0 10 12" className="h-3 w-3" fill="currentColor">
               <path d="M2 1h2v11H2zM6 5l4 3-4 3z" />
             </svg>
-            approval requested · <span className="text-ink-200">{ev.tool}</span>
+            approval · <span className="text-ink-200">{summarizeToolCall(ev.tool, ev.args)}</span>
           </span>
         </Line>
       );

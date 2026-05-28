@@ -144,7 +144,7 @@ function bridgeEvent(taskId: string, event: SessionEvent): void {
 
     case 'tool.execution_start':
       taskBus.emit(taskId, {
-        type: 'step.started',
+        type: 'tool_call.started',
         taskId,
         ts,
         stepId: event.data.toolCallId,
@@ -156,11 +156,12 @@ function bridgeEvent(taskId: string, event: SessionEvent): void {
 
     case 'tool.execution_complete':
       taskBus.emit(taskId, {
-        type: 'step.finished',
+        type: 'tool_call.finished',
         taskId,
         ts,
         stepId: event.data.toolCallId,
         ok: !event.data.error,
+        tool: 'unknown', // TODO: fix it
         error: event.data.error?.message,
       });
       break;

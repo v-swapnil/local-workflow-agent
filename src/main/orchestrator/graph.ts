@@ -181,15 +181,25 @@ function emitStepStarted(
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit(ctx.taskId, {
-    type: 'step.started',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    stepId: row.id,
-    agent,
-    tool,
-    input,
-  });
+  if (tool) {
+    taskBus.emit(ctx.taskId, {
+      type: 'tool_call.started',
+      taskId: ctx.taskId,
+      ts: Date.now(),
+      stepId: row.id,
+      agent,
+      tool,
+      input,
+    });
+  } else {
+    taskBus.emit(ctx.taskId, {
+      type: 'step.started',
+      taskId: ctx.taskId,
+      ts: Date.now(),
+      stepId: row.id,
+      agent,
+    });
+  }
   return { stepId: row.id };
 }
 
@@ -199,21 +209,35 @@ function emitStepFinished(
   ok: boolean,
   output: unknown,
   error?: string,
+  tool?: string,
 ): void {
   updateStep(stepId, {
     outputJson: output != null ? JSON.stringify(output) : null,
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
-  taskBus.emit(ctx.taskId, {
-    type: 'step.finished',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    stepId,
-    ok,
-    output,
-    error,
-  });
+  if (tool) {
+    taskBus.emit(ctx.taskId, {
+      type: 'tool_call.finished',
+      taskId: ctx.taskId,
+      ts: Date.now(),
+      stepId,
+      ok,
+      tool,
+      output,
+      error,
+    });
+  } else {
+    taskBus.emit(ctx.taskId, {
+      type: 'step.finished',
+      taskId: ctx.taskId,
+      ts: Date.now(),
+      stepId,
+      ok,
+      output,
+      error,
+    });
+  }
 }
 
 /* ───────── Nodes ───────── */
@@ -252,7 +276,7 @@ async function executeToolCalls(
       },
     });
 
-    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error);
+    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error, tool);
 
     return {
       tool,

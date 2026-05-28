@@ -175,6 +175,23 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   // Additive migration: rename plan_json → plan on tasks
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN plan_json TO plan`); } catch { /* already renamed or doesn't exist */ }
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN result_json TO result`); } catch { /* ignore */ }
+  // Additive migration: split step.started/step.finished → tool_call.started/tool_call.finished for tool events
+  try {
+    _sqlite.exec(`
+      UPDATE task_events
+      SET type = 'tool_call.started',
+          payload_json = REPLACE(payload_json, '"type":"step.started"', '"type":"tool_call.started"')
+      WHERE type = 'step.started'
+        AND json_extract(payload_json, '$.tool') IS NOT NULL
+    `);
+    _sqlite.exec(`
+      UPDATE task_events
+      SET type = 'tool_call.finished',
+          payload_json = REPLACE(payload_json, '"type":"step.finished"', '"type":"tool_call.finished"')
+      WHERE type = 'step.finished'
+        AND json_extract(payload_json, '$.tool') IS NOT NULL
+    `);
+  } catch { /* ignore */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;
