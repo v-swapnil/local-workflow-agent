@@ -2,7 +2,7 @@
 export type ToolName =
   | 'read_file'
   | 'write_file'
-  | 'edit'
+  | 'edit_file'
   | 'apply_patch'
   | 'list_dir'
   | 'grep'

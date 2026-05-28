@@ -9,23 +9,27 @@ import { glob } from '../glob.js';
 import type { Tool } from './types.js';
 import { writeWorkspaceFile as writeWS, deleteWorkspacePath } from '../workspaces.js';
 
-export const readFileTool: Tool<
-  { path: string; offset?: number; limit?: number },
-  ReadFileResult
-> = {
-  name: 'read_file',
-  description:
-    'Read a UTF-8 text file from the workspace. ' +
-    'Use offset (1-based start line) and limit (number of lines, default 2000) to read a specific range. ' +
-    'Use the grep tool to find content in large files. Call in parallel when reading multiple files.',
-  schema: z.object({
-    path: z.string().min(1),
-    offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
-    limit: z.number().int().min(1).optional().describe('Number of lines to read from offset (default 2000).'),
-  }),
-  needsApproval: false,
-  run: async ({ path, offset, limit }, ctx) => readWorkspaceFile(ctx.workspaceId, path, offset, limit),
-};
+export const readFileTool: Tool<{ path: string; offset?: number; limit?: number }, ReadFileResult> =
+  {
+    name: 'read_file',
+    description:
+      'Read a UTF-8 text file from the workspace. ' +
+      'Use offset (1-based start line) and limit (number of lines, default 2000) to read a specific range. ' +
+      'Use the grep tool to find content in large files. Call in parallel when reading multiple files.',
+    schema: z.object({
+      path: z.string().min(1),
+      offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .optional()
+        .describe('Number of lines to read from offset (default 2000).'),
+    }),
+    needsApproval: false,
+    run: async ({ path, offset, limit }, ctx) =>
+      readWorkspaceFile(ctx.workspaceId, path, offset, limit),
+  };
 
 export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; bytes: number }> = {
   name: 'write_file',
@@ -49,17 +53,17 @@ export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
   run: async ({ path, depth }, ctx) => fileTree(ctx.workspaceId, path ?? '', depth ?? 4),
 };
 
-export const grepTool: Tool<
-  { pattern: string; path?: string; include?: string },
-  unknown
-> = {
+export const grepTool: Tool<{ pattern: string; path?: string; include?: string }, unknown> = {
   name: 'grep',
   description:
     'Search file contents in the workspace for a regex pattern. ' +
     'Returns matching lines with file paths and line numbers.',
   schema: z.object({
     pattern: z.string().min(1).describe('The regex pattern to search for in file contents.'),
-    path: z.string().optional().describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
+    path: z
+      .string()
+      .optional()
+      .describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
     include: z.string().optional().describe('File glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
   }),
   needsApproval: false,
@@ -84,8 +88,14 @@ export const globTool: Tool<
     'Search for files by name pattern in the workspace. ' +
     'Returns matching file paths sorted by modification time (most recent first).',
   schema: z.object({
-    pattern: z.string().min(1).describe('Glob pattern to match files (e.g. "**/*.ts", "src/**/*.test.*").'),
-    path: z.string().optional().describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
+    pattern: z
+      .string()
+      .min(1)
+      .describe('Glob pattern to match files (e.g. "**/*.ts", "src/**/*.test.*").'),
+    path: z
+      .string()
+      .optional()
+      .describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
   }),
   needsApproval: false,
   run: async (args, ctx) => {
@@ -122,11 +132,11 @@ export const applyPatchTool: Tool<
   },
 };
 
-export const editTool: Tool<
+export const editFileTool: Tool<
   { path: string; oldString: string; newString: string; replaceAll?: boolean },
   { ok: true }
 > = {
-  name: 'edit',
+  name: 'edit_file',
   description:
     'Replace an exact string in a file. The oldString must appear in the file ' +
     '(exactly once unless replaceAll is true). Use an empty oldString to append to the file.',

@@ -1,7 +1,7 @@
 import Parser from 'tree-sitter';
 import JavaScript from 'tree-sitter-javascript';
-import TypeScript from 'tree-sitter-typescript/typescript';
-import TSX from 'tree-sitter-typescript/tsx';
+import TypeScript from 'tree-sitter-typescript/bindings/node/typescript.js';
+import TSX from 'tree-sitter-typescript/bindings/node/tsx.js';
 import Python from 'tree-sitter-python';
 import { extname } from 'node:path';
 import type { Language } from './types.js';

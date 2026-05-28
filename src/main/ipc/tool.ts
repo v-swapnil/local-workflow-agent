@@ -1,18 +1,10 @@
 import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
-import { invokeTool, listTools } from '../services/tools/registry.js';
+import { invokeTool, listTools, listToolNames } from '../services/tools/registry.js';
 import type { ToolName } from '../services/tools/types.js';
 
-const TOOL_NAMES = [
-  'read_file',
-  'write_file',
-  'apply_patch',
-  'list_dir',
-  'grep',
-  'run_shell',
-  'run_tests',
-] as const satisfies readonly ToolName[];
+const TOOL_NAMES = listToolNames() as [ToolName, ...ToolName[]];
 
 export const toolRouter = router({
   list: publicProcedure.query(() => listTools()),

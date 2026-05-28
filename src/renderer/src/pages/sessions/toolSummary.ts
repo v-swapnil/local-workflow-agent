@@ -30,7 +30,7 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
     }
     case 'write_file':
       return `Writing ${truncPath(str(a.path))}`;
-    case 'edit': {
+    case 'edit_file': {
       const p = truncPath(str(a.path));
       const old = truncStr(str(a.oldString), 30);
       return a.oldString ? `Editing ${p} — replacing "${old}"` : `Appending to ${p}`;
@@ -102,7 +102,7 @@ export function summarizeToolResult(
     }
     case 'write_file':
       return 'written';
-    case 'edit':
+    case 'edit_file':
       return typeof o.replacements === 'number' ? `${o.replacements} replacement(s)` : 'applied';
     case 'list_dir':
       return typeof o === 'string' ? truncStr(o, 60) : 'done';

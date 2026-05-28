@@ -4,13 +4,13 @@ declare module 'tree-sitter-javascript' {
   export = grammar;
 }
 
-declare module 'tree-sitter-typescript/typescript' {
+declare module 'tree-sitter-typescript/bindings/node/typescript.js' {
   import type Parser from 'tree-sitter';
   const grammar: Parser.Language;
   export = grammar;
 }
 
-declare module 'tree-sitter-typescript/tsx' {
+declare module 'tree-sitter-typescript/bindings/node/tsx.js' {
   import type Parser from 'tree-sitter';
   const grammar: Parser.Language;
   export = grammar;

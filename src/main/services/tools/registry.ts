@@ -1,7 +1,15 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getWorkspace } from '../workspaces.js';
-import { readFileTool, writeFileTool, listDirTool, grepTool, globTool, applyPatchTool, editTool } from './fs.js';
+import {
+  readFileTool,
+  writeFileTool,
+  listDirTool,
+  grepTool,
+  globTool,
+  applyPatchTool,
+  editFileTool,
+} from './fs.js';
 import { runShellTool, runTestsTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { askUserTool } from './user.js';
@@ -19,7 +27,7 @@ import type { ChatToolDef } from '../llm/provider.js';
 const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_file: readFileTool as Tool<unknown, unknown>,
   write_file: writeFileTool as Tool<unknown, unknown>,
-  edit: editTool as Tool<unknown, unknown>,
+  edit_file: editFileTool as Tool<unknown, unknown>,
   apply_patch: applyPatchTool as Tool<unknown, unknown>,
   list_dir: listDirTool as Tool<unknown, unknown>,
   grep: grepTool as Tool<unknown, unknown>,
@@ -34,22 +42,28 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_memories: readMemoriesTool as Tool<unknown, unknown>,
   add_memory: addMemoryTool as Tool<unknown, unknown>,
   // ── codebase search ──
-  list_symbols:    listSymbolsTool    as Tool<unknown, unknown>,
-  list_imports:    listImportsTool    as Tool<unknown, unknown>,
-  find_symbol:     findSymbolTool     as Tool<unknown, unknown>,
+  list_symbols: listSymbolsTool as Tool<unknown, unknown>,
+  list_imports: listImportsTool as Tool<unknown, unknown>,
+  find_symbol: findSymbolTool as Tool<unknown, unknown>,
   find_references: findReferencesTool as Tool<unknown, unknown>,
 };
+
+export function listToolNames(): ToolName[] {
+  return Object.keys(REGISTRY) as ToolName[];
+}
 
 export function listTools(): {
   name: ToolName;
   description: string;
   needsApproval: boolean;
+  readOnly: boolean;
   argsSchema: Record<string, unknown>;
 }[] {
   return Object.values(REGISTRY).map((t) => ({
     name: t.name,
     description: t.description,
     needsApproval: t.needsApproval,
+    readOnly: READ_ONLY_TOOLS.includes(t.name),
     argsSchema: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
   }));
 }

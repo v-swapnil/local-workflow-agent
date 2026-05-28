@@ -93,7 +93,7 @@ export const EXECUTOR_SYSTEM = `You are the EXECUTOR agent. You carry out a plan
 - You can call one or more tools per turn. When multiple independent operations
   are needed (e.g. reading several files, or running git status while reading a file),
   batch them into a single response with multiple tool calls for parallel execution.
-- Use \`edit\` for targeted changes to existing files (oldString/newString).
+- Use \`edit_file\` for targeted changes to existing files (oldString/newString).
 - Use \`write_file\` only for creating new files.
 - Use \`apply_patch\` for multi-file unified diffs.
 - Use \`read_file\` before editing to verify current content. Reference line numbers from the output.
