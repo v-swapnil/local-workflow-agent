@@ -18,6 +18,11 @@ export function ApprovalModal({
     }
   }, [req.args]);
 
+  const isShell = req.tool === 'run_shell';
+  const shellArgs = isShell
+    ? (req.args as { command?: string; description?: string; workdir?: string } | null)
+    : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="w-[560px] max-w-[90vw] rounded-xl border border-amber/20 bg-ink-900 shadow-2xl animate-scale-in">
@@ -37,9 +42,36 @@ export function ApprovalModal({
             {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
           </div>
         </div>
-        <pre className="max-h-[40vh] overflow-y-auto px-5 py-3 font-mono text-ui-xs leading-relaxed text-ink-200">
-          {argsPretty}
-        </pre>
+
+        {isShell && shellArgs ? (
+          <div className="space-y-3 px-5 py-3">
+            {shellArgs.description && (
+              <div>
+                <div className="mb-1 font-mono text-ui-2xs uppercase text-ink-500">intent</div>
+                <div className="text-ui-sm text-ink-200">{shellArgs.description}</div>
+              </div>
+            )}
+            {shellArgs.command && (
+              <div>
+                <div className="mb-1 font-mono text-ui-2xs uppercase text-ink-500">command</div>
+                <pre className="max-h-[30vh] overflow-y-auto rounded-lg bg-ink-950 px-3 py-2 font-mono text-ui-xs leading-relaxed text-ink-100">
+                  {shellArgs.command}
+                </pre>
+              </div>
+            )}
+            {shellArgs.workdir && shellArgs.workdir !== '.' && (
+              <div>
+                <div className="mb-1 font-mono text-ui-2xs uppercase text-ink-500">directory</div>
+                <code className="text-ui-xs text-ink-300">{shellArgs.workdir}</code>
+              </div>
+            )}
+          </div>
+        ) : (
+          <pre className="max-h-[40vh] overflow-y-auto px-5 py-3 font-mono text-ui-xs leading-relaxed text-ink-200">
+            {argsPretty}
+          </pre>
+        )}
+
         <div className="flex items-center justify-end gap-2 border-t border-ink-800/60 px-5 py-3">
           <button
             onClick={() => onDecide('deny')}

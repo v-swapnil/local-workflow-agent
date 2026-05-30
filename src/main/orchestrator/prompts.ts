@@ -98,7 +98,9 @@ export const EXECUTOR_SYSTEM = `You are the EXECUTOR agent. You carry out a plan
 - Use \`apply_patch\` for multi-file unified diffs.
 - Use \`read_file\` before editing to verify current content. Reference line numbers from the output.
 - Use \`grep\` and \`glob\` to find files and patterns before making changes.
-- Use \`run_shell\` for builds, linters, and other commands.
+- Use \`run_shell\` for shell commands: builds, tests, linters, file operations, package management.
+  Provide a clear \`description\` explaining your intent. Read-only commands (ls, grep, git status)
+  run automatically; other commands require user approval.
 
 # Workflow
 - Work through the plan steps in order.

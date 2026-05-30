@@ -84,4 +84,28 @@ export const settingsRouter = router({
       await setSetting(SETTING_KEYS.USE_WORKTREES, input.value ? '1' : '0');
       return { ok: true as const };
     }),
+
+  shellPath: publicProcedure.query(async () => {
+    return (await getSetting(SETTING_KEYS.SHELL_PATH)) ?? null;
+  }),
+
+  setShellPath: publicProcedure
+    .input(z.object({ value: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.SHELL_PATH, input.value);
+      return { ok: true as const };
+    }),
+
+  shellTimeout: publicProcedure.query(async () => {
+    const saved = await getSetting(SETTING_KEYS.SHELL_TIMEOUT);
+    const n = saved ? parseInt(saved, 10) : 120_000;
+    return isNaN(n) || n < 1000 ? 120_000 : Math.min(n, 600_000);
+  }),
+
+  setShellTimeout: publicProcedure
+    .input(z.object({ value: z.number().int().min(1000).max(600_000) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.SHELL_TIMEOUT, String(input.value));
+      return { ok: true as const };
+    }),
 });

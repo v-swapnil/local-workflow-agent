@@ -4,6 +4,7 @@ import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { listToolsForLLM } from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
+import { resolveShell } from '../services/shell/env.js';
 import { extractJson } from '../util/json.js';
 import { taskBus } from '../services/events.js';
 import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
@@ -46,10 +47,22 @@ export async function llmChat(
     tools,
     onDelta: (d) => {
       buf.push(d);
-      taskBus.emit(ctx.taskId, { type: 'llm.delta', taskId: ctx.taskId, ts: Date.now(), agent, content: d });
+      taskBus.emit(ctx.taskId, {
+        type: 'llm.delta',
+        taskId: ctx.taskId,
+        ts: Date.now(),
+        agent,
+        content: d,
+      });
     },
     onThinkingDelta: (d) => {
-      taskBus.emit(ctx.taskId, { type: 'llm.thinking_delta', taskId: ctx.taskId, ts: Date.now(), agent, content: d });
+      taskBus.emit(ctx.taskId, {
+        type: 'llm.thinking_delta',
+        taskId: ctx.taskId,
+        ts: Date.now(),
+        agent,
+        content: d,
+      });
     },
   });
   const text = result.content || buf.join('');
@@ -66,7 +79,9 @@ export async function llmChat(
     if (parsed.done) return { done: true, text };
     if (parsed.action) {
       return {
-        toolCalls: [{ id: `call_${nanoid(8)}`, name: parsed.action.tool, arguments: parsed.action.args }],
+        toolCalls: [
+          { id: `call_${nanoid(8)}`, name: parsed.action.tool, arguments: parsed.action.args },
+        ],
         text,
         done: false,
       };
@@ -104,7 +119,9 @@ export async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext>
     worktree,
     isGitRepo,
     platform: platform(),
-    shell: process.env.SHELL ?? null,
+    shell: await resolveShell()
+      .then((config) => config.shellPath)
+      .catch(() => process.env.SHELL ?? null),
     model: ctx.model,
     git: { branch, changedFiles },
   };

@@ -9,6 +9,7 @@ import { logger } from './services/logger.js';
 import { syncSkills } from './services/skills.js';
 import { clearStaleApprovals } from './services/approvals.js';
 import { markOrphanedTasksFailed } from './orchestrator/runner.js';
+import { cleanupTruncationFiles } from './services/shell/index.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -57,6 +58,7 @@ app.whenReady().then(() => {
   initDb();
   clearStaleApprovals();
   markOrphanedTasksFailed();
+  cleanupTruncationFiles();
   syncSkills().catch((err) => logger.warn({ err }, 'initial skill sync failed'));
   createWindow();
 

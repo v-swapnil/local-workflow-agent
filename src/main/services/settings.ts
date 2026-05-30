@@ -36,4 +36,5 @@ export const SETTING_KEYS = {
   KANBAN_AUTO_CLEAR: 'kanban.autoClearOverride',
   KANBAN_DEFAULT_VIEW: 'kanban.defaultView',
   USE_WORKTREES: 'use_worktrees',
+  SHELL_PATH: 'shell.path',
 } as const;
