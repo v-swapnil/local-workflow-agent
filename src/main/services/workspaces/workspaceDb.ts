@@ -2,9 +2,9 @@ import { mkdir, stat, rm } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { getDb } from '../db/index.js';
-import { workspaces } from '../db/schema.js';
-import { workspacesRoot } from '../util/paths.js';
+import { getDb } from '../../db/index.js';
+import { workspaces } from '../../db/schema.js';
+import { workspacesRoot } from '../../util/paths.js';
 
 export interface Workspace {
   id: string;

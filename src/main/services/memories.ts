@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, isNotNull } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { memories } from '../db/schema.js';
 
@@ -18,8 +18,9 @@ export interface MemoryRecord {
   id: number;
   type: MemoryType;
   content: string;
-  sessionId: string;
+  sessionId: string | null;
   taskId: string | null;
+  workspaceId: string | null;
   createdAt: number;
 }
 
@@ -32,16 +33,35 @@ export function listSessionMemories(sessionId: string): MemoryRecord[] {
     .all() as MemoryRecord[];
 }
 
-export function addSessionMemory(input: {
-  sessionId: string;
+export function listWorkspaceMemories(
+  workspaceId: string,
+  type?: MemoryType,
+): MemoryRecord[] {
+  const conditions = [
+    eq(memories.workspaceId, workspaceId),
+    isNull(memories.sessionId),
+  ];
+  if (type) conditions.push(eq(memories.type, type));
+  return getDb()
+    .select()
+    .from(memories)
+    .where(and(...conditions))
+    .orderBy(desc(memories.createdAt), desc(memories.id))
+    .all() as MemoryRecord[];
+}
+
+export function addMemory(input: {
+  sessionId?: string | null;
   taskId?: string | null;
+  workspaceId?: string | null;
   type: MemoryType;
   content: string;
 }): MemoryRecord {
   const row: MemoryRecord = {
     id: 0,
-    sessionId: input.sessionId,
+    sessionId: input.sessionId ?? null,
     taskId: input.taskId ?? null,
+    workspaceId: input.workspaceId ?? null,
     type: input.type,
     content: input.content.trim(),
     createdAt: Date.now(),
@@ -53,6 +73,7 @@ export function addSessionMemory(input: {
       content: row.content,
       sessionId: row.sessionId,
       taskId: row.taskId,
+      workspaceId: row.workspaceId,
       createdAt: row.createdAt,
     })
     .run();
@@ -72,4 +93,3 @@ export function listTaskMemories(taskId: string): MemoryRecord[] {
     .orderBy(desc(memories.createdAt), desc(memories.id))
     .all() as MemoryRecord[];
 }
-

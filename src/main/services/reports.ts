@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getTask, getSession, listSteps } from './store.js';
-import { getWorkspace } from './workspaces.js';
+import { getWorkspace } from './workspaces';
 import { reportsDir } from '../util/paths.js';
 
 export interface ExportedTaskReport {

@@ -9,7 +9,7 @@ import {
   deleteWorktreeRecord,
 } from '../services/worktrees.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { getWorkspace } from '../services/workspaces.js';
+import { getWorkspace } from '../services/workspaces';
 
 export const worktreeRouter = router({
   list: publicProcedure.query(async () => {

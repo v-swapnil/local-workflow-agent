@@ -172,13 +172,15 @@ export const memories = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     type: text('type').notNull(),
     content: text('content').notNull(),
-    sessionId: text('session_id').notNull(),
+    sessionId: text('session_id'),
     taskId: text('task_id'),
+    workspaceId: text('workspace_id'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({
     sessionIdx: index('idx_memories_session').on(t.sessionId),
     taskIdx: index('idx_memories_task').on(t.taskId),
     typeIdx: index('idx_memories_type').on(t.type),
+    wsIdx: index('idx_memories_workspace').on(t.workspaceId),
   }),
 );

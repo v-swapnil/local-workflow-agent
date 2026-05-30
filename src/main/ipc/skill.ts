@@ -8,7 +8,7 @@ import {
   deleteSkill,
   revealSkillInOS,
   syncSkills,
-} from '../services/skills.js';
+} from '../services/skills';
 
 export const skillRouter = router({
   list: publicProcedure.query(() => listSkills()),

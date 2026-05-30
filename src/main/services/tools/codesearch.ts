@@ -1,16 +1,18 @@
 import { z } from 'zod';
 import { readFile } from 'node:fs/promises';
-import { getWorkspace } from '../workspaces.js';
+import { getWorkspace } from '../workspaces';
 import { safeJoin } from '../../util/safePath.js';
 import { grep } from '../grep.js';
 import {
   detectLanguage,
   parseOutline,
   parseImports,
+  parseExports,
   findSymbolNodes,
   findReferenceNodes,
   type OutlineSymbol,
   type ImportEntry,
+  type ExportEntry,
   type DefinitionResult,
   type ReferenceResult,
 } from '../codesearch/parser.js';
@@ -37,7 +39,7 @@ async function grepCandidatePaths(
   symbol: string,
   path: string | undefined,
 ): Promise<string[]> {
-  const hits = await grep(root, {
+  const result = await grep(root, {
     pattern: symbol,
     isRegex: false,
     caseSensitive: true,
@@ -45,7 +47,7 @@ async function grepCandidatePaths(
     include: '**/*.{ts,tsx,js,jsx,mjs,cjs,py}',
     maxHits: GREP_CANDIDATE_HITS,
   });
-  return [...new Set(hits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
+  return [...new Set(result.hits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
 }
 
 // ─── list_symbols ──────────────────────────────────────────────────────────────
@@ -92,10 +94,7 @@ export const listImportsTool: Tool<{ path: string }, ImportEntry[]> = {
 
 // ─── find_symbol ──────────────────────────────────────────────────────────────
 
-export const findSymbolTool: Tool<
-  { symbol: string; path?: string },
-  DefinitionResult[]
-> = {
+export const findSymbolTool: Tool<{ symbol: string; path?: string }, DefinitionResult[]> = {
   name: 'find_symbol',
   description:
     'Find where a named symbol (function, class, type, interface, variable) is defined ' +
@@ -103,10 +102,7 @@ export const findSymbolTool: Tool<
     'signature, and whether it is exported. Performs exact name matching — not substring.',
   schema: z.object({
     symbol: z.string().min(1).describe('Exact symbol name to find (case-sensitive).'),
-    path: z
-      .string()
-      .optional()
-      .describe('Narrow search to this directory (workspace-relative).'),
+    path: z.string().optional().describe('Narrow search to this directory (workspace-relative).'),
   }),
   needsApproval: false,
   run: async ({ symbol, path }, ctx) => {
@@ -122,7 +118,12 @@ export const findSymbolTool: Tool<
       if (!source) continue;
       for (const hit of findSymbolNodes(source, symbol, lang)) {
         if (results.length >= MAX_DEFS) break;
-        results.push({ path: relPath, line: hit.line, signature: hit.signature, exported: hit.exported });
+        results.push({
+          path: relPath,
+          line: hit.line,
+          signature: hit.signature,
+          exported: hit.exported,
+        });
       }
     }
 
@@ -132,10 +133,7 @@ export const findSymbolTool: Tool<
 
 // ─── find_references ──────────────────────────────────────────────────────────
 
-export const findReferencesTool: Tool<
-  { symbol: string; path?: string },
-  ReferenceResult[]
-> = {
+export const findReferencesTool: Tool<{ symbol: string; path?: string }, ReferenceResult[]> = {
   name: 'find_references',
   description:
     'Find all usages of a named symbol across the workspace. Uses grep to locate ' +
@@ -144,10 +142,7 @@ export const findReferencesTool: Tool<
     'accesses like obj.foo.',
   schema: z.object({
     symbol: z.string().min(1).describe('Exact symbol name to find (case-sensitive).'),
-    path: z
-      .string()
-      .optional()
-      .describe('Narrow search to this directory (workspace-relative).'),
+    path: z.string().optional().describe('Narrow search to this directory (workspace-relative).'),
   }),
   needsApproval: false,
   run: async ({ symbol, path }, ctx) => {
@@ -171,3 +166,26 @@ export const findReferencesTool: Tool<
   },
 };
 
+// ─── list_exports ──────────────────────────────────────────────────────────────
+
+export const listExportsTool: Tool<{ path: string }, ExportEntry[]> = {
+  name: 'list_exports',
+  description:
+    'List all exported symbols from a workspace file.\n\n' +
+    "Returns each export's name, kind (function/class/type/interface/variable/enum/default), " +
+    'line number, and whether it is a re-export from another module.\n\n' +
+    'Use this to understand what a module provides. Complements list_imports: ' +
+    'trace an import to its source module, then use list_exports to see what is available.',
+  schema: z.object({
+    path: z.string().min(1).describe('File path relative to workspace root.'),
+  }),
+  needsApproval: false,
+  run: async ({ path }, ctx) => {
+    const ws = await getWorkspace(ctx.workspaceId);
+    const lang = detectLanguage(path);
+    if (!lang) return [];
+    const source = await readSourceFile(safeJoin(ws.path, path));
+    if (!source) return [];
+    return parseExports(source, lang);
+  },
+};

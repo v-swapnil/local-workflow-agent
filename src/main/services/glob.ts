@@ -21,6 +21,7 @@ const MAX_RESULTS = 100;
 export interface GlobOptions {
   pattern: string;
   rel?: string;
+  limit?: number;
 }
 
 /**
@@ -62,8 +63,9 @@ export async function glob(
   // Sort by mtime descending (most recently modified first)
   withMtime.sort((a, b) => b.mtime - a.mtime);
 
-  const truncated = withMtime.length > MAX_RESULTS;
-  const files = withMtime.slice(0, MAX_RESULTS).map((f) => f.path);
+  const limit = opts.limit ?? MAX_RESULTS;
+  const truncated = withMtime.length > limit;
+  const files = withMtime.slice(0, limit).map((f) => f.path);
 
   return { files, count: withMtime.length, truncated };
 }

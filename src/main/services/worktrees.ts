@@ -7,7 +7,7 @@ import { getDb } from '../db/index.js';
 import { worktrees } from '../db/schema.js';
 import { worktreesRoot } from '../util/paths.js';
 import { getWorktreeRoot } from './git.js';
-import { getWorkspace } from './workspaces.js';
+import { getWorkspace } from './workspaces';
 import { logger } from './logger.js';
 
 const log = logger.child({ mod: 'worktrees' });

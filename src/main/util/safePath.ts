@@ -5,7 +5,7 @@ import { resolve, relative, isAbsolute } from 'node:path';
  * Throws if the path attempts to escape (`..`, absolute paths, symlink tricks).
  */
 export function safeJoin(root: string, target: string): string {
-  const cleaned = target.replace(/^\/+/, '');
+  const cleaned = target.normalize('NFC').replace(/^\/+/, '');
   const joined = resolve(root, cleaned);
   const rel = relative(root, joined);
   if (rel.startsWith('..') || isAbsolute(rel)) {

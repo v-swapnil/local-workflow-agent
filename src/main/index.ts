@@ -6,7 +6,7 @@ import { APP_BUNDLE_ID } from '@shared/constants';
 import { initDb, closeDb } from './db/index.js';
 import { appRouter } from './ipc/router.js';
 import { logger } from './services/logger.js';
-import { syncSkills } from './services/skills.js';
+import { syncSkills } from './services/skills';
 import { clearStaleApprovals } from './services/approvals.js';
 import { markOrphanedTasksFailed } from './orchestrator/runner.js';
 import { cleanupTruncationFiles } from './services/shell/index.js';

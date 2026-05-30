@@ -4,10 +4,10 @@ import { nanoid } from 'nanoid';
 import { join, basename } from 'node:path';
 import { readdir, readFile, stat, mkdir, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { getDb } from '../db/index.js';
-import { skills as skillsTable } from '../db/schema.js';
-import { userDataDir } from '../util/paths.js';
-import { logger } from './logger.js';
+import { getDb } from '../../db/index.js';
+import { skills as skillsTable } from '../../db/schema.js';
+import { userDataDir } from '../../util/paths.js';
+import { logger } from '../logger.js';
 import { parseSkill, type Skill } from './skillParser.js';
 
 const log = logger.child({ mod: 'skills' });
@@ -53,7 +53,10 @@ export async function ensureBundledSkills(): Promise<void> {
   }
 }
 
-export async function readSkillFolder(absDir: string, builtinIds: Set<string>): Promise<Skill | null> {
+export async function readSkillFolder(
+  absDir: string,
+  builtinIds: Set<string>,
+): Promise<Skill | null> {
   const id = basename(absDir);
   if (!ID_RE.test(id)) return null;
   const skillFile = join(absDir, 'SKILL.md');

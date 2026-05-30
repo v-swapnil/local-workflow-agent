@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm';
 import { join, resolve } from 'node:path';
 import { writeFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { getDb } from '../db/index.js';
-import { skills as skillsTable } from '../db/schema.js';
+import { getDb } from '../../db/index.js';
+import { skills as skillsTable } from '../../db/schema.js';
 import { userSkillsDir, syncSkills, getSkillByName, ID_RE } from './skillDisk.js';
 import { renderSkillMd, type Skill } from './skillParser.js';
 

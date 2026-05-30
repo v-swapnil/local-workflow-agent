@@ -15,11 +15,13 @@ export type ToolName =
   | 'ask_user'
   | 'read_memories'
   | 'add_memory'
+  | 'create_task'
   // ── codebase search ──
   | 'list_symbols'
   | 'list_imports'
   | 'find_symbol'
-  | 'find_references';
+  | 'find_references'
+  | 'list_exports';
 
 /** ───────── Executor I/O ───────── */
 

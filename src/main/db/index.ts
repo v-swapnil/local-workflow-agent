@@ -192,6 +192,18 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
         AND json_extract(payload_json, '$.tool') IS NOT NULL
     `);
   } catch { /* ignore */ }
+  // Additive migration: add workspace_id to memories, make session_id nullable
+  try { _sqlite.exec(`ALTER TABLE memories ADD COLUMN workspace_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_memories_workspace ON memories(workspace_id)`); } catch { /* exists */ }
+  // Migrate data from workspace_memories into memories (if workspace_memories exists)
+  try {
+    _sqlite.exec(`
+      INSERT INTO memories (type, content, workspace_id, created_at)
+      SELECT type, content, workspace_id, created_at
+      FROM workspace_memories
+    `);
+    _sqlite.exec(`DROP TABLE IF EXISTS workspace_memories`);
+  } catch { /* table doesn't exist or already migrated */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

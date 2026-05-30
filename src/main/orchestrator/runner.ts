@@ -1,4 +1,4 @@
-import { getWorkspace } from '../services/workspaces.js';
+import { getWorkspace } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { taskBus } from '../services/events.js';

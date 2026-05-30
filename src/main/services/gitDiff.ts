@@ -1,4 +1,4 @@
-import { getWorkspace } from './workspaces.js';
+import { getWorkspace } from './workspaces';
 import { gitFor, isRepo } from './gitCore.js';
 import type { GitDiff } from './gitCore.js';
 

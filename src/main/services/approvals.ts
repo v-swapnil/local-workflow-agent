@@ -15,6 +15,8 @@ export interface ApprovalRequest {
   taskId: string;
   tool: ToolName;
   args: unknown;
+  /** Unified diff preview for write_file / edit_file operations. */
+  diff?: string;
   createdAt: number;
 }
 
@@ -49,6 +51,7 @@ export async function requestApproval(
   tool: ToolName,
   args: unknown,
   signal?: AbortSignal,
+  diff?: string,
 ): Promise<ApprovalDecision> {
   if (await isAutoApprove()) return 'approve';
   if (taskAllow.get(taskId)?.has(tool)) return 'approve';
@@ -58,6 +61,7 @@ export async function requestApproval(
     taskId,
     tool,
     args,
+    diff,
     createdAt: Date.now(),
   };
 
@@ -86,6 +90,7 @@ export async function requestApproval(
       approvalId: req.id,
       tool,
       args,
+      diff,
     } as never);
     bus.emit('changed');
 

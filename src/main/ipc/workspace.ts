@@ -12,7 +12,7 @@ import {
   writeWorkspaceFile,
   renameWorkspaceFile,
   deleteWorkspacePath,
-} from '../services/workspaces.js';
+} from '../services/workspaces';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 
 export const workspaceRouter = router({

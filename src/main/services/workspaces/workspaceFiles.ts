@@ -1,6 +1,6 @@
-import { mkdir, readdir, stat, readFile, writeFile, rename, rm } from 'node:fs/promises';
+import { mkdir, readdir, stat, readFile, writeFile, rename, rm, open } from 'node:fs/promises';
 import { join, dirname, sep } from 'node:path';
-import { safeJoin } from '../util/safePath.js';
+import { safeJoin } from '../../util/safePath.js';
 import { getWorkspace } from './workspaceDb.js';
 
 const IGNORED = new Set(['.git', 'node_modules', '.DS_Store', '.next', 'dist', 'out', '.turbo']);
@@ -75,8 +75,29 @@ async function walk(root: string, abs: string, depth: number): Promise<FileNode>
 export async function readSourceFile(filePath: string): Promise<{ content: string; size: number }> {
   const fileStats = await stat(filePath);
   if (fileStats.isDirectory()) throw new Error('is a directory');
+  if (await isBinaryFile(filePath)) {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    throw new Error(
+      `Binary file detected (${ext ?? 'unknown type'}). ` +
+        `Use run_shell with 'file' or 'xxd' to inspect binary files.`,
+    );
+  }
   const content = await readFile(filePath, 'utf8');
   return { content, size: fileStats.size };
+}
+
+async function isBinaryFile(filePath: string): Promise<boolean> {
+  const fd = await open(filePath, 'r');
+  try {
+    const buf = Buffer.alloc(8192);
+    const { bytesRead } = await fd.read(buf, 0, 8192, 0);
+    for (let i = 0; i < bytesRead; i++) {
+      if (buf[i] === 0) return true;
+    }
+    return false;
+  } finally {
+    await fd.close();
+  }
 }
 
 export async function readWorkspaceFile(

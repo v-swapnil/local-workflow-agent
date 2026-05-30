@@ -39,7 +39,7 @@ export function planPatch(
     }
 
     const original = isNew ? '' : (readOriginal(oldPath) ?? '');
-    const result = applyPatch(original, f);
+    const result = applyPatch(original, f, { fuzzFactor: 2 });
     if (result === false) {
       throw new Error(`failed to apply patch to ${targetPath}`);
     }
