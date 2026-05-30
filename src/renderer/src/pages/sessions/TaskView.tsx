@@ -53,7 +53,7 @@ export function TaskView({ taskId }: { taskId: string }) {
         } else if (e.type === 'user_input.requested') {
           setPendingUserInputs((prev) => [
             ...prev,
-            { id: e.requestId, question: e.question, context: e.context, choices: e.choices, ts: e.ts },
+            { id: e.requestId, question: e.question, description: e.description, choices: e.choices, allowMultiple: e.allowMultiple, ts: e.ts },
           ]);
         } else if (e.type === 'user_input.responded') {
           setPendingUserInputs((prev) => prev.filter((r) => r.id !== e.requestId));

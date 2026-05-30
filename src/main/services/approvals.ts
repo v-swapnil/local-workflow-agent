@@ -197,7 +197,7 @@ const pendingUserInputs = new Map<string, PendingUserInput>();
 export function requestUserInput(
   taskId: string,
   question: string,
-  opts?: { context?: string; choices?: string[] },
+  opts?: { description?: string; choices?: string[]; allowMultiple?: boolean },
   signal?: AbortSignal,
 ): Promise<string> {
   const requestId = nanoid(10);
@@ -210,8 +210,9 @@ export function requestUserInput(
       ts: Date.now(),
       requestId,
       question,
-      context: opts?.context,
+      description: opts?.description,
       choices: opts?.choices,
+      allowMultiple: opts?.allowMultiple,
     } as never);
     bus.emit('changed');
 

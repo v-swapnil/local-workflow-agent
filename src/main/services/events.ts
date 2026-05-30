@@ -80,8 +80,9 @@ export type TaskEvent =
       ts: number;
       requestId: string;
       question: string;
-      context?: string;
+      description?: string;
       choices?: string[];
+      allowMultiple?: boolean;
     }
   | {
       type: 'user_input.responded';

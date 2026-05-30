@@ -80,8 +80,9 @@ export type TaskEvent =
       ts: number;
       requestId: string;
       question: string;
-      context?: string;
+      description?: string;
       choices?: string[];
+      allowMultiple?: boolean;
     }
   | {
       type: 'user_input.responded';
@@ -101,7 +102,8 @@ export interface ApprovalReq {
 export interface UserInputReq {
   id: string;
   question: string;
-  context?: string;
+  description?: string;
   choices?: string[];
+  allowMultiple?: boolean;
   ts: number;
 }
