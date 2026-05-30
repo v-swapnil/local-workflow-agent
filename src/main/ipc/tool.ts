@@ -21,7 +21,7 @@ export const toolRouter = router({
       invokeTool(input.name, input.args, { workspaceId: input.workspaceId }),
     ),
 
-  // Streamed invocation (for run_shell / run_tests) — emits log lines + final result.
+  // Streamed invocation (for run_shell) — emits log lines + final result.
   invokeStream: publicProcedure
     .input(
       z.object({

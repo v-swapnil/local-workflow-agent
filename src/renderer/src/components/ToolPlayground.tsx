@@ -4,7 +4,7 @@ import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { cn } from '../lib/utils';
 import type { ToolName } from '@shared/agent';
 
-const STREAMING: ToolName[] = ['run_shell', 'run_tests'];
+const STREAMING: ToolName[] = ['run_shell'];
 
 /** Build a default JSON args string from a JSON Schema `properties` object. */
 function defaultArgsFromSchema(schema: Record<string, unknown>): string {

@@ -8,7 +8,6 @@ export type ToolName =
   | 'grep'
   | 'glob'
   | 'run_shell'
-  | 'run_tests'
   | 'git_status'
   | 'git_diff'
   | 'git_branch'

@@ -56,10 +56,6 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
       const argv = Array.isArray(a.args) ? ' ' + (a.args as string[]).join(' ') : '';
       return `Running \`${truncStr(cmd + argv, 50)}\``;
     }
-    case 'run_tests': {
-      const cmd = a.cmd ? str(a.cmd) : 'auto-detected';
-      return `Running tests (${truncStr(cmd, 40)})`;
-    }
     case 'git_status':
       return 'Checking git status';
     case 'git_diff':
@@ -116,10 +112,6 @@ export function summarizeToolResult(
       return files != null ? `${files} file(s)` : 'done';
     }
     case 'run_shell':
-    case 'run_tests': {
-      const code = o.exitCode ?? o.code;
-      return code != null ? `exit ${code}` : 'done';
-    }
     case 'git_status': {
       const branch = o.branch ? `on ${str(o.branch)}` : '';
       return branch || 'done';

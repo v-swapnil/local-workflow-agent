@@ -99,7 +99,6 @@ export const EXECUTOR_SYSTEM = `You are the EXECUTOR agent. You carry out a plan
 - Use \`read_file\` before editing to verify current content. Reference line numbers from the output.
 - Use \`grep\` and \`glob\` to find files and patterns before making changes.
 - Use \`run_shell\` for builds, linters, and other commands.
-- Use \`run_tests\` to verify changes work correctly.
 
 # Workflow
 - Work through the plan steps in order.

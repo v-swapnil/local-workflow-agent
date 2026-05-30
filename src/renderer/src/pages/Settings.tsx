@@ -101,7 +101,7 @@ export function Settings() {
               disabled={setAuto.isPending}
               onChange={(v) => setAuto.mutate({ value: v })}
               title="auto-approve sensitive tools"
-              description="When off, write_file / apply_patch / run_shell / run_tests will prompt for approval before executing. Recommended for unfamiliar workspaces."
+              description="When off, write_file / apply_patch / run_shell will prompt for approval before executing. Recommended for unfamiliar workspaces."
             />
           </div>
 

@@ -10,7 +10,7 @@ import {
   applyPatchTool,
   editFileTool,
 } from './fs.js';
-import { runShellTool, runTestsTool } from './shell.js';
+import { runShellTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { askUserTool } from './user.js';
 import { readMemoriesTool, addMemoryTool } from './memory.js';
@@ -33,7 +33,6 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   grep: grepTool as Tool<unknown, unknown>,
   glob: globTool as Tool<unknown, unknown>,
   run_shell: runShellTool as Tool<unknown, unknown>,
-  run_tests: runTestsTool as Tool<unknown, unknown>,
   git_status: gitStatusTool as Tool<unknown, unknown>,
   git_diff: gitDiffTool as Tool<unknown, unknown>,
   git_branch: gitBranchTool as Tool<unknown, unknown>,
