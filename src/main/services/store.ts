@@ -4,62 +4,11 @@ import { getDb } from '../db/index.js';
 import { sessions, messages, tasks, steps, memories, toolCalls } from '../db/schema.js';
 import { getSetting, SETTING_KEYS } from './settings.js';
 import { createWorktree, removeWorktreeBySession } from './worktrees.js';
-
-export interface Session {
-  id: string;
-  workspaceId: string;
-  title: string;
-  status: string;
-  kanbanLane: string | null;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface Task {
-  id: string;
-  sessionId: string;
-  prompt: string;
-  status: string;
-  provider: string | null;
-  plan: string | null;
-  result: string | null;
-  iterations: number;
-  maxIterations: number;
-  model: string | null;
-  agentId: string | null;
-  workflowId: string | null;
-  createdAt: number;
-  startedAt: number | null;
-  finishedAt: number | null;
-}
-
-export interface Step {
-  id: string;
-  taskId: string;
-  sequence: number;
-  agent: string;
-  prompt: string | null;
-  result: string | null;
-  status: string;
-  startedAt: number | null;
-  finishedAt: number | null;
-}
-
-export interface ToolCallRecord {
-  id: string;
-  taskId: string;
-  stepId: string | null;
-  tool: string;
-  arguments: string | null;
-  result: string | null;
-  status: string;
-  startedAt: number | null;
-  finishedAt: number | null;
-}
+import type { MessageRecord, SessionRecord, StepRecord, TaskRecord, ToolCallRecord } from '@shared/schema.js';
 
 // ───────── Sessions ─────────
 
-export async function createSession(workspaceId: string, title: string): Promise<Session> {
+export async function createSession(workspaceId: string, title: string): Promise<SessionRecord> {
   const now = Date.now();
   const row = {
     id: nanoid(10),
@@ -83,18 +32,18 @@ export async function createSession(workspaceId: string, title: string): Promise
   return row;
 }
 
-export function listSessions(workspaceId?: string): Session[] {
+export function listSessions(workspaceId?: string): SessionRecord[] {
   const db = getDb();
   const q = workspaceId
     ? db.select().from(sessions).where(eq(sessions.workspaceId, workspaceId))
     : db.select().from(sessions);
-  return (q.all() as Session[]).sort((a, b) => b.updatedAt - a.updatedAt);
+  return (q.all() as SessionRecord[]).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function getSession(id: string): Session {
+export function getSession(id: string): SessionRecord {
   const row = getDb().select().from(sessions).where(eq(sessions.id, id)).get();
   if (!row) throw new Error(`session not found: ${id}`);
-  return row as Session;
+  return row as SessionRecord;
 }
 
 export function renameSession(id: string, title: string): void {
@@ -121,29 +70,32 @@ export function deleteSession(id: string): void {
 
 // ───────── Messages ─────────
 
-export interface Message {
-  id: string;
-  sessionId: string;
-  taskId?: string | null;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  createdAt: number;
-}
-
-export function addMessage(sessionId: string, role: Message['role'], content: string, taskId?: string): Message {
-  const m: Message = { id: nanoid(10), sessionId, taskId: taskId ?? null, role, content, createdAt: Date.now() };
+export function addMessage(
+  sessionId: string,
+  role: MessageRecord['role'],
+  content: string,
+  taskId?: string,
+): MessageRecord {
+  const m: MessageRecord = {
+    id: nanoid(10),
+    sessionId,
+    taskId: taskId ?? null,
+    role,
+    content,
+    createdAt: Date.now(),
+  };
   getDb().insert(messages).values(m).run();
   getDb().update(sessions).set({ updatedAt: m.createdAt }).where(eq(sessions.id, sessionId)).run();
   return m;
 }
 
-export function listMessages(sessionId: string): Message[] {
+export function listMessages(sessionId: string): MessageRecord[] {
   return getDb()
     .select()
     .from(messages)
     .where(eq(messages.sessionId, sessionId))
     .all()
-    .sort((a, b) => a.createdAt - b.createdAt) as Message[];
+    .sort((a, b) => a.createdAt - b.createdAt) as MessageRecord[];
 }
 
 // ───────── Tasks ─────────
@@ -153,8 +105,8 @@ export function createTask(
   prompt: string,
   maxIterations = 6,
   opts?: { model?: string; agentId?: string; workflowId?: string },
-): Task {
-  const t: Task = {
+): TaskRecord {
+  const t: TaskRecord = {
     id: nanoid(10),
     sessionId,
     prompt,
@@ -175,44 +127,44 @@ export function createTask(
   return t;
 }
 
-export function getTask(id: string): Task {
+export function getTask(id: string): TaskRecord {
   const row = getDb().select().from(tasks).where(eq(tasks.id, id)).get();
   if (!row) throw new Error(`task not found: ${id}`);
-  return row as Task;
+  return row as TaskRecord;
 }
 
-export function listTasks(sessionId: string): Task[] {
+export function listTasks(sessionId: string): TaskRecord[] {
   return getDb()
     .select()
     .from(tasks)
     .where(eq(tasks.sessionId, sessionId))
     .orderBy(desc(tasks.createdAt))
-    .all() as Task[];
+    .all() as TaskRecord[];
 }
 
-export function updateTask(id: string, patch: Partial<Task>): void {
+export function updateTask(id: string, patch: Partial<TaskRecord>): void {
   getDb().update(tasks).set(patch).where(eq(tasks.id, id)).run();
 }
 
 // ───────── Steps ─────────
 
-export function addStep(input: Omit<Step, 'id'>): Step {
+export function addStep(input: Omit<StepRecord, 'id'>): StepRecord {
   const row = { id: nanoid(10), ...input };
   getDb().insert(steps).values(row).run();
   return row;
 }
 
-export function updateStep(id: string, patch: Partial<Step>): void {
+export function updateStep(id: string, patch: Partial<StepRecord>): void {
   getDb().update(steps).set(patch).where(eq(steps.id, id)).run();
 }
 
-export function listSteps(taskId: string): Step[] {
+export function listSteps(taskId: string): StepRecord[] {
   return getDb()
     .select()
     .from(steps)
     .where(eq(steps.taskId, taskId))
     .all()
-    .sort((a, b) => a.sequence - b.sequence) as Step[];
+    .sort((a, b) => a.sequence - b.sequence) as StepRecord[];
 }
 
 // ───────── Tool Calls ─────────
@@ -228,11 +180,7 @@ export function updateToolCall(id: string, patch: Partial<ToolCallRecord>): void
 }
 
 export function listToolCalls(taskId: string): ToolCallRecord[] {
-  return getDb()
-    .select()
-    .from(toolCalls)
-    .where(eq(toolCalls.taskId, taskId))
-    .all() as ToolCallRecord[];
+  return getDb().select().from(toolCalls).where(eq(toolCalls.taskId, taskId)).all() as ToolCallRecord[];
 }
 
 // ───────── Kanban ─────────

@@ -9,20 +9,9 @@ import { worktreesRoot } from '../util/paths.js';
 import { getWorktreeRoot } from './git';
 import { getWorkspace } from './workspaces';
 import { logger } from './logger.js';
+import type { WorktreeRecord } from '@shared/schema.js';
 
 const log = logger.child({ mod: 'worktrees' });
-
-export interface WorktreeRecord {
-  id: string;
-  workspaceId: string;
-  sessionId: string | null;
-  branch: string;
-  path: string;
-  baseBranch: string;
-  baseCommit: string;
-  status: string;
-  createdAt: number;
-}
 
 export function worktreeDirForSession(workspaceId: string, sessionId: string): string {
   return join(worktreesRoot(), workspaceId, sessionId);
@@ -44,7 +33,12 @@ export async function createWorktree(
   const worktreePath = worktreeDirForSession(workspaceId, sessionId);
   const branch = `ase/session/${sessionId}`;
 
-  const g = simpleGit({ baseDir: repoRoot, binary: 'git', maxConcurrentProcesses: 2, trimmed: true });
+  const g = simpleGit({
+    baseDir: repoRoot,
+    binary: 'git',
+    maxConcurrentProcesses: 2,
+    trimmed: true,
+  });
 
   // Get current branch and HEAD commit
   const status = await g.status();
@@ -84,11 +78,9 @@ export async function createWorktree(
 }
 
 export async function removeWorktree(worktreeId: string): Promise<void> {
-  const record = getDb()
-    .select()
-    .from(worktrees)
-    .where(eq(worktrees.id, worktreeId))
-    .get() as WorktreeRecord | undefined;
+  const record = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get() as
+    | WorktreeRecord
+    | undefined;
 
   if (!record) {
     log.warn({ worktreeId }, 'worktree record not found');
@@ -99,7 +91,12 @@ export async function removeWorktree(worktreeId: string): Promise<void> {
     const ws = await getWorkspace(record.workspaceId);
     const repoRoot = await getWorktreeRoot(ws.path);
     if (repoRoot) {
-      const g = simpleGit({ baseDir: repoRoot, binary: 'git', maxConcurrentProcesses: 2, trimmed: true });
+      const g = simpleGit({
+        baseDir: repoRoot,
+        binary: 'git',
+        maxConcurrentProcesses: 2,
+        trimmed: true,
+      });
       try {
         await g.raw(['worktree', 'remove', record.path, '--force']);
         log.info({ worktreeId, path: record.path }, 'worktree removed');
@@ -110,11 +107,7 @@ export async function removeWorktree(worktreeId: string): Promise<void> {
     }
   }
 
-  getDb()
-    .update(worktrees)
-    .set({ status: 'removed' })
-    .where(eq(worktrees.id, worktreeId))
-    .run();
+  getDb().update(worktrees).set({ status: 'removed' }).where(eq(worktrees.id, worktreeId)).run();
 }
 
 export async function removeWorktreeBySession(sessionId: string): Promise<void> {
@@ -151,15 +144,13 @@ export async function deleteWorktreeRecord(worktreeId: string): Promise<void> {
 }
 
 export function getWorktree(worktreeId: string): WorktreeRecord | null {
-  const row = getDb()
-    .select()
-    .from(worktrees)
-    .where(eq(worktrees.id, worktreeId))
-    .get();
+  const row = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get();
   return (row as WorktreeRecord | undefined) ?? null;
 }
 
-export function getWorktreeStatus(worktreeId: string): { exists: boolean; status: string; branch: string; path: string } | null {
+export function getWorktreeStatus(
+  worktreeId: string,
+): { exists: boolean; status: string; branch: string; path: string } | null {
   const record = getWorktree(worktreeId);
   if (!record) return null;
   return {

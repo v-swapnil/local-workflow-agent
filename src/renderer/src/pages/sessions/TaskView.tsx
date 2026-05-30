@@ -4,17 +4,18 @@ import { StatusPill } from './StatusPill';
 import { EventRow } from './EventStream';
 import { ApprovalModal } from './ApprovalModal';
 import { UserInputModal } from './UserInputModal';
-import type { TaskEvent, ApprovalReq, UserInputReq } from './types';
+import type { ApprovalReq, UserInputReq } from './types';
+import type { TaskEventRecord } from '@shared/schema';
 
-const getEvents = (previousEvents: TaskEvent[], currentEvent: TaskEvent) => {
+const getEvents = (previousEvents: TaskEventRecord[], currentEvent: TaskEventRecord) => {
   const lastEvent = previousEvents[previousEvents.length - 1];
   if (
-    lastEvent?.type === 'llm.delta' && currentEvent.type === 'llm.delta' ||
-    lastEvent?.type === 'llm.thinking_delta' && currentEvent.type === 'llm.thinking_delta'
+    (lastEvent?.type === 'llm.delta' && currentEvent.type === 'llm.delta') ||
+    (lastEvent?.type === 'llm.thinking_delta' && currentEvent.type === 'llm.thinking_delta')
   ) {
     return previousEvents
       .slice(0, -1)
-      .concat({ ...lastEvent, content: lastEvent.content + currentEvent.content } as TaskEvent);
+      .concat({ ...lastEvent, content: lastEvent.content + currentEvent.content } as TaskEventRecord);
   }
   return previousEvents.concat(currentEvent);
 };
@@ -32,7 +33,7 @@ export function TaskView({ taskId }: { taskId: string }) {
   const decide = trpc.approval.decide.useMutation();
   const respondInput = trpc.approval.respondUserInput.useMutation();
 
-  const [events, setEvents] = useState<TaskEvent[]>([]);
+  const [events, setEvents] = useState<TaskEventRecord[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<ApprovalReq[]>([]);
   const [pendingUserInputs, setPendingUserInputs] = useState<UserInputReq[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
@@ -41,7 +42,7 @@ export function TaskView({ taskId }: { taskId: string }) {
     { taskId },
     {
       onData: (ev) => {
-        const e = ev as TaskEvent;
+        const e = ev as TaskEventRecord;
         setEvents((prev) => getEvents(prev, e));
         if (e.type === 'approval.requested') {
           setPendingApprovals((prev) => [
@@ -53,7 +54,14 @@ export function TaskView({ taskId }: { taskId: string }) {
         } else if (e.type === 'user_input.requested') {
           setPendingUserInputs((prev) => [
             ...prev,
-            { id: e.requestId, question: e.question, description: e.description, choices: e.choices, allowMultiple: e.allowMultiple, ts: e.ts },
+            {
+              id: e.requestId,
+              question: e.question,
+              description: e.description,
+              choices: e.choices,
+              allowMultiple: e.allowMultiple,
+              ts: e.ts,
+            },
           ]);
         } else if (e.type === 'user_input.responded') {
           setPendingUserInputs((prev) => prev.filter((r) => r.id !== e.requestId));

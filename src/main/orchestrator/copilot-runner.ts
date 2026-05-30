@@ -8,12 +8,12 @@ import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { requestApproval, requestUserInput } from '../services/approvals.js';
 import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
-import { DEFAULT_COPILOT_MODEL, PROVIDERS } from '@shared/constants';
+import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult, ToolName } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
 import { getTask } from '../services/store.js';
-import type { AgentRecord } from '../services/agents.js';
 import type { RunCtx } from './runCtx.js';
+import type { AgentRecord } from '@shared/schema.js';
 
 /** Mirrors UserInputRequest / UserInputResponse from @github/copilot-sdk */
 interface UserInputRequest {

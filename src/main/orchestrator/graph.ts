@@ -5,9 +5,7 @@ import { StateAnnotation } from './state.js';
 import { plannerNode, runPlannerNode } from './plannerNode.js';
 import { executorNode, runExecutorNode } from './executorNode.js';
 import type { AgentState } from './state.js';
-import type { AgentRecord } from '../services/agents.js';
-
-export type { RunCtx } from './runCtx.js';
+import type { AgentRecord } from '@shared/schema.js';
 
 export function buildGraph(agent?: AgentRecord | null) {
   if (!agent) {

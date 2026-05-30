@@ -5,16 +5,9 @@ import { nanoid } from 'nanoid';
 import { getDb } from '../../db/index.js';
 import { workspaces } from '../../db/schema.js';
 import { workspacesRoot } from '../../util/paths.js';
+import type { WorkspaceRecord } from '@shared/schema.js';
 
-export interface Workspace {
-  id: string;
-  name: string;
-  path: string;
-  managed: boolean;
-  createdAt: number;
-}
-
-export function toWorkspace(row: typeof workspaces.$inferSelect): Workspace {
+export function toWorkspace(row: typeof workspaces.$inferSelect): WorkspaceRecord {
   return {
     id: row.id,
     name: row.name,
@@ -24,18 +17,18 @@ export function toWorkspace(row: typeof workspaces.$inferSelect): Workspace {
   };
 }
 
-export async function listWorkspaces(): Promise<Workspace[]> {
+export async function listWorkspaces(): Promise<WorkspaceRecord[]> {
   const rows = getDb().select().from(workspaces).all();
   return rows.map(toWorkspace).sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function getWorkspace(id: string): Promise<Workspace> {
+export async function getWorkspace(id: string): Promise<WorkspaceRecord> {
   const row = getDb().select().from(workspaces).where(eq(workspaces.id, id)).get();
   if (!row) throw new Error(`workspace not found: ${id}`);
   return toWorkspace(row);
 }
 
-export async function createManagedWorkspace(name: string): Promise<Workspace> {
+export async function createManagedWorkspace(name: string): Promise<WorkspaceRecord> {
   const id = nanoid(10);
   const safeName =
     name
@@ -44,7 +37,7 @@ export async function createManagedWorkspace(name: string): Promise<Workspace> {
       .slice(0, 64) || 'workspace';
   const dir = join(workspacesRoot(), `${safeName}-${id}`);
   await mkdir(dir, { recursive: true });
-  const ws: Workspace = {
+  const ws: WorkspaceRecord = {
     id,
     name: safeName,
     path: dir,
@@ -64,11 +57,11 @@ export async function createManagedWorkspace(name: string): Promise<Workspace> {
   return ws;
 }
 
-export async function attachExistingWorkspace(path: string): Promise<Workspace> {
+export async function attachExistingWorkspace(path: string): Promise<WorkspaceRecord> {
   const fileStat = await stat(path);
   if (!fileStat.isDirectory()) throw new Error(`not a directory: ${path}`);
   const id = nanoid(10);
-  const ws: Workspace = {
+  const ws: WorkspaceRecord = {
     id,
     name: basename(path),
     path,

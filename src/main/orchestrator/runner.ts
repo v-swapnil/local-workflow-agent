@@ -2,7 +2,7 @@ import { getWorkspace } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { taskBus } from '../services/events.js';
-import { getTask, updateTask, setSessionKanbanLane, type Task } from '../services/store.js';
+import { getTask, updateTask, setSessionKanbanLane } from '../services/store.js';
 import { getAgentOrNull } from '../services/agents.js';
 import { getDb } from '../db/index.js';
 import { sessions, tasks as tasksTable } from '../db/schema.js';
@@ -13,12 +13,14 @@ import { createBranch, commitAll } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
 import { listSessionMemories } from '../services/memories.js';
 import { existsSync } from 'node:fs';
-import { buildGraph, type RunCtx } from './graph.js';
+import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
 import { runTaskViaCopilot } from './copilot-runner.js';
 import { runDirectAgent } from './direct-runner.js';
 import { runWorkflow } from './workflow-runner.js';
 import type { TaskResult } from '@shared/agent';
+import type { TaskRecord } from '@shared/schema';
+import type { RunCtx } from './runCtx';
 
 const log = logger.child({ mod: 'runner' });
 
@@ -211,7 +213,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   }
 }
 
-function finish(task: Task, result: TaskResult): TaskResult {
+function finish(task: TaskRecord, result: TaskResult): TaskResult {
   updateTask(task.id, {
     status: result.status,
     result: JSON.stringify(result),
@@ -235,7 +237,7 @@ function finish(task: Task, result: TaskResult): TaskResult {
   return result;
 }
 
-async function loadSessionWorkspace(task: Task): Promise<{
+async function loadSessionWorkspace(task: TaskRecord): Promise<{
   workspaceId: string;
   workspacePath: string;
   hasWorktree: boolean;

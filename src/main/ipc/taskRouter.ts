@@ -11,8 +11,9 @@ import {
   updateTask,
 } from '../services/store.js';
 import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
-import { taskBus, type TaskEvent } from '../services/events.js';
+import { taskBus } from '../services/events.js';
 import { exportTaskReport } from '../services/reports.js';
+import type { TaskEventRecord } from '@shared/schema.js';
 
 export const taskRouter = router({
   create: publicProcedure
@@ -84,7 +85,7 @@ export const taskRouter = router({
   events: publicProcedure
     .input(z.object({ taskId: z.string().min(1) }))
     .subscription(({ input }) => {
-      return observable<TaskEvent>((emit) => {
+      return observable<TaskEventRecord>((emit) => {
         // Replay persisted events so late subscribers see full history
         const past = taskBus.replayEvents(input.taskId);
         for (const e of past) emit.next(e);
@@ -94,5 +95,4 @@ export const taskRouter = router({
         return () => off();
       });
     }),
-
 });

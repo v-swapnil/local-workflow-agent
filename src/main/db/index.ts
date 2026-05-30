@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS task_events (
   task_id TEXT NOT NULL,
   type TEXT NOT NULL,
   payload_json TEXT NOT NULL,
-  ts INTEGER NOT NULL
+  created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
 CREATE TABLE IF NOT EXISTS settings (
@@ -222,6 +222,8 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_messages_task ON messages(task_id)`); } catch { /* exists */ }
   // Additive migration: rename ts → created_at on messages
   try { _sqlite.exec(`ALTER TABLE messages RENAME COLUMN ts TO created_at`); } catch { /* already renamed or doesn't exist */ }
+  // Additive migration: rename ts → created_at on task_events
+  try { _sqlite.exec(`ALTER TABLE task_events RENAME COLUMN ts TO created_at`); } catch { /* already renamed or doesn't exist */ }
   // Additive migration: create tool_calls table
   try {
     _sqlite.exec(`CREATE TABLE IF NOT EXISTS tool_calls (

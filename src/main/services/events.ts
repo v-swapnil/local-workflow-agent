@@ -2,94 +2,7 @@ import { EventEmitter } from 'node:events';
 import { getDb } from '../db/index.js';
 import { taskEvents } from '../db/schema.js';
 import { eq, asc } from 'drizzle-orm';
-
-export type TaskEvent =
-  | { type: 'task.started'; taskId: string; ts: number }
-  | {
-      type: 'task.finished';
-      taskId: string;
-      ts: number;
-      status: 'succeeded' | 'failed' | 'cancelled';
-      result?: unknown;
-      error?: string;
-    }
-  | {
-      type: 'step.started';
-      taskId: string;
-      ts: number;
-      stepId: string;
-      agent: string;
-    }
-  | {
-      type: 'step.finished';
-      taskId: string;
-      ts: number;
-      stepId: string;
-      ok: boolean;
-      output?: unknown;
-      error?: string;
-    }
-  | {
-      type: 'tool_call.started';
-      taskId: string;
-      ts: number;
-      stepId: string;
-      agent: string;
-      tool: string;
-      input?: unknown;
-    }
-  | {
-      type: 'tool_call.finished';
-      taskId: string;
-      ts: number;
-      stepId: string;
-      ok: boolean;
-      tool: string;
-      output?: unknown;
-      error?: string;
-    }
-  | {
-      type: 'log';
-      taskId: string;
-      ts: number;
-      stream: 'stdout' | 'stderr';
-      text: string;
-      stepId?: string;
-    }
-  | { type: 'llm.delta'; taskId: string; ts: number; agent: string; content: string }
-  | { type: 'llm.thinking_delta'; taskId: string; ts: number; agent: string; content: string }
-  | {
-      type: 'approval.requested';
-      taskId: string;
-      ts: number;
-      approvalId: string;
-      tool: string;
-      args: unknown;
-    }
-  | {
-      type: 'approval.decided';
-      taskId: string;
-      ts: number;
-      approvalId: string;
-      decision: 'approve' | 'approve_session' | 'deny';
-    }
-  | {
-      type: 'user_input.requested';
-      taskId: string;
-      ts: number;
-      requestId: string;
-      question: string;
-      description?: string;
-      choices?: string[];
-      allowMultiple?: boolean;
-    }
-  | {
-      type: 'user_input.responded';
-      taskId: string;
-      ts: number;
-      requestId: string;
-      answer: string;
-    };
+import type { TaskEventRecord } from '@shared/schema.js';
 
 class TaskBus {
   private bus = new EventEmitter();
@@ -97,7 +10,7 @@ class TaskBus {
     this.bus.setMaxListeners(0);
   }
 
-  emit(taskId: string, event: TaskEvent): void {
+  emit(taskId: string, event: TaskEventRecord): void {
     // Persist to SQLite (fire-and-forget, sync via better-sqlite3)
     try {
       getDb()
@@ -106,7 +19,7 @@ class TaskBus {
           taskId,
           type: event.type,
           payloadJson: JSON.stringify(event),
-          ts: event.ts,
+          createdAt: event.ts,
         })
         .run();
     } catch {
@@ -117,18 +30,18 @@ class TaskBus {
     this.bus.emit('*', event);
   }
 
-  on(taskId: string, listener: (e: TaskEvent) => void): () => void {
+  on(taskId: string, listener: (e: TaskEventRecord) => void): () => void {
     this.bus.on(taskId, listener);
     return () => this.bus.off(taskId, listener);
   }
 
-  onAny(listener: (e: TaskEvent) => void): () => void {
+  onAny(listener: (e: TaskEventRecord) => void): () => void {
     this.bus.on('*', listener);
     return () => this.bus.off('*', listener);
   }
 
   /** Read all persisted events for a task from the database. */
-  replayEvents(taskId: string): TaskEvent[] {
+  replayEvents(taskId: string): TaskEventRecord[] {
     try {
       const rows = getDb()
         .select({ payloadJson: taskEvents.payloadJson })
@@ -136,7 +49,7 @@ class TaskBus {
         .where(eq(taskEvents.taskId, taskId))
         .orderBy(asc(taskEvents.id))
         .all();
-      return rows.map((r) => JSON.parse(r.payloadJson) as TaskEvent);
+      return rows.map((r) => JSON.parse(r.payloadJson) as TaskEventRecord);
     } catch {
       return [];
     }

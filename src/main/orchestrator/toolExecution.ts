@@ -51,7 +51,8 @@ export async function executeToolCalls(
       tool,
       args: (args ?? {}) as Record<string, unknown>,
       ok: result.ok,
-      output: typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
+      output:
+        typeof result.output === 'string' ? result.output : JSON.stringify(result.output ?? ''),
       error: result.error,
       durationMs: result.durationMs,
     };

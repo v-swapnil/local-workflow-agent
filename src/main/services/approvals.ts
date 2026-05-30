@@ -7,23 +7,14 @@ import { taskBus } from './events.js';
 import { getSetting, setSetting } from './settings.js';
 import { updateTask } from './store.js';
 import type { ToolName } from './tools/types.js';
+import type { ApprovalRequestRecord } from '@shared/schema.js';
 
 export type ApprovalDecision = 'approve' | 'approve_session' | 'deny';
-
-export interface ApprovalRequest {
-  id: string;
-  taskId: string;
-  tool: ToolName;
-  args: unknown;
-  /** Unified diff preview for write_file / edit_file operations. */
-  diff?: string;
-  createdAt: number;
-}
 
 const SETTING_AUTO_APPROVE = 'autoApproveTools'; // "true" | "false"
 
 interface Pending {
-  request: ApprovalRequest;
+  request: ApprovalRequestRecord;
   resolve: (d: ApprovalDecision) => void;
 }
 
@@ -56,7 +47,7 @@ export async function requestApproval(
   if (await isAutoApprove()) return 'approve';
   if (taskAllow.get(taskId)?.has(tool)) return 'approve';
 
-  const req: ApprovalRequest = {
+  const req: ApprovalRequestRecord = {
     id: nanoid(10),
     taskId,
     tool,
@@ -141,11 +132,11 @@ export function decideApproval(id: string, decision: ApprovalDecision): boolean 
   return true;
 }
 
-export function listPending(): ApprovalRequest[] {
+export function listPending(): ApprovalRequestRecord[] {
   return Array.from(pending.values()).map((p) => p.request);
 }
 
-export function listPendingForTask(taskId: string): ApprovalRequest[] {
+export function listPendingForTask(taskId: string): ApprovalRequestRecord[] {
   return Array.from(pending.values())
     .filter((p) => p.request.taskId === taskId)
     .map((p) => p.request);

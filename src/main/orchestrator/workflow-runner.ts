@@ -4,10 +4,10 @@ import { getAgent } from '../services/agents.js';
 import { requestApproval } from '../services/approvals.js';
 import { runDirectAgent } from './direct-runner.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
-import type { RunCtx } from './graph.js';
 import type { TaskResult } from '@shared/agent';
 import { taskBus } from '../services/events.js';
 import { logger } from '../services/logger.js';
+import type { RunCtx } from './runCtx.js';
 
 const log = logger.child({ mod: 'workflow-runner' });
 

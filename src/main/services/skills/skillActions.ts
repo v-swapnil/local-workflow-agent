@@ -6,7 +6,8 @@ import { existsSync } from 'node:fs';
 import { getDb } from '../../db/index.js';
 import { skills as skillsTable } from '../../db/schema.js';
 import { userSkillsDir, syncSkills, getSkillByName, ID_RE } from './skillDisk.js';
-import { renderSkillMd, type Skill } from './skillParser.js';
+import { renderSkillMd } from './skillParser.js';
+import type { SkillRecord } from '@shared/schema.js';
 
 export async function setSkillEnabled(name: string, enabled: boolean): Promise<void> {
   getDb().update(skillsTable).set({ enabled }).where(eq(skillsTable.name, name)).run();
@@ -19,7 +20,7 @@ export async function createSkill(input: {
   whenToUse?: string;
   tags?: string[];
   body?: string;
-}): Promise<Skill> {
+}): Promise<SkillRecord> {
   if (!ID_RE.test(input.id)) {
     throw new Error('skill id must match /^[a-z0-9][a-z0-9-_]*$/i');
   }

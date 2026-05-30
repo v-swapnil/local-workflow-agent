@@ -3,20 +3,7 @@ import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { agents } from '../db/schema.js';
 import { PROVIDERS } from '@shared/constants';
-
-export interface AgentRecord {
-  id: string;
-  name: string;
-  role: string;
-  model: string;
-  systemPrompt: string;
-  tools: string | null;
-  temperature: number;
-  graphMode: string;
-  maxIterations: number;
-  description: string | null;
-  provider: string;
-}
+import type { AgentRecord } from '@shared/schema.js';
 
 export function listAgents(): AgentRecord[] {
   return getDb().select().from(agents).all() as AgentRecord[];
@@ -33,7 +20,7 @@ export function getAgentOrNull(id: string): AgentRecord | null {
   return (row as AgentRecord) ?? null;
 }
 
-export interface UpsertAgentInput {
+interface UpsertAgentInput {
   id?: string;
   name: string;
   role: string;

@@ -179,7 +179,7 @@ export const taskEvents = sqliteTable(
     taskId: text('task_id').notNull(),
     type: text('type').notNull(),
     payloadJson: text('payload_json').notNull(),
-    ts: integer('ts').notNull(),
+    createdAt: integer('created_at').notNull(),
   },
   (t) => ({ tIdx: index('idx_task_events_task').on(t.taskId) }),
 );

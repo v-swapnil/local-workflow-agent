@@ -4,11 +4,11 @@ import type { ProviderId } from '@shared/types';
 import { invokeTool, listToolsForLLM, isReadOnlyTool } from '../services/tools/registry.js';
 import { taskBus } from '../services/events.js';
 import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
-import type { RunCtx } from './graph.js';
-import type { AgentRecord } from '../services/agents.js';
 import type { TaskResult } from '@shared/agent';
 import type { ChatMessage, ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
+import type { AgentRecord } from '@shared/schema.js';
+import type { RunCtx } from './runCtx.js';
 
 /**
  * Standalone ReAct loop for agents with graphMode === 'direct'.

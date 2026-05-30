@@ -7,19 +7,6 @@ export interface SkillFrontmatter {
   tags?: string[];
 }
 
-export interface Skill {
-  id: string;
-  name: string;
-  path: string; // absolute path to the skill folder
-  description: string;
-  whenToUse: string;
-  tags: string[];
-  body: string; // markdown body (without frontmatter)
-  enabled: boolean;
-  builtin: boolean;
-  updatedAt: number;
-}
-
 export function parseSkill(raw: string): { meta: SkillFrontmatter; body: string } {
   const fm = matter(raw);
   const data = fm.data as Partial<SkillFrontmatter>;

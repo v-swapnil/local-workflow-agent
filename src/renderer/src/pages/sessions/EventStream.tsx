@@ -1,8 +1,8 @@
+import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
-import type { TaskEvent } from './types';
 import { summarizeToolCall, summarizeToolResult } from './toolSummary';
 
-export function EventRow({ ev }: { ev: TaskEvent }) {
+export function EventRow({ ev }: { ev: TaskEventRecord }) {
   const t = new Date(ev.ts).toLocaleTimeString([], {
     hour12: false,
     hour: '2-digit',
@@ -69,8 +69,7 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'step.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span>{' '}
-          <span className="text-ink-400">{ev.agent}</span>
+          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.agent}</span>
         </Line>
       );
     case 'step.finished':
@@ -87,10 +86,11 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
     case 'tool_call.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span>{' '}
-          <span className="text-ink-400">{ev.tool}</span>
+          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.tool}</span>
           <span className="text-ink-600"> · </span>
-          <span className="text-ink-300">{summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}</span>
+          <span className="text-ink-300">
+            {summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}
+          </span>
         </Line>
       );
     case 'tool_call.finished':
