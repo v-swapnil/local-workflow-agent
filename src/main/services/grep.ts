@@ -4,8 +4,6 @@ import { promisify } from 'node:util';
 import { join, relative, sep } from 'node:path';
 import fg from 'fast-glob';
 
-const execFileAsync = promisify(execFile);
-
 const DEFAULT_IGNORE = [
   '**/.git/**',
   '**/node_modules/**',
@@ -50,6 +48,8 @@ export interface GrepResult {
 // Resolved once per process lifetime — null means rg not available.
 let rgPath: string | null | undefined;
 
+const execFileAsync = promisify(execFile);
+
 async function findRipgrep(): Promise<string | null> {
   if (rgPath !== undefined) return rgPath;
   try {
@@ -61,10 +61,7 @@ async function findRipgrep(): Promise<string | null> {
   return rgPath;
 }
 
-async function grepWithRipgrep(
-  root: string,
-  opts: GrepOptions,
-): Promise<GrepResult> {
+async function grepWithRipgrep(root: string, opts: GrepOptions): Promise<GrepResult> {
   const rg = await findRipgrep();
   if (!rg) throw new Error('rg not available');
 
@@ -80,7 +77,7 @@ async function grepWithRipgrep(
   if (contextLines > 0) args.push('-C', String(contextLines));
   if (opts.include) args.push('--glob', opts.include);
   // Ignore default dirs
-  for (const ig of ['**/.git', '**/node_modules', '**/.next', '**/dist', '**/out', '**/.turbo', '**/.venv', '**/venv', '**/__pycache__', '**/.cache']) {
+  for (const ig of DEFAULT_IGNORE) {
     args.push('--glob', `!${ig}`);
   }
   args.push('--', opts.pattern);
@@ -94,7 +91,12 @@ async function grepWithRipgrep(
     }));
   } catch (err: unknown) {
     // rg exits with code 1 when no matches found — that's OK
-    if (err && typeof err === 'object' && 'code' in err && (err as { code?: number | string }).code === 1) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'code' in err &&
+      (err as { code?: number | string }).code === 1
+    ) {
       return { hits: [], total: 0, truncated: false };
     }
     // stderr in the error or real failures — fall through to JS
@@ -107,7 +109,10 @@ async function grepWithRipgrep(
 
   for (const line of stdout.split('\n')) {
     if (!line) continue;
-    let msg: { type: string; data: { path: { text: string }; line_number: number; lines: { text: string } } };
+    let msg: {
+      type: string;
+      data: { path: { text: string }; line_number: number; lines: { text: string } };
+    };
     try {
       msg = JSON.parse(line);
     } catch {
@@ -162,9 +167,10 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepResult>
   const hits: GrepHit[] = [];
   let total = 0;
   const MAX_COUNT = maxHits * 10;
+  let done = false;
 
-  outer:
   for (const entry of entries) {
+    if (done) break;
     const stats = (entry as { stats?: { size: number } }).stats;
     if (stats && stats.size > maxFileBytes) continue;
     const abs = join(cwd, (entry as { path: string }).path);
@@ -195,7 +201,7 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepResult>
             }
           }
         }
-        if (total >= MAX_COUNT) break outer;
+        if (total >= MAX_COUNT) { done = true; break; }
       }
     }
   }
