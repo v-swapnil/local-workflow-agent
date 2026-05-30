@@ -3,62 +3,12 @@ import { PROVIDERS } from '@shared/constants';
 import type { ProviderId } from '@shared/types';
 import { invokeTool, listToolsForLLM, isReadOnlyTool } from '../services/tools/registry.js';
 import { taskBus } from '../services/events.js';
-import { addStep, updateStep } from '../services/store.js';
+import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
 import type { RunCtx } from './graph.js';
 import type { AgentRecord } from '../services/agents.js';
 import type { TaskResult } from '@shared/agent';
 import type { ChatMessage, ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
-
-function emitStep(ctx: RunCtx, tool?: ToolName, input?: unknown) {
-  const idx = ctx.stepIdx.n++;
-  const row = addStep({
-    taskId: ctx.taskId,
-    idx,
-    agent: 'direct',
-    tool: tool ?? null,
-    inputJson: input != null ? JSON.stringify(input) : null,
-    outputJson: null,
-    status: 'running',
-    startedAt: Date.now(),
-    finishedAt: null,
-  });
-  taskBus.emit(ctx.taskId, {
-    type: 'tool_call.started',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    stepId: row.id,
-    agent: 'direct',
-    tool: tool!,
-    input,
-  });
-  return row.id;
-}
-
-function finishStep(
-  ctx: RunCtx,
-  stepId: string,
-  ok: boolean,
-  output: unknown,
-  error?: string,
-  tool?: ToolName,
-) {
-  updateStep(stepId, {
-    outputJson: output != null ? JSON.stringify(output) : null,
-    status: ok ? 'succeeded' : 'failed',
-    finishedAt: Date.now(),
-  });
-  taskBus.emit(ctx.taskId, {
-    type: 'tool_call.finished',
-    taskId: ctx.taskId,
-    ts: Date.now(),
-    stepId,
-    ok,
-    tool: tool ?? 'unknown',
-    output,
-    error,
-  });
-}
 
 /**
  * Standalone ReAct loop for agents with graphMode === 'direct'.
@@ -118,6 +68,15 @@ export async function runDirectAgent(
           content: d,
         });
       },
+      onThinkingDelta: (d) => {
+        taskBus.emit(taskId, {
+          type: 'llm.thinking_delta',
+          taskId,
+          ts: Date.now(),
+          agent: 'direct',
+          content: d,
+        });
+      },
     });
 
     toolCalls = result.toolCalls ?? [];
@@ -143,7 +102,7 @@ export async function runDirectAgent(
     // Execute tool calls — parallel for read-only, sequential otherwise
     const invokeOne = async (tc: ToolCall) => {
       const toolName = tc.name as ToolName;
-      const stepId = emitStep(ctx, toolName, tc.arguments);
+      const { stepId } = emitToolCallStarted(ctx, 'direct', toolName, tc.arguments);
 
       const toolResult = await invokeTool(toolName, tc.arguments, {
         workspaceId: ctx.workspaceId,
@@ -162,7 +121,7 @@ export async function runDirectAgent(
         },
       });
 
-      finishStep(ctx, stepId, toolResult.ok, toolResult.output ?? null, toolResult.error, toolName);
+      emitToolCallFinished(ctx, stepId, toolResult.ok, toolName, toolResult.output ?? null, toolResult.error);
       return { tc, toolName, toolResult };
     };
 

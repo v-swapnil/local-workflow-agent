@@ -6,12 +6,14 @@ import { getCopilotService } from '../services/llm/copilot.js';
 import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { requestApproval, requestUserInput } from '../services/approvals.js';
+import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL, PROVIDERS } from '@shared/constants';
-import type { TaskResult } from '@shared/agent';
+import type { TaskResult, ToolName } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
 import { getTask } from '../services/store.js';
 import type { AgentRecord } from '../services/agents.js';
+import type { RunCtx } from './runCtx.js';
 
 /** Mirrors UserInputRequest / UserInputResponse from @github/copilot-sdk */
 interface UserInputRequest {
@@ -25,12 +27,14 @@ interface UserInputResponse {
 }
 
 const log = logger.child({ mod: 'copilot-runner' });
+const toolCallMap = new Map<string, { stepId: string; tool: string }>();
 
 export async function runTaskViaCopilot(
   taskId: string,
   workspace: { workspaceId: string; workspacePath: string; memoryText?: string | null },
   signal: AbortSignal,
-  agent?: AgentRecord | null,
+  agent: AgentRecord | null,
+  ctx: RunCtx,
 ): Promise<TaskResult> {
   const service = getCopilotService();
   const client = await service.getClient();
@@ -68,7 +72,7 @@ export async function runTaskViaCopilot(
     onPermissionRequest,
     onUserInputRequest,
     onEvent: (event: SessionEvent) => {
-      bridgeEvent(taskId, event);
+      bridgeEvent(taskId, event, ctx);
       if (event.type === 'tool.execution_complete') {
         iterationCount++;
       }
@@ -118,7 +122,7 @@ export async function runTaskViaCopilot(
 /**
  * Map Copilot SDK events → ASE taskBus events for the live UI.
  */
-function bridgeEvent(taskId: string, event: SessionEvent): void {
+function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
   const ts = Date.now();
 
   switch (event.type) {
@@ -142,29 +146,21 @@ function bridgeEvent(taskId: string, event: SessionEvent): void {
       });
       break;
 
-    case 'tool.execution_start':
-      taskBus.emit(taskId, {
-        type: 'tool_call.started',
-        taskId,
-        ts,
-        stepId: event.data.toolCallId,
-        agent: 'copilot',
-        tool: event.data.toolName,
-        input: event.data.arguments,
-      });
+    case 'tool.execution_start': {
+      const tool = event.data.toolName as ToolName;
+      const result = emitToolCallStarted(ctx, 'copilot', tool, event.data.arguments);
+      toolCallMap.set(event.data.toolCallId, { stepId: result.stepId, tool });
       break;
+    }
 
-    case 'tool.execution_complete':
-      taskBus.emit(taskId, {
-        type: 'tool_call.finished',
-        taskId,
-        ts,
-        stepId: event.data.toolCallId,
-        ok: !event.data.error,
-        tool: 'unknown', // TODO: fix it
-        error: event.data.error?.message,
-      });
+    case 'tool.execution_complete': {
+      const ok = !event.data.error;
+      const result = toolCallMap.get(event.data.toolCallId);
+      if (result) {
+        emitToolCallFinished(ctx, result.stepId, ok, result.tool, {}, event.data.error?.message);
+      }
       break;
+    }
 
     case 'session.error':
       taskBus.emit(taskId, {

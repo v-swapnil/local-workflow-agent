@@ -3,8 +3,7 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 import { PLANNER_SYSTEM, EXECUTOR_SYSTEM } from './prompts.js';
 import { StateAnnotation } from './state.js';
 import { plannerNode, runPlannerNode } from './plannerNode.js';
-import { executorNode, runExecutorLoop } from './executorNode.js';
-import { ctxOf } from './runCtx.js';
+import { executorNode, runExecutorNode } from './executorNode.js';
 import type { AgentState } from './state.js';
 import type { AgentRecord } from '../services/agents.js';
 
@@ -28,14 +27,8 @@ export function buildGraph(agent?: AgentRecord | null) {
   const plannerNodeWithAgent = (state: AgentState, config?: RunnableConfig) =>
     runPlannerNode(state, config, plannerSys, temp);
 
-  const executorNodeWithAgent = async (
-    state: AgentState,
-    config?: RunnableConfig,
-  ): Promise<Partial<AgentState>> => {
-    const ctx = ctxOf(config);
-    const newObs = await runExecutorLoop(ctx, executorSys, state, temp);
-    return { history: newObs };
-  };
+  const executorNodeWithAgent = (state: AgentState, config?: RunnableConfig) =>
+    runExecutorNode(state, config, executorSys, temp);
 
   return new StateGraph(StateAnnotation)
     .addNode('planner', plannerNodeWithAgent)

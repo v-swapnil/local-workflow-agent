@@ -66,20 +66,6 @@ export function EventRow({ ev }: { ev: TaskEvent }) {
           />
         </div>
       );
-    case 'plan':
-      return (
-        <div className="my-2 rounded-lg border border-amber/10 bg-amber/3 px-3 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
-            <span className="rounded-full bg-amber/10 px-2 py-px font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
-              plan
-            </span>
-          </div>
-          <div className="mt-1.5 whitespace-pre-wrap font-mono text-ui-xs leading-relaxed text-ink-200">
-            {ev.plan}
-          </div>
-        </div>
-      );
     case 'step.started':
       return (
         <Line ts={t} tone="ink">

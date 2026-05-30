@@ -1,7 +1,7 @@
 import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
-import { sessions, messages, tasks, steps, memories } from '../db/schema.js';
+import { sessions, messages, tasks, steps, memories, toolCalls } from '../db/schema.js';
 import { getSetting, SETTING_KEYS } from './settings.js';
 import { createWorktree, removeWorktreeBySession } from './worktrees.js';
 
@@ -36,11 +36,22 @@ export interface Task {
 export interface Step {
   id: string;
   taskId: string;
-  idx: number;
+  sequence: number;
   agent: string;
-  tool: string | null;
-  inputJson: string | null;
-  outputJson: string | null;
+  prompt: string | null;
+  result: string | null;
+  status: string;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
+export interface ToolCallRecord {
+  id: string;
+  taskId: string;
+  stepId: string | null;
+  tool: string;
+  arguments: string | null;
+  result: string | null;
   status: string;
   startedAt: number | null;
   finishedAt: number | null;
@@ -99,6 +110,7 @@ export function deleteSession(id: string): void {
   // cascade by hand
   const taskRows = db.select().from(tasks).where(eq(tasks.sessionId, id)).all();
   for (const t of taskRows) {
+    db.delete(toolCalls).where(eq(toolCalls.taskId, t.id)).run();
     db.delete(steps).where(eq(steps.taskId, t.id)).run();
   }
   db.delete(tasks).where(eq(tasks.sessionId, id)).run();
@@ -112,15 +124,16 @@ export function deleteSession(id: string): void {
 export interface Message {
   id: string;
   sessionId: string;
+  taskId?: string | null;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  ts: number;
+  createdAt: number;
 }
 
-export function addMessage(sessionId: string, role: Message['role'], content: string): Message {
-  const m: Message = { id: nanoid(10), sessionId, role, content, ts: Date.now() };
+export function addMessage(sessionId: string, role: Message['role'], content: string, taskId?: string): Message {
+  const m: Message = { id: nanoid(10), sessionId, taskId: taskId ?? null, role, content, createdAt: Date.now() };
   getDb().insert(messages).values(m).run();
-  getDb().update(sessions).set({ updatedAt: m.ts }).where(eq(sessions.id, sessionId)).run();
+  getDb().update(sessions).set({ updatedAt: m.createdAt }).where(eq(sessions.id, sessionId)).run();
   return m;
 }
 
@@ -130,7 +143,7 @@ export function listMessages(sessionId: string): Message[] {
     .from(messages)
     .where(eq(messages.sessionId, sessionId))
     .all()
-    .sort((a, b) => a.ts - b.ts) as Message[];
+    .sort((a, b) => a.createdAt - b.createdAt) as Message[];
 }
 
 // ───────── Tasks ─────────
@@ -199,7 +212,27 @@ export function listSteps(taskId: string): Step[] {
     .from(steps)
     .where(eq(steps.taskId, taskId))
     .all()
-    .sort((a, b) => a.idx - b.idx) as Step[];
+    .sort((a, b) => a.sequence - b.sequence) as Step[];
+}
+
+// ───────── Tool Calls ─────────
+
+export function addToolCall(input: Omit<ToolCallRecord, 'id'>): ToolCallRecord {
+  const row = { id: nanoid(10), ...input };
+  getDb().insert(toolCalls).values(row).run();
+  return row;
+}
+
+export function updateToolCall(id: string, patch: Partial<ToolCallRecord>): void {
+  getDb().update(toolCalls).set(patch).where(eq(toolCalls.id, id)).run();
+}
+
+export function listToolCalls(taskId: string): ToolCallRecord[] {
+  return getDb()
+    .select()
+    .from(toolCalls)
+    .where(eq(toolCalls.taskId, taskId))
+    .all() as ToolCallRecord[];
 }
 
 // ───────── Kanban ─────────

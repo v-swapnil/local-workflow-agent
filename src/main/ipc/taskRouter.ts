@@ -33,7 +33,7 @@ export const taskRouter = router({
         agentId: input.agentId,
         workflowId: input.workflowId,
       });
-      addMessage(input.sessionId, 'user', input.prompt);
+      addMessage(input.sessionId, 'user', input.prompt, task.id);
       if (input.autostart !== false) enqueueTask(task.id);
       return task;
     }),

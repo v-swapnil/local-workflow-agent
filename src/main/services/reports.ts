@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getTask, getSession, listSteps } from './store.js';
+import { getTask, getSession, listSteps, listToolCalls } from './store.js';
 import { getWorkspace } from './workspaces';
 import { reportsDir } from '../util/paths.js';
 
@@ -14,6 +14,7 @@ export async function exportTaskReport(taskId: string): Promise<ExportedTaskRepo
   const task = getTask(taskId);
   const session = getSession(task.sessionId);
   const steps = listSteps(taskId);
+  const tcs = listToolCalls(taskId);
 
   let workspace: { id: string; name: string; path: string } | null = null;
   try {
@@ -32,8 +33,12 @@ export async function exportTaskReport(taskId: string): Promise<ExportedTaskRepo
     result: tryParseJson(task.result),
     steps: steps.map((s) => ({
       ...s,
-      input: tryParseJson(s.inputJson),
-      output: tryParseJson(s.outputJson),
+      result: tryParseJson(s.result),
+    })),
+    toolCalls: tcs.map((tc) => ({
+      ...tc,
+      input: tryParseJson(tc.arguments),
+      output: tryParseJson(tc.result),
     })),
   };
 
@@ -85,9 +90,15 @@ function toMarkdown(payload: {
   workspace: { id: string; name: string; path: string } | null;
   steps: Array<{
     id: string;
-    idx: number;
+    sequence: number;
     agent: string;
-    tool: string | null;
+    status: string;
+    startedAt: number | null;
+    finishedAt: number | null;
+  }>;
+  toolCalls: Array<{
+    id: string;
+    tool: string;
     status: string;
     startedAt: number | null;
     finishedAt: number | null;
@@ -114,13 +125,23 @@ function toMarkdown(payload: {
   lines.push(payload.task.prompt);
   lines.push('```');
   lines.push('');
-  lines.push('## Timeline');
+  lines.push('## Steps');
   lines.push('');
-  lines.push('| # | Agent | Tool | Status | Started | Finished |');
-  lines.push('|---|---|---|---|---|---|');
+  lines.push('| # | Agent | Status | Started | Finished |');
+  lines.push('|---|---|---|---|---|');
   for (const s of payload.steps) {
     lines.push(
-      `| ${s.idx} | ${s.agent} | ${s.tool ?? '-'} | ${s.status} | ${fmtIso(s.startedAt)} | ${fmtIso(s.finishedAt)} |`,
+      `| ${s.sequence} | ${s.agent} | ${s.status} | ${fmtIso(s.startedAt)} | ${fmtIso(s.finishedAt)} |`,
+    );
+  }
+  lines.push('');
+  lines.push('## Tool Calls');
+  lines.push('');
+  lines.push('| Tool | Status | Started | Finished |');
+  lines.push('|---|---|---|---|');
+  for (const tc of payload.toolCalls) {
+    lines.push(
+      `| ${tc.tool} | ${tc.status} | ${fmtIso(tc.startedAt)} | ${fmtIso(tc.finishedAt)} |`,
     );
   }
   lines.push('');

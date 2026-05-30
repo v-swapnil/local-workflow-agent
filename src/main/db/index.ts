@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_ws ON sessions(workspace_id);
 CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, role TEXT NOT NULL,
-  content TEXT NOT NULL, ts INTEGER NOT NULL
+  content TEXT NOT NULL, created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
 CREATE TABLE IF NOT EXISTS tasks (
@@ -38,15 +38,24 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_session ON tasks(session_id);
 CREATE TABLE IF NOT EXISTS steps (
-  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, idx INTEGER NOT NULL,
-  agent TEXT NOT NULL, tool TEXT, input_json TEXT, output_json TEXT,
+  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, sequence INTEGER NOT NULL,
+  agent TEXT NOT NULL, prompt TEXT, result TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   started_at INTEGER, finished_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_steps_task ON steps(task_id);
+CREATE TABLE IF NOT EXISTS tool_calls (
+  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, step_id TEXT,
+  tool TEXT NOT NULL, arguments TEXT, result TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  started_at INTEGER, finished_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_tool_calls_task ON tool_calls(task_id);
+CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
 CREATE TABLE IF NOT EXISTS approvals (
   id TEXT PRIMARY KEY, task_id TEXT NOT NULL, step_id TEXT,
-  kind TEXT NOT NULL, payload_json TEXT NOT NULL,
+  tool TEXT NOT NULL, arguments TEXT NOT NULL,
+  description TEXT,
   decision TEXT NOT NULL DEFAULT 'pending',
   created_at INTEGER NOT NULL, decided_at INTEGER
 );
@@ -204,6 +213,55 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
     `);
     _sqlite.exec(`DROP TABLE IF EXISTS workspace_memories`);
   } catch { /* table doesn't exist or already migrated */ }
+  // Additive migration: approvals rename kind→tool, payload_json→arguments, add description
+  try { _sqlite.exec(`ALTER TABLE approvals RENAME COLUMN kind TO tool`); } catch { /* already renamed */ }
+  try { _sqlite.exec(`ALTER TABLE approvals RENAME COLUMN payload_json TO arguments`); } catch { /* already renamed */ }
+  try { _sqlite.exec(`ALTER TABLE approvals ADD COLUMN description TEXT`); } catch { /* exists */ }
+  // Additive migration: add task_id to messages
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN task_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_messages_task ON messages(task_id)`); } catch { /* exists */ }
+  // Additive migration: rename ts → created_at on messages
+  try { _sqlite.exec(`ALTER TABLE messages RENAME COLUMN ts TO created_at`); } catch { /* already renamed or doesn't exist */ }
+  // Additive migration: create tool_calls table
+  try {
+    _sqlite.exec(`CREATE TABLE IF NOT EXISTS tool_calls (
+      id TEXT PRIMARY KEY, task_id TEXT NOT NULL, step_id TEXT,
+      tool TEXT NOT NULL, arguments TEXT, result TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      started_at INTEGER, finished_at INTEGER
+    )`);
+    _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tool_calls_task ON tool_calls(task_id)`);
+    _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id)`);
+  } catch { /* exists */ }
+  // Additive migration: migrate tool rows from steps → tool_calls, restructure steps
+  try {
+    // Move tool rows to tool_calls if not already done
+    const hasToolCol = _sqlite.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('steps') WHERE name = 'tool'`).get() as { c: number };
+    if (hasToolCol.c > 0) {
+      _sqlite.exec(`
+        INSERT OR IGNORE INTO tool_calls (id, task_id, step_id, tool, arguments, result, status, started_at, finished_at)
+        SELECT id, task_id, NULL, tool, input_json, output_json, status, started_at, finished_at
+        FROM steps WHERE tool IS NOT NULL
+      `);
+      _sqlite.exec(`DELETE FROM steps WHERE tool IS NOT NULL`);
+      // Recreate steps without tool/input_json, renaming output_json→result, adding prompt
+      _sqlite.exec(`CREATE TABLE IF NOT EXISTS steps_new (
+        id TEXT PRIMARY KEY, task_id TEXT NOT NULL, sequence INTEGER NOT NULL,
+        agent TEXT NOT NULL, prompt TEXT, result TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        started_at INTEGER, finished_at INTEGER
+      )`);
+      _sqlite.exec(`INSERT INTO steps_new (id, task_id, sequence, agent, prompt, result, status, started_at, finished_at)
+        SELECT id, task_id, idx, agent, NULL, output_json, status, started_at, finished_at FROM steps`);
+      _sqlite.exec(`DROP TABLE steps`);
+      _sqlite.exec(`ALTER TABLE steps_new RENAME TO steps`);
+      _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_steps_task ON steps(task_id)`);
+    }
+  } catch { /* already migrated */ }
+  // Additive migration: add prompt column to steps if missing (fresh DBs already have it)
+  try { _sqlite.exec(`ALTER TABLE steps ADD COLUMN prompt TEXT`); } catch { /* exists */ }
+  // Additive migration: rename output_json → result on steps if still present
+  try { _sqlite.exec(`ALTER TABLE steps RENAME COLUMN output_json TO result`); } catch { /* already renamed */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

@@ -9,12 +9,6 @@ export type TaskEvent =
       error?: string;
     }
   | {
-      type: 'plan';
-      taskId: string;
-      ts: number;
-      plan: string;
-    }
-  | {
       type: 'step.started';
       taskId: string;
       ts: number;

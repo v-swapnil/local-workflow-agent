@@ -1,12 +1,11 @@
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { listReadOnlyToolsForLLM } from '../services/tools/registry.js';
 import { updateTask } from '../services/store.js';
-import { taskBus } from '../services/events.js';
 import { PLANNER_SYSTEM, plannerUser } from './prompts.js';
 import { Conversation } from './conversation.js';
 import { llmChat, gatherEnvContext } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
-import { emitStepStarted, emitStepFinished } from './stepEvents.js';
+import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import type { RunCtx } from './runCtx.js';
 import type { EnvironmentContext } from './prompts.js';
@@ -73,13 +72,12 @@ export async function runPlannerNode(
   temperature?: number,
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const { stepId } = emitStepStarted(ctx, 'planner', undefined, { prompt: state.prompt });
+  const { stepId } = emitStepStarted(ctx, 'planner', { prompt: state.prompt });
   try {
     const env = await gatherEnvContext(ctx);
     const plan = await plannerLoop(ctx, systemPrompt, state.prompt, env, temperature);
     updateTask(ctx.taskId, { plan });
     emitStepFinished(ctx, stepId, true, { plan });
-    taskBus.emit(ctx.taskId, { type: 'plan', taskId: ctx.taskId, ts: Date.now(), plan });
     return { plan };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

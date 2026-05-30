@@ -56,9 +56,10 @@ export const sessionRouter = router({
         sessionId: z.string().min(1),
         role: z.enum(['user', 'assistant', 'system']),
         content: z.string(),
+        taskId: z.string().optional(),
       }),
     )
-    .mutation(({ input }) => addMessage(input.sessionId, input.role, input.content)),
+    .mutation(({ input }) => addMessage(input.sessionId, input.role, input.content, input.taskId)),
 
   messages: publicProcedure
     .input(z.object({ sessionId: z.string().min(1) }))

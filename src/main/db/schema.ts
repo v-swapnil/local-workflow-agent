@@ -28,11 +28,15 @@ export const messages = sqliteTable(
   {
     id: text('id').primaryKey(),
     sessionId: text('session_id').notNull(),
+    taskId: text('task_id'),
     role: text('role').notNull(),
     content: text('content').notNull(),
-    ts: integer('ts').notNull(),
+    createdAt: integer('created_at').notNull(),
   },
-  (t) => ({ sIdx: index('idx_messages_session').on(t.sessionId) }),
+  (t) => ({
+    sIdx: index('idx_messages_session').on(t.sessionId),
+    tIdx: index('idx_messages_task').on(t.taskId),
+  }),
 );
 
 export const tasks = sqliteTable(
@@ -62,11 +66,10 @@ export const steps = sqliteTable(
   {
     id: text('id').primaryKey(),
     taskId: text('task_id').notNull(),
-    idx: integer('idx').notNull(),
+    sequence: integer('sequence').notNull(),
     agent: text('agent').notNull(),
-    tool: text('tool'),
-    inputJson: text('input_json'),
-    outputJson: text('output_json'),
+    prompt: text('prompt'),
+    result: text('result'),
     status: text('status').notNull().default('pending'),
     startedAt: integer('started_at'),
     finishedAt: integer('finished_at'),
@@ -74,12 +77,32 @@ export const steps = sqliteTable(
   (t) => ({ tIdx: index('idx_steps_task').on(t.taskId) }),
 );
 
+export const toolCalls = sqliteTable(
+  'tool_calls',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id').notNull(),
+    stepId: text('step_id'),
+    tool: text('tool').notNull(),
+    arguments: text('arguments'),
+    result: text('result'),
+    status: text('status').notNull().default('pending'),
+    startedAt: integer('started_at'),
+    finishedAt: integer('finished_at'),
+  },
+  (t) => ({
+    tIdx: index('idx_tool_calls_task').on(t.taskId),
+    sIdx: index('idx_tool_calls_step').on(t.stepId),
+  }),
+);
+
 export const approvals = sqliteTable('approvals', {
   id: text('id').primaryKey(),
   taskId: text('task_id').notNull(),
   stepId: text('step_id'),
-  kind: text('kind').notNull(),
-  payloadJson: text('payload_json').notNull(),
+  tool: text('tool').notNull(),
+  arguments: text('arguments').notNull(),
+  description: text('description'),
   decision: text('decision').notNull().default('pending'),
   createdAt: integer('created_at').notNull(),
   decidedAt: integer('decided_at'),

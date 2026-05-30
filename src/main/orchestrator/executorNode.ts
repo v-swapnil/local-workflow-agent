@@ -4,6 +4,7 @@ import { EXECUTOR_SYSTEM, executorUser } from './prompts.js';
 import { Conversation } from './conversation.js';
 import { llmChat, gatherEnvContext } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
+import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
@@ -71,7 +72,24 @@ export async function executorNode(
   state: AgentState,
   config?: RunnableConfig,
 ): Promise<Partial<AgentState>> {
+  return runExecutorNode(state, config, EXECUTOR_SYSTEM);
+}
+
+export async function runExecutorNode(
+  state: AgentState,
+  config: RunnableConfig | undefined,
+  systemPrompt: string,
+  temperature?: number,
+): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const newObs = await runExecutorLoop(ctx, EXECUTOR_SYSTEM, state);
-  return { history: newObs };
+  const { stepId } = emitStepStarted(ctx, 'executor');
+  try {
+    const newObs = await runExecutorLoop(ctx, systemPrompt, state, temperature);
+    emitStepFinished(ctx, stepId, true, { observations: newObs.length });
+    return { history: newObs };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    emitStepFinished(ctx, stepId, false, null, msg);
+    throw err;
+  }
 }

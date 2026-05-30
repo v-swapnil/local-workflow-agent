@@ -3,7 +3,7 @@ import { taskBus } from '../services/events.js';
 import type { ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
 import type { RunCtx } from './runCtx.js';
-import { emitStepStarted, emitStepFinished } from './stepEvents.js';
+import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
 
 export interface ToolResult {
   tool: ToolName;
@@ -26,7 +26,7 @@ export async function executeToolCalls(
   const invokeOne = async (tc: ToolCall): Promise<ToolResult> => {
     const tool = tc.name as ToolName;
     const args = tc.arguments;
-    const { stepId } = emitStepStarted(ctx, agent, tool, { args });
+    const { stepId } = emitToolCallStarted(ctx, agent, tool, args);
 
     const result = await invokeTool(tool, args, {
       workspaceId: ctx.workspaceId,
@@ -45,7 +45,7 @@ export async function executeToolCalls(
       },
     });
 
-    emitStepFinished(ctx, stepId, result.ok, result.output ?? null, result.error, tool);
+    emitToolCallFinished(ctx, stepId, result.ok, tool, result.output ?? null, result.error);
 
     return {
       tool,

@@ -13,7 +13,6 @@ export type TaskEvent =
       result?: unknown;
       error?: string;
     }
-  | { type: 'plan'; taskId: string; ts: number; plan: unknown }
   | {
       type: 'step.started';
       taskId: string;

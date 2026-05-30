@@ -153,7 +153,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     if (task.workflowId) {
       result = await runWorkflow(taskId, task.workflowId, ctx);
     } else if (provider === PROVIDERS.COPILOT) {
-      result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent);
+      result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent, ctx);
     } else if (agent && agent.graphMode === 'direct') {
       result = await runDirectAgent(taskId, agent, task.prompt, ctx);
     } else {
