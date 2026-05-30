@@ -1,5 +1,5 @@
 import { type StatusResultRenamed, type StatusResult } from 'simple-git';
-import { getWorkspace } from './workspaces';
+import { getWorkspace } from '../workspaces';
 import { gitFor, isRepo } from './gitCore.js';
 import type { GitStatus } from './gitCore.js';
 

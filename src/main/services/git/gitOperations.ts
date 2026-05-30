@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { gitFor, ensureRepo } from './gitCore.js';
-import { getWorkspace } from './workspaces';
+import { getWorkspace } from '../workspaces';
 
 const execFileAsync = promisify(execFile);
 

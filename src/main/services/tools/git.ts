@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { simpleGit } from 'simple-git';
 import type { Tool } from './types.js';
-import { ensureRepo } from '../git.js';
+import { ensureRepo } from '../git';
 
 export const gitStatusTool: Tool<Record<string, never>, unknown> = {
   name: 'git_status',

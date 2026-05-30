@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { simpleGit, type SimpleGit, type StatusResultRenamed } from 'simple-git';
-import { logger } from './logger.js';
+import { logger } from '../logger.js';
 
 const log = logger.child({ mod: 'git' });
 

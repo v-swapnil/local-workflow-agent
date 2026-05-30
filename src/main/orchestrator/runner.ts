@@ -9,7 +9,7 @@ import { sessions, tasks as tasksTable } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
-import { createBranch, commitAll } from '../services/git.js';
+import { createBranch, commitAll } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
 import { listSessionMemories } from '../services/memories.js';
 import { existsSync } from 'node:fs';

@@ -6,7 +6,7 @@ import { simpleGit } from 'simple-git';
 import { getDb } from '../db/index.js';
 import { worktrees } from '../db/schema.js';
 import { worktreesRoot } from '../util/paths.js';
-import { getWorktreeRoot } from './git.js';
+import { getWorktreeRoot } from './git';
 import { getWorkspace } from './workspaces';
 import { logger } from './logger.js';
 

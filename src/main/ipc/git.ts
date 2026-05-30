@@ -17,7 +17,7 @@ import {
   checkGhAuth,
   createPullRequest,
   getPrStatus,
-} from '../services/git.js';
+} from '../services/git';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import { getWorkspace } from '../services/workspaces';
 import { getWorktree } from '../services/worktrees.js';

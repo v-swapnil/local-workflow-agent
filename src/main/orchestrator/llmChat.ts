@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { listToolsForLLM } from '../services/tools/registry.js';
-import { workspaceStatus, getWorktreeRoot } from '../services/git.js';
+import { workspaceStatus, getWorktreeRoot } from '../services/git';
 import { resolveShell } from '../services/shell/env.js';
 import { extractJson } from '../util/json.js';
 import { taskBus } from '../services/events.js';
