@@ -1,11 +1,9 @@
 import { platform } from 'node:os';
-import { nanoid } from 'nanoid';
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { listToolsForLLM } from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git';
 import { resolveShell } from '../services/shell/env.js';
-import { extractJson } from '../util/json.js';
 import { emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
 import type { EnvironmentContext } from './prompts.js';
@@ -34,51 +32,28 @@ export async function llmChat(
   agent: string,
   messages: ChatMessage[],
   temperature = 0.2,
-  toolsDef?: ChatToolDef[],
+  availableTools?: ChatToolDef[],
 ): Promise<ToolCallResponse | DoneResponse> {
   const provider = getProvider(PROVIDERS.OLLAMA);
-  const tools = toolsDef ?? listToolsForLLM();
-  const buf: string[] = [];
+  const tools = availableTools ?? listToolsForLLM();
+
   const result = await provider.chat({
+    taskId: ctx.taskId,
+    workingDirectory: ctx.workspacePath,
     model: ctx.model,
     temperature,
     signal: ctx.signal,
     messages,
     tools,
-    onDelta: (d) => {
-      buf.push(d);
-      emitMessageDelta(ctx.taskId, agent, d);
-    },
-    onThinkingDelta: (d) => {
-      emitThinkingDelta(ctx.taskId, agent, d);
-    },
+    onDelta: (d) => emitMessageDelta(ctx.taskId, agent, d),
+    onThinkingDelta: (d) => emitThinkingDelta(ctx.taskId, agent, d),
   });
-  const text = result.content || buf.join('');
 
   if (result.toolCalls?.length) {
-    return { toolCalls: result.toolCalls, text, done: false };
+    return { toolCalls: result.toolCalls, text: result.content, done: false };
   }
 
-  try {
-    const parsed = extractJson<{
-      done?: boolean;
-      action?: { tool: string; args: Record<string, unknown> };
-    }>(text);
-    if (parsed.done) return { done: true, text };
-    if (parsed.action) {
-      return {
-        toolCalls: [
-          { id: `call_${nanoid(8)}`, name: parsed.action.tool, arguments: parsed.action.args },
-        ],
-        text,
-        done: false,
-      };
-    }
-  } catch {
-    /* not valid JSON, treat as done */
-  }
-
-  return { done: true, text };
+  return { done: true, text: result.content };
 }
 
 export async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
@@ -86,7 +61,12 @@ export async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext>
   let worktree = ctx.workspacePath;
   let branch: string | null = null;
   let changedFiles: string[] = [];
+  let shell = process.env.SHELL ?? null;
+
   try {
+    const resolvedShell = await resolveShell();
+    if (resolvedShell.shellPath) shell = resolvedShell.shellPath;
+
     const status = await workspaceStatus(ctx.workspaceId);
     isGitRepo = status.isRepo;
     if (isGitRepo) {
@@ -102,14 +82,13 @@ export async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext>
   } catch {
     // git info is best-effort; swallow errors
   }
+
   return {
     directory: ctx.workspacePath,
     worktree,
     isGitRepo,
     platform: platform(),
-    shell: await resolveShell()
-      .then((config) => config.shellPath)
-      .catch(() => process.env.SHELL ?? null),
+    shell,
     model: ctx.model,
     git: { branch, changedFiles },
   };

@@ -1,12 +1,14 @@
 import { addStep, updateStep, addToolCall, updateToolCall, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import type { ToolName } from '../services/tools/types.js';
-import type { RunCtx } from './runCtx.js';
 
-export function emitStepStarted(ctx: RunCtx, agent: string, input?: unknown): { stepId: string } {
-  const sequence = ctx.stepIdx.n++;
+export function emitStepStarted(
+  taskId: string,
+  sequence: number,
+  agent: string,
+): { stepId: string } {
   const row = addStep({
-    taskId: ctx.taskId,
+    taskId,
     sequence,
     agent,
     prompt: null,
@@ -15,9 +17,9 @@ export function emitStepStarted(ctx: RunCtx, agent: string, input?: unknown): { 
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit(ctx.taskId, {
+  taskBus.emit(taskId, {
     type: 'step.started',
-    taskId: ctx.taskId,
+    taskId,
     ts: Date.now(),
     stepId: row.id,
     agent,
@@ -26,7 +28,7 @@ export function emitStepStarted(ctx: RunCtx, agent: string, input?: unknown): { 
 }
 
 export function emitStepFinished(
-  ctx: RunCtx,
+  taskId: string,
   stepId: string,
   ok: boolean,
   output: unknown,
@@ -37,9 +39,9 @@ export function emitStepFinished(
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
-  taskBus.emit(ctx.taskId, {
+  taskBus.emit(taskId, {
     type: 'step.finished',
-    taskId: ctx.taskId,
+    taskId,
     ts: Date.now(),
     stepId,
     ok,
@@ -49,36 +51,37 @@ export function emitStepFinished(
 }
 
 export function emitToolCallStarted(
-  ctx: RunCtx,
+  taskId: string,
   agent: string,
   tool: ToolName,
-  input?: unknown,
+  args?: unknown,
+  toolCallId?: string,
 ): { stepId: string } {
-  ctx.stepIdx.n++;
   const row = addToolCall({
-    taskId: ctx.taskId,
+    taskId: taskId,
     stepId: null,
     tool,
-    arguments: input != null ? JSON.stringify(input) : null,
+    toolCallId,
+    arguments: args ? JSON.stringify(args) : null,
     result: null,
     status: 'running',
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit(ctx.taskId, {
+  taskBus.emit(taskId, {
     type: 'tool_call.started',
-    taskId: ctx.taskId,
+    taskId,
     ts: Date.now(),
     stepId: row.id,
     agent,
     tool,
-    input,
+    input: args,
   });
   return { stepId: row.id };
 }
 
 export function emitToolCallFinished(
-  ctx: RunCtx,
+  taskId: string,
   stepId: string,
   ok: boolean,
   tool: string,
@@ -90,9 +93,9 @@ export function emitToolCallFinished(
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
   });
-  taskBus.emit(ctx.taskId, {
+  taskBus.emit(taskId, {
     type: 'tool_call.finished',
-    taskId: ctx.taskId,
+    taskId,
     ts: Date.now(),
     stepId,
     ok,
@@ -150,5 +153,21 @@ export function emitThinkingDelta(taskId: string, agent: string, content: string
     ts: Date.now(),
     agent,
     content,
+  });
+}
+
+export function emitLog(
+  taskId: string,
+  stepId: string | undefined,
+  ok: boolean,
+  content: string,
+): void {
+  taskBus.emit(taskId, {
+    type: 'log',
+    taskId: taskId,
+    ts: Date.now(),
+    stream: ok ? 'stdout' : 'stderr',
+    text: content,
+    stepId,
   });
 }

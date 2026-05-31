@@ -1,21 +1,23 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
-import { getWorkflow, type WorkflowDefinition, type WorkflowNode, type WorkflowEdge } from '../services/workflows.js';
+import {
+  getWorkflow,
+  type WorkflowDefinition,
+  type WorkflowNode,
+  type WorkflowEdge,
+} from '../services/workflows.js';
 import { getAgent } from '../services/agents.js';
 import { requestApproval } from '../services/approvals.js';
 import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
-import { taskBus } from '../services/events.js';
 import { logger } from '../services/logger.js';
 import type { RunCtx } from './runCtx.js';
+import { emitLog } from './eventEmitter.js';
 
 const log = logger.child({ mod: 'workflow-runner' });
 
-function evaluateCondition(
-  data: Record<string, unknown>,
-  state: WorkflowState,
-): 'true' | 'false' {
+function evaluateCondition(data: Record<string, unknown>, state: WorkflowState): 'true' | 'false' {
   const field = data.field as string;
   const operator = data.operator as string;
   const value = data.value;
@@ -32,15 +34,24 @@ function evaluateCondition(
   }
 
   switch (operator) {
-    case 'eq': return current === value ? 'true' : 'false';
-    case 'neq': return current !== value ? 'true' : 'false';
-    case 'gt': return (current as number) > (value as number) ? 'true' : 'false';
-    case 'lt': return (current as number) < (value as number) ? 'true' : 'false';
-    case 'gte': return (current as number) >= (value as number) ? 'true' : 'false';
-    case 'lte': return (current as number) <= (value as number) ? 'true' : 'false';
-    case 'contains': return String(current).includes(String(value)) ? 'true' : 'false';
-    case 'exists': return current !== undefined && current !== null ? 'true' : 'false';
-    default: return 'false';
+    case 'eq':
+      return current === value ? 'true' : 'false';
+    case 'neq':
+      return current !== value ? 'true' : 'false';
+    case 'gt':
+      return (current as number) > (value as number) ? 'true' : 'false';
+    case 'lt':
+      return (current as number) < (value as number) ? 'true' : 'false';
+    case 'gte':
+      return (current as number) >= (value as number) ? 'true' : 'false';
+    case 'lte':
+      return (current as number) <= (value as number) ? 'true' : 'false';
+    case 'contains':
+      return String(current).includes(String(value)) ? 'true' : 'false';
+    case 'exists':
+      return current !== undefined && current !== null ? 'true' : 'false';
+    default:
+      return 'false';
   }
 }
 
@@ -55,13 +66,7 @@ export async function runWorkflow(
     edges: workflowRecord.edges,
   };
 
-  taskBus.emit(taskId, {
-    type: 'log',
-    taskId,
-    ts: Date.now(),
-    stream: 'stdout',
-    text: `[workflow] running "${workflowRecord.name}"\n`,
-  });
+  emitLog(taskId, undefined, true, `[workflow] running "${workflowRecord.name}"`);
 
   const startNode = definition.nodes.find((n) => n.type === 'start');
   const endNode = definition.nodes.find((n) => n.type === 'end');
@@ -83,13 +88,7 @@ export async function runWorkflow(
     if (node.type === 'agent') {
       const agentId = node.data.agentId as string;
       graph.addNode(node.id, async (state: WorkflowState) => {
-        taskBus.emit(taskId, {
-          type: 'log',
-          taskId,
-          ts: Date.now(),
-          stream: 'stdout',
-          text: `[workflow] node "${node.id}" (agent)\n`,
-        });
+        emitLog(taskId, undefined, true, `[workflow] node "${node.id}" (agent)`);
         try {
           const agent = getAgent(agentId);
           const agentCtx: RunCtx = { ...ctx };
@@ -113,24 +112,12 @@ export async function runWorkflow(
     } else if (node.type === 'condition') {
       graph.addNode(node.id, (state: WorkflowState) => {
         const result = evaluateCondition(node.data, state);
-        taskBus.emit(taskId, {
-          type: 'log',
-          taskId,
-          ts: Date.now(),
-          stream: 'stdout',
-          text: `[workflow] condition "${node.id}" → ${result}\n`,
-        });
+        emitLog(taskId, undefined, true, `[workflow] condition "${node.id}" → ${result}`);
         return { currentNodeId: node.id };
       });
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
-        taskBus.emit(taskId, {
-          type: 'log',
-          taskId,
-          ts: Date.now(),
-          stream: 'stdout',
-          text: `[workflow] approval gate "${node.id}"\n`,
-        });
+        emitLog(taskId, undefined, true, `[workflow] approval requested by node "${node.id}"`);
         const decision = await requestApproval(taskId, 'ask_user', node.data, ctx.signal);
         if (decision === 'deny') {
           throw new Error(`Approval denied at node "${node.id}"`);

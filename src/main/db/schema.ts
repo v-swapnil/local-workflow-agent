@@ -84,6 +84,7 @@ export const toolCalls = sqliteTable(
     taskId: text('task_id').notNull(),
     stepId: text('step_id'),
     tool: text('tool').notNull(),
+    toolCallId: text('tool_call_id'),
     arguments: text('arguments'),
     result: text('result'),
     status: text('status').notNull().default('pending'),

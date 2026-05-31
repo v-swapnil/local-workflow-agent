@@ -3,10 +3,14 @@
  * bypassing the local LangGraph loop entirely.
  */
 import { getCopilotService } from '../services/llm/copilot.js';
-import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { requestApproval, requestUserInput } from '../services/approvals.js';
-import { emitToolCallStarted, emitToolCallFinished, emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
+import {
+  emitToolCallStarted,
+  emitToolCallFinished,
+  emitMessageDelta,
+  emitThinkingDelta,
+} from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult, ToolName } from '@shared/agent';
@@ -21,6 +25,7 @@ interface UserInputRequest {
   choices?: string[];
   allowFreeform?: boolean;
 }
+
 interface UserInputResponse {
   answer: string;
   wasFreeform: boolean;
@@ -82,7 +87,6 @@ export async function runTaskViaCopilot(
     onUserInputRequest: handlerUserInputRequest,
     onEvent: handleSessionEvent,
   });
-  const sessionId = session.sessionId;
 
   try {
     const task = await getTask(taskId);
@@ -109,7 +113,7 @@ export async function runTaskViaCopilot(
       reason: msg,
     };
   } finally {
-    if (sessionId) await session.disconnect();
+    await session.disconnect();
   }
 }
 
@@ -117,8 +121,6 @@ export async function runTaskViaCopilot(
  * Map Copilot SDK events → ASE taskBus events for the live UI.
  */
 function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
-  const ts = Date.now();
-
   switch (event.type) {
     case 'assistant.message_delta':
       emitMessageDelta(taskId, 'copilot', event.data.deltaContent);
@@ -130,7 +132,7 @@ function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
 
     case 'tool.execution_start': {
       const tool = event.data.toolName as ToolName;
-      const result = emitToolCallStarted(ctx, 'copilot', tool, event.data.arguments);
+      const result = emitToolCallStarted(ctx.taskId, 'copilot', tool, event.data.arguments);
       toolCallMap.set(event.data.toolCallId, { stepId: result.stepId, tool });
       break;
     }
@@ -139,20 +141,10 @@ function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
       const ok = !event.data.error;
       const result = toolCallMap.get(event.data.toolCallId);
       if (result) {
-        emitToolCallFinished(ctx, result.stepId, ok, result.tool, {}, event.data.error?.message);
+        emitToolCallFinished(ctx.taskId, result.stepId, ok, result.tool, {}, event.data.error?.message);
       }
       break;
     }
-
-    case 'session.error':
-      taskBus.emit(taskId, {
-        type: 'log',
-        taskId,
-        ts,
-        stream: 'stderr',
-        text: `[copilot] error: ${event.data?.message ?? 'unknown'}\n`,
-      });
-      break;
   }
 }
 

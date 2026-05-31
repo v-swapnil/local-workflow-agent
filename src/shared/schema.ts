@@ -62,6 +62,7 @@ export interface ToolCallRecord {
   taskId: string;
   stepId: string | null;
   tool: string;
+  toolCallId?: string;
   arguments: string | null;
   result: string | null;
   status: string;

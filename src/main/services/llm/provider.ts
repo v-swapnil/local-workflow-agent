@@ -33,6 +33,8 @@ export interface ChatToolDef {
 }
 
 export interface ChatOptions {
+  taskId: string;
+  workingDirectory?: string;
   model: string;
   messages: ChatMessage[];
   temperature?: number;

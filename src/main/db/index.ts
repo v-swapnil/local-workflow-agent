@@ -234,6 +234,7 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE messages RENAME COLUMN ts TO created_at`); } catch { /* already renamed or doesn't exist */ }
   // Additive migration: rename ts → created_at on task_events
   try { _sqlite.exec(`ALTER TABLE task_events RENAME COLUMN ts TO created_at`); } catch { /* already renamed or doesn't exist */ }
+  try { _sqlite.exec(`ALTER TABLE tool_calls ADD COLUMN tool_call_id TEXT`); } catch { /* already renamed or doesn't exist */ }
   // Additive migration: create tool_calls table
   try {
     _sqlite.exec(`CREATE TABLE IF NOT EXISTS tool_calls (

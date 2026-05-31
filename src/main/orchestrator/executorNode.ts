@@ -82,14 +82,15 @@ export async function runExecutorNode(
   temperature?: number,
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const { stepId } = emitStepStarted(ctx, 'executor');
+  const sequece = ctx.stepIdx.n++;
+  const { stepId } = emitStepStarted(ctx.taskId, sequece, 'executor');
   try {
     const newObs = await runExecutorLoop(ctx, systemPrompt, state, temperature);
-    emitStepFinished(ctx, stepId, true, { observations: newObs.length });
+    emitStepFinished(ctx.taskId, stepId, true, { observations: newObs.length });
     return { history: newObs };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    emitStepFinished(ctx, stepId, false, null, msg);
+    emitStepFinished(ctx.taskId, stepId, false, null, msg);
     throw err;
   }
 }

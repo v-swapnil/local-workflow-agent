@@ -73,16 +73,17 @@ export async function runPlannerNode(
   temperature?: number,
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const { stepId } = emitStepStarted(ctx, 'planner', { prompt: state.prompt });
+  const sequence = ctx.stepIdx.n++;
+  const { stepId } = emitStepStarted(ctx.taskId, sequence, 'planner');
   try {
     const env = await gatherEnvContext(ctx);
     const plan = await plannerLoop(ctx, systemPrompt, state.prompt, env, temperature);
     updateTask(ctx.taskId, { plan });
-    emitStepFinished(ctx, stepId, true, { plan });
+    emitStepFinished(ctx.taskId, stepId, true, { plan });
     return { plan };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    emitStepFinished(ctx, stepId, false, null, msg);
+    emitStepFinished(ctx.taskId, stepId, false, null, msg);
     throw err;
   }
 }

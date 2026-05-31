@@ -1,52 +1,44 @@
 import { COPILOT_CLI_URL, DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import { CopilotClient, type SessionEvent } from '@github/copilot-sdk';
-import { getCopilotService } from './copilot.js';
 import { BaseLLMProvider } from './provider.js';
-import type { ChatMessage, ChatOptions, ChatResult, ModelInfo } from './provider.js';
+import type { ChatOptions, ChatResult, ModelInfo } from './provider.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
 import { logger } from '../logger.js';
+import { resolvePermissionRequest } from '../copilot/permissionRequests.js';
+import { resolveUserInputRequest } from '../copilot/userInputRequests.js';
+import { bridgeEvent } from '../copilot/events.js';
 
 const log = logger.child({ mod: 'copilot' });
-
-function eventDeltaContent(event: SessionEvent): string {
-  const data = (event as { data?: { deltaContent?: string } }).data;
-  return data?.deltaContent ?? '';
-}
-
-/**
- * Render the full ChatMessage history as a plain-text prompt for the Copilot SDK.
- * Tool messages are formatted inline since the SDK doesn't support multi-turn natively.
- */
-function toPrompt(messages: ChatMessage[]): string {
-  return messages
-    .map((m) => {
-      if (m.role === 'tool') {
-        return `TOOL RESULT (${m.name}):\n${m.content}`;
-      }
-      if (m.role === 'assistant' && m.toolCalls?.length) {
-        const calls = m.toolCalls
-          .map((tc) => `  call ${tc.name}(${JSON.stringify(tc.arguments)})`)
-          .join('\n');
-        return `ASSISTANT:\n${m.content}\n[Tool calls:\n${calls}\n]`;
-      }
-      return `${m.role.toUpperCase()}:\n${m.content}`;
-    })
-    .join('\n\n');
-}
 
 export class CopilotProvider extends BaseLLMProvider {
   readonly id = 'copilot';
   readonly label = 'GitHub Copilot';
 
+  private lastUrl: string | null = null;
+  private clientInstance: CopilotClient | null = null;
+
   private async client(): Promise<CopilotClient> {
-    log.info('connecting to Copilot CLI server...');
     const url = await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
-    const client = new CopilotClient({
-      cliUrl: url,
-      logLevel: 'warning',
-    });
-    log.info('Connected to Copilot CLI server at %s', url);
-    return client;
+
+    // Reuse existing client if URL hasn't changed
+    if (this.clientInstance && this.lastUrl === url) {
+      return this.clientInstance;
+    }
+
+    try {
+      log.info('connecting to Copilot CLI server...');
+      const client = new CopilotClient({
+        cliUrl: url,
+        logLevel: 'warning',
+      });
+      log.info('starting Copilot CLI client...');
+      await client.start();
+      log.info('Connected to Copilot CLI server at %s', url);
+      return client;
+    } catch (err) {
+      log.error({ err, url }, 'Failed to connect to Copilot CLI server');
+      throw err;
+    }
   }
 
   async url(): Promise<string> {
@@ -54,60 +46,99 @@ export class CopilotProvider extends BaseLLMProvider {
   }
 
   async ping(): Promise<boolean> {
-    const svc = getCopilotService();
-    return svc.ping();
+    try {
+      const client = await this.client();
+      await client.ping();
+      return true;
+    } catch (err) {
+      log.error({ err }, 'copilot ping failed');
+      return false;
+    }
   }
 
   async listModels(): Promise<ModelInfo[]> {
-    const svc = getCopilotService();
-    return svc.listModels();
+    try {
+      const client = await this.client();
+      const models = await client.listModels();
+      return models.map((m) => ({
+        name: m.id,
+        sizeBytes: undefined,
+        modifiedAt: undefined,
+      }));
+    } catch (err) {
+      log.error({ err }, 'copilot listModels failed');
+      return [];
+    }
   }
 
   async chat(opts: ChatOptions): Promise<ChatResult> {
-    const svc = getCopilotService();
-    const client = await svc.getClient();
+    const client = await this.client();
 
     const chunks: string[] = [];
     const thinkingChunks: string[] = [];
 
+    const messages = opts.messages;
+    const systemMessage = messages
+      .filter((item) => item.role === 'system')
+      .map((item) => item.content)
+      .join('\n\n');
+    const userMessages = messages
+      .filter((item) => item.role !== 'system')
+      .map((item) => [item.role, item.content].join(': '))
+      .join('\n\n');
+
+    const taskId = opts.taskId;
+    const signal = opts.signal;
+    const model =
+      opts.model ?? (await getSetting(SETTING_KEYS.PRIMARY_MODEL, DEFAULT_COPILOT_MODEL));
+    const workingDirectory = opts.workingDirectory ?? process.cwd();
+
     const session = await client.createSession({
-      model: opts.model || DEFAULT_COPILOT_MODEL,
-      workingDirectory: process.cwd(),
+      model: opts.model ?? model,
+      workingDirectory,
       streaming: true,
-      onPermissionRequest: async () => ({ kind: 'no-result' }),
-      onUserInputRequest: async () => ({ answer: '', wasFreeform: true }),
-      onEvent: (event: SessionEvent) => {
+      systemMessage: { mode: 'append', content: systemMessage },
+      onPermissionRequest: (request) => resolvePermissionRequest({ taskId, request, signal }),
+      onUserInputRequest: (request) => resolveUserInputRequest({ taskId, request, signal }),
+      onEvent: async (event: SessionEvent) => {
         if (event.type === 'assistant.message_delta') {
-          const text = eventDeltaContent(event);
-          if (text) {
-            chunks.push(text);
-            opts.onDelta?.(text);
-          }
+          const text = event.data.deltaContent;
+          chunks.push(text);
           return;
+        } else if (event.type === 'assistant.reasoning_delta') {
+          const text = event.data.deltaContent;
+          thinkingChunks.push(text);
         }
-        if (event.type === 'assistant.reasoning_delta') {
-          const text = eventDeltaContent(event);
-          if (text) {
-            thinkingChunks.push(text);
-            opts.onThinkingDelta?.(text);
-          }
-        }
+        // Process events
+        await bridgeEvent(taskId, event);
       },
     });
 
     try {
-      const prompt = toPrompt(opts.messages);
-      await session.sendAndWait({ prompt }, 10 * 60 * 1000);
+      await session.sendAndWait({ prompt: userMessages }, 10 * 60 * 1000);
       const content = chunks.join('');
       const thinking = thinkingChunks.join('');
       return {
+        model: opts.model ?? model,
         content,
         thinking: thinking || undefined,
-        model: opts.model || DEFAULT_COPILOT_MODEL,
         toolCalls: [],
       };
     } finally {
-      await session.disconnect().catch(() => undefined);
+      await session.disconnect();
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    log.info('Disconnecting from Copilot CLI server...');
+    try {
+      if (this.clientInstance) {
+        await this.clientInstance.stop();
+        this.lastUrl = null;
+        this.clientInstance = null;
+      }
+    } catch (err) {
+      log.error({ err }, 'copilot disconnect error');
     }
   }
 }

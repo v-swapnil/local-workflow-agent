@@ -50,8 +50,8 @@ export class OllamaProvider extends BaseLLMProvider {
   }
 
   async chat(opts: ChatOptions): Promise<ChatResult> {
-    const ol = await this.client();
-    const response = await ol.chat({
+    const client = await this.client();
+    const response = await client.chat({
       model: opts.model,
       messages: opts.messages.map(toOllamaMessage),
       stream: true,
@@ -60,6 +60,8 @@ export class OllamaProvider extends BaseLLMProvider {
         temperature: opts.temperature ?? 0.2,
       },
     });
+
+    if (opts.signal?.aborted) client.abort();
 
     let content = '';
     let thinking = '';
@@ -70,15 +72,19 @@ export class OllamaProvider extends BaseLLMProvider {
     let toolCalls: ToolCall[] | undefined;
 
     for await (const chunk of response) {
+      if (opts.signal?.aborted) client.abort();
+
       if (chunk.message?.thinking) {
         const t = chunk.message.thinking;
         thinking += t;
         opts.onThinkingDelta?.(t);
       }
+
       if (chunk.message?.content) {
         content += chunk.message.content;
         opts.onDelta?.(chunk.message.content);
       }
+
       if (chunk.message?.tool_calls?.length) {
         toolCalls ??= [];
         for (const tc of chunk.message.tool_calls) {
@@ -89,6 +95,7 @@ export class OllamaProvider extends BaseLLMProvider {
           });
         }
       }
+
       if (chunk.done) {
         model = chunk.model;
         if (chunk.total_duration) totalDurationMs = chunk.total_duration / 1_000_000;

@@ -65,8 +65,22 @@ export function Settings() {
                   disabled={setTheme.isPending}
                   className="gap-1"
                 >
-                  <ToggleGroupItem value="dark" size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">dark</ToggleGroupItem>
-                  <ToggleGroupItem value="light" size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">light</ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="dark"
+                    size="sm"
+                    variant="outline"
+                    className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                  >
+                    dark
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="light"
+                    size="sm"
+                    variant="outline"
+                    className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                  >
+                    light
+                  </ToggleGroupItem>
                 </ToggleGroup>
               </div>
 
@@ -86,7 +100,13 @@ export function Settings() {
                   className="gap-1"
                 >
                   {(['compact', 'default', 'comfortable'] as TextSize[]).map((size) => (
-                    <ToggleGroupItem key={size} value={size} size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">
+                    <ToggleGroupItem
+                      key={size}
+                      value={size}
+                      size="sm"
+                      variant="outline"
+                      className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                    >
                       {size}
                     </ToggleGroupItem>
                   ))}
@@ -129,28 +149,17 @@ export function Settings() {
 
         <section>
           <SectionTitle index="05" title="System" />
-          <div className="mb-3 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => openLogs.mutate()}
-                disabled={openLogs.isPending}
-                className="font-mono uppercase tracking-widest2"
-              >
-                {openLogs.isPending ? 'opening…' : 'open logs folder'}
-              </Button>
-            </div>
-            <Rows
-              rows={[
-                ['app.version', health.data?.app.version ?? '...'],
-                ['provider', activeProvider.data ?? '...'],
-                ['db.path', health.data?.db.path ?? '...'],
-                ['logs.path', openLogs.data?.path ?? '...'],
-              ]}
-            />
+          <Rows
+            rows={[
+              ['app.version', health.data?.app.version ?? '...'],
+              ['provider', activeProvider.data ?? '...'],
+              ['db.path', health.data?.db.path ?? '...'],
+              ['logs.path', openLogs.data?.path ?? '...'],
+            ]}
+          />
           <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
-              shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
-            </div>
+            shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
+          </div>
         </section>
       </div>
     </PageShell>

@@ -1,8 +1,7 @@
 import { getWorkspace } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
-import { taskBus } from '../services/events.js';
-import { emitTaskStarted, emitTaskFinished } from './eventEmitter.js';
+import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { getTask, updateTask, setSessionKanbanLane } from '../services/store.js';
 import { getAgentOrNull } from '../services/agents.js';
 import { getDb } from '../db/index.js';
@@ -108,30 +107,16 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   // Skip branching if session has an active worktree (it already has its own branch).
   const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
   const autoBranch = gitAutoEnabled && !session.hasWorktree;
-  const autoCommit = gitAutoEnabled && !session.hasWorktree;
-  let branchName: string | null = null;
+
   if (autoBranch) {
-    branchName = `ase/${taskId}`;
     try {
+      const branchName = `ase/${taskId}`;
       await createBranch(session.workspaceId, branchName);
-      taskBus.emit(taskId, {
-        type: 'log',
-        taskId,
-        ts: Date.now(),
-        stream: 'stdout',
-        text: `[git] checked out branch ${branchName}\n`,
-      });
+      emitLog(taskId, undefined, true, `[git] checked out branch ${branchName}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       log.warn({ taskId, err: msg }, 'auto-branch failed');
-      taskBus.emit(taskId, {
-        type: 'log',
-        taskId,
-        ts: Date.now(),
-        stream: 'stderr',
-        text: `[git] auto-branch failed: ${msg}\n`,
-      });
-      branchName = null;
+      emitLog(taskId, undefined, false, `[git] auto-branch failed: ${msg}`);
     }
   }
 
@@ -157,9 +142,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent, ctx);
     } else {
       const graph = buildGraph(agent);
-      const initial: Partial<AgentState> = {
-        prompt: task.prompt,
-      };
+      const initial: Partial<AgentState> = { prompt: task.prompt };
       const recursionLimit = 10;
       const final = (await graph.invoke(initial, {
         configurable: { runCtx: ctx },
@@ -172,28 +155,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
         iterations: 1,
         plan: final.plan,
       };
-    }
-
-    if (result.status === 'succeeded' && autoCommit) {
-      try {
-        const r = await commitAll(
-          session.workspaceId,
-          `ase: ${task.prompt.slice(0, 72)}\n\ntask: ${task.id}`,
-        );
-        if (r.committed) {
-          const commitBranch = branchName ?? (session.hasWorktree ? 'worktree' : 'current');
-          taskBus.emit(taskId, {
-            type: 'log',
-            taskId,
-            ts: Date.now(),
-            stream: 'stdout',
-            text: `[git] committed ${r.sha} on ${commitBranch}\n`,
-          });
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.warn({ taskId, err: msg }, 'auto-commit failed');
-      }
     }
 
     return finish(task, result);

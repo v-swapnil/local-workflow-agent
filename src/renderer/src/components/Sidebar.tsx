@@ -2,7 +2,19 @@ import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { trpc } from '../trpc';
 import { Separator } from './ui/separator';
-import { LayoutList, Columns3, GitCompareArrows, GitFork, Code, Star, Bot, Network, Clock, Wrench, Settings } from 'lucide-react';
+import {
+  LayoutList,
+  Columns3,
+  GitCompareArrows,
+  GitFork,
+  Code,
+  Star,
+  Bot,
+  Network,
+  Clock,
+  Wrench,
+  Settings,
+} from 'lucide-react';
 
 const ICON_CLASS = 'h-3.5 w-3.5';
 const ICONS: Record<string, JSX.Element> = {
@@ -41,18 +53,6 @@ export function Sidebar() {
 
   return (
     <aside className="relative flex w-56 shrink-0 flex-col border-r border-ink-800/50 bg-ink-900/20">
-      {/* Brand */}
-      <div className="px-4 pb-2 pt-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber/10">
-            <span className="font-mono text-ui-xs font-bold text-amber">A</span>
-          </div>
-          <span className="font-serif text-lg italic text-ink-100">ase</span>
-        </div>
-      </div>
-
-      <Separator className="mx-4 mb-1 mt-2 bg-ink-800/60" />
-
       <nav className="flex flex-col gap-0.5 px-2 py-2">
         {nav.map((item, i) => (
           <NavLink
@@ -74,10 +74,12 @@ export function Sidebar() {
                 {isActive && (
                   <span className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-amber animate-fade-in" />
                 )}
-                <span className={cn(
-                  'flex-shrink-0 transition-colors',
-                  isActive ? 'text-amber' : 'text-ink-500 group-hover:text-ink-300',
-                )}>
+                <span
+                  className={cn(
+                    'flex-shrink-0 transition-colors',
+                    isActive ? 'text-amber' : 'text-ink-500 group-hover:text-ink-300',
+                  )}
+                >
                   {ICONS[item.icon]}
                 </span>
                 <span className="flex-1">{item.label}</span>
@@ -95,10 +97,16 @@ export function Sidebar() {
       <div className="mt-auto px-4 pb-4">
         <Separator className="mb-3 bg-ink-800/60" />
         <div className="flex items-center gap-2">
-          <span className={cn(
-            'h-1.5 w-1.5 rounded-full',
-            ping.isLoading ? 'bg-ink-500 animate-pulse' : ping.data ? 'bg-signal-ok' : 'bg-signal-err',
-          )} />
+          <span
+            className={cn(
+              'h-1.5 w-1.5 rounded-full',
+              ping.isLoading
+                ? 'bg-ink-500 animate-pulse'
+                : ping.data
+                  ? 'bg-signal-ok'
+                  : 'bg-signal-err',
+            )}
+          />
           <span className="font-mono text-ui-xs text-ink-500">
             {ping.isLoading ? 'connecting…' : ping.data ? 'ipc connected' : 'offline'}
           </span>

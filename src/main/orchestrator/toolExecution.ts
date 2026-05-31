@@ -1,9 +1,8 @@
 import { invokeTool, isReadOnlyTool } from '../services/tools/registry.js';
-import { taskBus } from '../services/events.js';
 import type { ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
 import type { RunCtx } from './runCtx.js';
-import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
+import { emitToolCallStarted, emitToolCallFinished, emitLog } from './eventEmitter.js';
 
 export interface ToolResult {
   tool: ToolName;
@@ -26,26 +25,18 @@ export async function executeToolCalls(
   const invokeOne = async (tc: ToolCall): Promise<ToolResult> => {
     const tool = tc.name as ToolName;
     const args = tc.arguments;
-    const { stepId } = emitToolCallStarted(ctx, agent, tool, args);
+
+    const { stepId } = emitToolCallStarted(ctx.taskId, agent, tool, args);
 
     const result = await invokeTool(tool, args, {
       workspaceId: ctx.workspaceId,
       workspacePath: ctx.workspacePath,
       taskId: ctx.taskId,
       signal: ctx.signal,
-      onLog: ({ stream, text }) => {
-        taskBus.emit(ctx.taskId, {
-          type: 'log',
-          taskId: ctx.taskId,
-          ts: Date.now(),
-          stream,
-          text,
-          stepId,
-        });
-      },
+      onLog: ({ stream, text }) => emitLog(ctx.taskId, stepId, stream !== 'stderr', text),
     });
 
-    emitToolCallFinished(ctx, stepId, result.ok, tool, result.output ?? null, result.error);
+    emitToolCallFinished(ctx.taskId, stepId, result.ok, tool, result.output ?? null, result.error);
 
     return {
       tool,
@@ -66,5 +57,6 @@ export async function executeToolCalls(
   for (const tc of toolCalls) {
     results.push(await invokeOne(tc));
   }
+
   return results;
 }
