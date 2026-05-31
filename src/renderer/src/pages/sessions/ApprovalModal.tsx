@@ -1,8 +1,17 @@
 import { useMemo } from 'react';
 import type { ApprovalReq } from './types';
-import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Dialog, DialogContent } from '../../components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { buttonVariants } from '../../components/ui/button';
 import { ScrollArea } from '../../components/ui/scroll-area';
 
 export function ApprovalModal({
@@ -28,9 +37,9 @@ export function ApprovalModal({
     : null;
 
   return (
-    <Dialog open>
-      <DialogContent className="w-[560px] max-w-[90vw] border-amber/20 bg-ink-900 p-0 text-ink-50">
-        <div className="flex items-center justify-between border-b border-ink-800/60 px-5 py-3">
+    <AlertDialog open>
+      <AlertDialogContent className="w-[560px] max-w-[90vw] border-amber/20 bg-ink-900 p-0 text-ink-50">
+        <AlertDialogHeader className="flex-row items-center justify-between border-b border-ink-800/60 px-5 py-3 space-y-0">
           <div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
@@ -40,12 +49,16 @@ export function ApprovalModal({
                 <Badge variant="outline" className="border-ink-700/40 font-mono text-ui-2xs text-ink-500">+{remaining} more</Badge>
               )}
             </div>
-            <div className="mt-1 font-mono text-ui-sm font-medium text-ink-50">{req.tool}</div>
+            <AlertDialogTitle className="mt-1 font-mono text-ui-sm font-medium text-ink-50">{req.tool}</AlertDialogTitle>
           </div>
           <div className="font-mono text-ui-2xs tabular-nums text-ink-600">
             {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
           </div>
-        </div>
+        </AlertDialogHeader>
+
+        <AlertDialogDescription className="sr-only">
+          Approval required for tool: {req.tool}
+        </AlertDialogDescription>
 
         {isShell && shellArgs ? (
           <div className="space-y-3 px-5 py-3">
@@ -80,18 +93,27 @@ export function ApprovalModal({
           </ScrollArea>
         )}
 
-        <div className="flex items-center justify-end gap-2 border-t border-ink-800/60 px-5 py-3">
-          <Button variant="danger" size="sm" onClick={() => onDecide('deny')}>
+        <AlertDialogFooter className="border-t border-ink-800/60 px-5 py-3">
+          <AlertDialogCancel
+            className={buttonVariants({ variant: 'danger', size: 'sm' })}
+            onClick={() => onDecide('deny')}
+          >
             deny
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onDecide('approve_session')}>
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            onClick={() => onDecide('approve_session')}
+          >
             allow this task
-          </Button>
-          <Button variant="default" size="sm" onClick={() => onDecide('approve')}>
+          </AlertDialogAction>
+          <AlertDialogAction
+            className={buttonVariants({ size: 'sm' })}
+            onClick={() => onDecide('approve')}
+          >
             approve once
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

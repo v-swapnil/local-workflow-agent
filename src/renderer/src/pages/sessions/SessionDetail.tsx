@@ -3,10 +3,15 @@ import { trpc } from '../../trpc';
 import { cn } from '../../lib/utils';
 import { TaskView } from './TaskView';
 import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
-import { Textarea } from '../../components/ui/textarea';
 import { Button } from '../../components/ui/button';
 import { Separator } from '../../components/ui/separator';
 import { GitBranch, BarChart3 } from 'lucide-react';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from '@renderer/components/ui/input-group';
 
 export function SessionDetail({
   sessionId,
@@ -106,8 +111,8 @@ export function SessionDetail({
           handleCreateTask();
         }}
       >
-        <div className="rounded-lg border border-ink-700/60 bg-ink-900/30 transition-all focus-within:border-amber/30 focus-within:bg-ink-900/50">
-          <Textarea
+        <InputGroup className="rounded-lg border-ink-700/60 bg-ink-900/30 transition-all hover:border-ink-600">
+          <InputGroupTextarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="describe the task… (⌘↩ to submit)"
@@ -119,27 +124,26 @@ export function SessionDetail({
               }
             }}
           />
-          <div className="flex items-center justify-between border-t border-ink-800/30 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <AdvancedOptions
-                modelOverride={modelOverride}
-                agentId={agentId}
-                workflowId={workflowId}
-                onModelOverride={setModelOverride}
-                onAgentId={setAgentId}
-                onWorkflowId={setWorkflowId}
-              />
-            </div>
-            <Button
+          <InputGroupAddon align="block-end" className="border-t border-ink-800/30">
+            <AdvancedOptions
+              modelOverride={modelOverride}
+              agentId={agentId}
+              workflowId={workflowId}
+              onModelOverride={setModelOverride}
+              onAgentId={setAgentId}
+              onWorkflowId={setWorkflowId}
+            />
+            <InputGroupButton
               type="submit"
-              variant="default"
               size="sm"
+              variant="default"
+              className="ml-auto"
               disabled={!prompt.trim() || create.isPending}
             >
               {create.isPending ? 'submitting…' : 'submit'}
-            </Button>
-          </div>
-        </div>
+            </InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </form>
     </div>
   );
