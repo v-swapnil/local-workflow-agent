@@ -4,6 +4,8 @@ import { OLLAMA_URL } from '@shared/constants';
 import { Pill } from '../Pill';
 import { formatBytes } from './modelManagerUtils';
 import { ModelDropdown } from './ModelDropdown';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 export function OllamaPanel() {
   const utils = trpc.useUtils();
@@ -52,36 +54,38 @@ export function OllamaPanel() {
                     }
                   }}
                 >
-                  <input
+                  <Input
                     autoFocus
                     value={urlDraft}
                     onChange={(e) => setUrlDraft(e.target.value)}
-                    className="w-48 rounded border border-ink-700 bg-ink-950 px-2 py-0.5 font-mono text-ui-xs text-ink-100 focus:border-amber focus:outline-none"
+                    className="h-6 w-48 px-2 py-0.5 font-mono text-ui-xs"
                     placeholder={OLLAMA_URL}
                   />
-                  <button type="submit" className="font-mono text-ui-xs text-amber hover:underline">
+                  <Button type="submit" variant="ghost" className="h-auto p-0 font-mono text-ui-xs text-amber">
                     save
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    className="h-auto p-0 font-mono text-ui-xs text-ink-500"
                     onClick={() => setEditing(false)}
-                    className="font-mono text-ui-xs text-ink-500 hover:underline"
                   >
                     cancel
-                  </button>
+                  </Button>
                 </form>
               ) : (
                 <>
                   {health.data?.url ?? ollamaUrl.data ?? OLLAMA_URL}{' '}
-                  <button
+                  <Button
+                    variant="ghost"
+                    className="h-auto p-0 font-mono text-ui-xs text-amber"
                     onClick={() => {
                       setUrlDraft(ollamaUrl.data ?? OLLAMA_URL);
                       setEditing(true);
                     }}
-                    className="text-amber hover:underline"
                   >
                     edit
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

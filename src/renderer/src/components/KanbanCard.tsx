@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { KanbanCard as KanbanCardData, KanbanLane } from '@shared/types';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
 
 const LANE_STYLES: Record<KanbanLane, { border: string; icon: string }> = {
   todo: { border: 'border-l-ink-600', icon: '○' },
@@ -58,16 +59,18 @@ export function KanbanCardView({
           {card.title}
         </h3>
         {card.manualLane && onResetLane && (
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={(e) => {
               e.stopPropagation();
               onResetLane();
             }}
-            className="invisible shrink-0 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500 hover:text-amber group-hover:visible"
+            className="invisible shrink-0 font-mono uppercase tracking-widest2 text-ink-500 hover:bg-transparent hover:text-amber group-hover:visible"
             title="Reset to auto lane"
           >
             reset
-          </button>
+          </Button>
         )}
       </div>
 

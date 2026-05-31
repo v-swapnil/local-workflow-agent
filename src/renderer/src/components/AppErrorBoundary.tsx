@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button } from './ui/button';
 
 interface State {
   hasError: boolean;
@@ -27,12 +28,14 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, State> 
           </div>
           <h1 className="mt-2 font-serif text-3xl text-ink-50">Something crashed in the UI</h1>
           <p className="mt-3 font-mono text-ui-base text-ink-300">{this.state.message}</p>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => window.location.reload()}
-            className="mt-5 rounded border border-ink-700 px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 text-ink-100 hover:border-ink-600"
+            className="mt-5 font-mono uppercase tracking-widest2"
           >
             reload app
-          </button>
+          </Button>
         </div>
       </div>
     );

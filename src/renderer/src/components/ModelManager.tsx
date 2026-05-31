@@ -3,6 +3,7 @@ import { PROVIDERS } from '@shared/constants';
 import type { ProviderId } from '@shared/types';
 import { OllamaPanel } from './modelManager/OllamaPanel';
 import { CopilotPanel } from './modelManager/CopilotPanel';
+import { Button } from './ui/button';
 
 export function ModelManager() {
   const utils = trpc.useUtils();
@@ -23,18 +24,16 @@ export function ModelManager() {
         </div>
         <div className="flex items-center gap-2">
           {[PROVIDERS.OLLAMA, PROVIDERS.COPILOT].map((id) => (
-            <button
+            <Button
               key={id}
-              className={`rounded border px-4 py-2 font-mono text-ui-sm uppercase tracking-widest2 transition-colors ${
-                provider === id
-                  ? 'border-amber/30 bg-amber/8 text-amber'
-                  : 'border-ink-700/50 text-ink-300 hover:border-ink-600'
-              }`}
+              variant={provider === id ? 'default' : 'outline'}
+              size="sm"
+              className="font-mono uppercase tracking-widest2"
               onClick={() => setActiveProvider.mutate({ provider: id })}
               disabled={setActiveProvider.isPending}
             >
               {id === PROVIDERS.OLLAMA ? 'Ollama (local)' : 'Copilot CLI'}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

@@ -1,6 +1,11 @@
 import { trpc } from '../trpc';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { useUI } from '../store/ui';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Separator } from './ui/separator';
+import { Sun, Moon, Bot } from 'lucide-react';
 
 export function TitleBar() {
   const utils = trpc.useUtils();
@@ -18,33 +23,35 @@ export function TitleBar() {
       <div className="flex items-center gap-2.5 font-mono text-ui-xs tracking-widest2 text-ink-500">
         <span className="uppercase">autonomous software engineer</span>
         {version && (
-          <span className="rounded-full bg-ink-800/60 px-1.5 py-0.5 text-ui-2xs text-ink-500">{version}</span>
+          <Badge variant="outline" className="border-ink-700/60 bg-ink-800/60 font-mono text-ui-2xs text-ink-500">{version}</Badge>
         )}
       </div>
       <div className="app-no-drag flex items-center gap-2">
         <ModelBadge />
-        <button
-          onClick={() => {
-            const next = theme === 'dark' ? 'light' : 'dark';
-            setThemeLocal(next);
-            setTheme.mutate({ value: next });
-          }}
-          className="group flex h-7 w-7 items-center justify-center rounded-md border border-ink-800/60 bg-ink-900/40 text-ink-400 transition-all hover:border-ink-700 hover:bg-ink-800/60 hover:text-ink-200"
-          title="Toggle theme (Cmd/Ctrl+Shift+L)"
-        >
+        <TooltipProvider delayDuration={400}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              const next = theme === 'dark' ? 'light' : 'dark';
+              setThemeLocal(next);
+              setTheme.mutate({ value: next });
+            }}
+            className="group h-7 w-7 rounded-md border border-ink-800/60 bg-ink-900/40 text-ink-400 hover:border-ink-700 hover:bg-ink-800/60 hover:text-ink-200"
+          >
           {theme === 'dark' ? (
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="h-3.5 w-3.5 transition-transform group-hover:rotate-45">
-              <circle cx="8" cy="8" r="3" />
-              <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M3.8 12.2l1-1M11.2 4.8l1-1" />
-            </svg>
+            <Sun className="h-3.5 w-3.5 transition-transform group-hover:rotate-45" strokeWidth={1.3} />
           ) : (
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
-              <path d="M13.5 9.5a5.5 5.5 0 01-7-7 5.5 5.5 0 107 7z" />
-            </svg>
+            <Moon className="h-3.5 w-3.5" strokeWidth={1.3} />
           )}
-        </button>
+        </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="font-mono text-ui-2xs">Toggle theme (⌘⇧L)</TooltipContent>
+        </Tooltip>
+        </TooltipProvider>
         <WorkspaceSwitcher />
-        <div className="mx-1 h-4 w-px bg-ink-800/60" />
+        <Separator orientation="vertical" className="mx-1 h-4 bg-ink-800/60" />
         <StatusDot
           label={providerHealth.data?.provider ?? 'llm'}
           ok={providerHealth.data?.ok}
@@ -70,12 +77,7 @@ function ModelBadge() {
   const active = trpc.llm.activeModel.useQuery();
   return (
     <div className="flex items-center gap-1.5 rounded-md border border-ink-800/60 bg-ink-900/40 px-2.5 py-1 font-mono text-ui-xs text-ink-300">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" className="h-3 w-3 text-ink-500">
-        <rect x="2" y="2" width="12" height="12" rx="2" />
-        <circle cx="6" cy="6.5" r="1" fill="currentColor" stroke="none" />
-        <circle cx="10" cy="6.5" r="1" fill="currentColor" stroke="none" />
-        <path d="M5.5 10c.5 1 1.5 1.5 2.5 1.5s2-.5 2.5-1.5" />
-      </svg>
+      <Bot className="h-3 w-3 text-ink-500" strokeWidth={1.3} />
       <span className="normal-case text-ink-200">{active.data ?? '…'}</span>
     </div>
   );

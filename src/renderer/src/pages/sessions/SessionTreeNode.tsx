@@ -1,5 +1,7 @@
 import { cn } from '../../lib/utils';
 import { trpc } from '../../trpc';
+import { Button } from '../../components/ui/button';
+import { ChevronRight, X } from 'lucide-react';
 
 export function SessionTreeNode({
   session,
@@ -39,23 +41,26 @@ export function SessionTreeNode({
             : 'border-transparent hover:border-ink-800/60 hover:bg-ink-800/20',
         )}
       >
-        <button
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-500 transition-colors hover:bg-ink-800 hover:text-ink-300"
+        <Button
+          variant="ghost"
+          size="xs"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-500 hover:bg-ink-800 hover:text-ink-300"
           onClick={(e) => {
             e.stopPropagation();
             onToggle();
           }}
         >
-          <svg
+          <ChevronRight
             className={cn('h-3 w-3 transition-transform duration-150', isExpanded && 'rotate-90')}
-            viewBox="0 0 8 10"
-            fill="currentColor"
-          >
-            <path d="M1 1l6 4-6 4V1z" />
-          </svg>
-        </button>
+            strokeWidth={1.5}
+          />
+        </Button>
 
-        <button className="min-w-0 flex-1 text-left" onClick={onSelect}>
+        <Button
+          variant="ghost"
+          className="min-w-0 h-auto flex-1 justify-start p-0 text-left font-normal hover:bg-transparent"
+          onClick={onSelect}
+        >
           <div className="flex items-center gap-2">
             <span
               className={cn(
@@ -90,26 +95,20 @@ export function SessionTreeNode({
               </>
             )}
           </div>
-        </button>
+        </Button>
 
-        <button
-          className="invisible shrink-0 rounded p-1 text-ink-600 transition-colors hover:bg-rose-950/40 hover:text-rose-400 group-hover:visible"
+        <Button
+          variant="ghost"
+          size="xs"
+          className="invisible shrink-0 rounded p-1 text-ink-600 hover:bg-rose-950/40 hover:text-rose-400 group-hover:visible"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
           title="Delete session"
         >
-          <svg
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            className="h-3 w-3"
-          >
-            <path d="M3 3l6 6M9 3l-6 6" />
-          </svg>
-        </button>
+          <X className="h-3 w-3" strokeWidth={1.2} />
+        </Button>
       </div>
 
       {/* Task tree */}
@@ -135,12 +134,13 @@ export function SessionTreeNode({
                     />
                   )}
 
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => onTaskSelect(t.id)}
                     className={cn(
-                      'ml-4 mt-0.5 flex w-[calc(100%-16px)] items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition-all',
+                      'ml-4 mt-0.5 h-auto w-[calc(100%-16px)] justify-start gap-2 rounded-md border px-2.5 py-1.5 text-left font-normal',
                       isFocused
-                        ? 'border-amber/15 bg-amber/5'
+                        ? 'border-amber/15 bg-amber/5 hover:bg-amber/8'
                         : 'border-transparent hover:border-ink-800/40 hover:bg-ink-800/15',
                     )}
                   >
@@ -189,7 +189,7 @@ export function SessionTreeNode({
                           ? '…'
                           : ''}
                     </span>
-                  </button>
+                  </Button>
                 </div>
               );
             })

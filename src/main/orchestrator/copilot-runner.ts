@@ -40,7 +40,7 @@ export async function runTaskViaCopilot(
   const client = await service.getClient();
 
   const primaryModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, DEFAULT_COPILOT_MODEL);
-  const model = agent?.model || primaryModel;
+  const model = primaryModel;
 
   let iterationCount = 0;
 

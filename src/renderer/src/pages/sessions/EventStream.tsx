@@ -1,6 +1,7 @@
 import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
 import { summarizeToolCall, summarizeToolResult } from './toolSummary';
+import { Play, Square, StepForward } from 'lucide-react';
 
 export function EventRow({ ev }: { ev: TaskEventRecord }) {
   const t = new Date(ev.ts).toLocaleTimeString([], {
@@ -16,9 +17,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
         <div className="my-2 flex items-center gap-3">
           <div className="h-px flex-1 bg-amber/15" />
           <span className="flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
-            <svg viewBox="0 0 8 8" className="h-2 w-2" fill="currentColor">
-              <polygon points="1,0 8,4 1,8" />
-            </svg>
+            <Play className="h-2 w-2" fill="currentColor" strokeWidth={0} />
             task started
           </span>
           <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
@@ -48,9 +47,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
                   : 'text-rose-400',
             )}
           >
-            <svg viewBox="0 0 8 8" className="h-2 w-2" fill="currentColor">
-              <rect width="8" height="8" rx="1" />
-            </svg>
+            <Square className="h-2 w-2" fill="currentColor" strokeWidth={0} />
             task {ev.status}
           </span>
           <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
@@ -118,9 +115,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
       return (
         <Line ts={t} tone="amber">
           <span className="inline-flex items-center gap-1">
-            <svg viewBox="0 0 10 12" className="h-3 w-3" fill="currentColor">
-              <path d="M2 1h2v11H2zM6 5l4 3-4 3z" />
-            </svg>
+            <StepForward className="h-3 w-3" fill="currentColor" strokeWidth={0} />
             approval · <span className="text-ink-200">{summarizeToolCall(ev.tool, ev.args)}</span>
           </span>
         </Line>

@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { trpc } from '../../trpc';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Checkbox } from '../ui/checkbox';
+import { Textarea } from '../ui/textarea';
+import { Label } from '../ui/label';
 
 interface Props {
   workspaceId: string;
@@ -100,52 +105,52 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                 </div>
               )}
               {!showForm ? (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setShowForm(true);
                     setTitle(currentBranch.replace(/[/-]/g, ' ').replace(/^ase /, ''));
                   }}
-                  className="btn-secondary !py-1"
                 >
                   create pull request
-                </button>
+                </Button>
               ) : (
                 <div className="space-y-2">
-                  <input
+                  <Input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="PR title"
-                    className="w-full rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 transition-colors focus:border-amber/30 focus:outline-none"
                   />
-                  <textarea
+                  <Textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
                     placeholder="Description (optional)…"
                     rows={3}
-                    className="w-full resize-none rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none"
+                    className="resize-none font-mono text-ui-xs"
                   />
                   <div className="flex gap-2">
-                    <input
+                    <Input
                       value={baseBranch}
                       onChange={(e) => setBaseBranch(e.target.value)}
                       placeholder="base branch (default: main)"
-                      className="flex-1 rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-2xs text-ink-200 transition-colors focus:border-amber/30 focus:outline-none"
+                      className="flex-1"
                     />
-                    <label className="flex items-center gap-1.5 font-mono text-ui-2xs text-ink-400">
-                      <input
-                        type="checkbox"
+                    <Label className="flex items-center gap-1.5 font-mono text-ui-2xs text-ink-400">
+                      <Checkbox
                         checked={draft}
-                        onChange={(e) => setDraft(e.target.checked)}
-                        className="accent-amber"
+                        onCheckedChange={(v) => setDraft(v === true)}
                       />
                       draft
-                    </label>
+                    </Label>
                   </div>
                   {prError && (
                     <div className="font-mono text-ui-2xs text-signal-err">{prError}</div>
                   )}
                   <div className="flex gap-1.5">
-                    <button
+                    <Button
+                      variant="default"
+                      size="sm"
                       onClick={() =>
                         createPr.mutate({
                           workspaceId,
@@ -157,16 +162,12 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                         })
                       }
                       disabled={createPr.isPending || !title.trim()}
-                      className="btn-primary !py-1"
                     >
                       {createPr.isPending ? '…' : 'create PR'}
-                    </button>
-                    <button
-                      onClick={() => setShowForm(false)}
-                      className="btn-secondary !py-1"
-                    >
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>
                       cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

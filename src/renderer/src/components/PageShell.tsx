@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Separator } from './ui/separator';
+import { FileText } from 'lucide-react';
 
 export function PageShell({
   path,
@@ -29,7 +31,7 @@ export function PageShell({
         </div>
         {actions && <div className="animate-fade-in">{actions}</div>}
       </header>
-      <div className="divider-h mb-5" />
+      <Separator className="mb-5 bg-ink-800/60" />
       <div className="min-h-0 flex-1 animate-slide-up">{children}</div>
     </div>
   );
@@ -39,10 +41,7 @@ export function EmptyHint({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-center rounded-lg border border-dashed border-ink-700/60 bg-ink-900/20 px-8 py-14 text-center">
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-ink-800/60">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="h-4 w-4 text-ink-500">
-          <rect x="2" y="3" width="12" height="10" rx="1.5" />
-          <path d="M5 7.5h6M5 9.5h3" />
-        </svg>
+        <FileText className="h-4 w-4 text-ink-500" strokeWidth={1.2} />
       </div>
       <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
         coming soon

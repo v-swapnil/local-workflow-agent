@@ -6,6 +6,7 @@ import { ApprovalModal } from './ApprovalModal';
 import { UserInputModal } from './UserInputModal';
 import type { ApprovalReq, UserInputReq } from './types';
 import type { TaskEventRecord } from '@shared/schema';
+import { Button } from '../../components/ui/button';
 
 const getEvents = (previousEvents: TaskEventRecord[], currentEvent: TaskEventRecord) => {
   const lastEvent = previousEvents[previousEvents.length - 1];
@@ -101,30 +102,33 @@ export function TaskView({ taskId }: { taskId: string }) {
           </div>
           <div className="flex items-center gap-1.5">
             {running && (
-              <button
+              <Button
+                variant="danger"
+                size="xs"
                 onClick={() => cancel.mutate({ id: taskId })}
-                className="btn-danger !py-0.5 !px-2 !text-ui-2xs"
               >
                 cancel
-              </button>
+              </Button>
             )}
             {finished && (
               <>
-                <button
+                <Button
+                  variant="outline"
+                  size="xs"
                   onClick={() => exportReport.mutate({ id: taskId })}
                   disabled={exportReport.isPending}
-                  className="btn-secondary !py-0.5 !px-2 !text-ui-2xs"
                 >
                   {exportReport.isPending ? 'exporting…' : 'export'}
-                </button>
+                </Button>
                 {status !== 'succeeded' && (
-                  <button
+                  <Button
+                    variant="default"
+                    size="xs"
                     onClick={() => retry.mutate({ id: taskId })}
                     disabled={retry.isPending}
-                    className="btn-primary !py-0.5 !px-2 !text-ui-2xs"
                   >
                     retry
-                  </button>
+                  </Button>
                 )}
               </>
             )}

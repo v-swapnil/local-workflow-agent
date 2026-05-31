@@ -3,6 +3,10 @@ import { trpc } from '../../trpc';
 import { cn } from '../../lib/utils';
 import { TaskView } from './TaskView';
 import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
+import { Textarea } from '../../components/ui/textarea';
+import { Button } from '../../components/ui/button';
+import { Separator } from '../../components/ui/separator';
+import { GitBranch, BarChart3 } from 'lucide-react';
 
 export function SessionDetail({
   sessionId,
@@ -63,19 +67,7 @@ export function SessionDetail({
         </div>
         {worktree.data && (
           <div className="flex items-center gap-2 rounded-md border border-ink-800/50 bg-ink-900/30 px-3 py-1.5">
-            <svg
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              className="h-3.5 w-3.5 text-ink-500"
-            >
-              <path d="M6 3v10M10 3v10M6 8h4" />
-              <circle cx="6" cy="3" r="1.5" />
-              <circle cx="10" cy="3" r="1.5" />
-              <circle cx="6" cy="13" r="1.5" />
-              <circle cx="10" cy="13" r="1.5" />
-            </svg>
+            <GitBranch className="h-3.5 w-3.5 text-ink-500" strokeWidth={1.2} />
             <span className="font-mono text-ui-xs text-amber">{worktree.data.branch}</span>
             <span
               className={cn(
@@ -92,7 +84,7 @@ export function SessionDetail({
       </header>
 
       {/* Divider */}
-      <div className="divider-h mb-4 shrink-0" />
+      <Separator className="mb-4 shrink-0 bg-ink-800/60" />
 
       {/* Task view */}
       <div className="min-h-0 flex-1 overflow-hidden">
@@ -100,15 +92,7 @@ export function SessionDetail({
           <TaskView taskId={focusedTaskId} key={focusedTaskId} />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1"
-              className="h-8 w-8 text-ink-700"
-            >
-              <path d="M12 20V10M18 20V4M6 20v-4" />
-            </svg>
+            <BarChart3 className="h-8 w-8 text-ink-700" strokeWidth={1} />
             <div className="font-mono text-ui-xs text-ink-500">submit a prompt to begin</div>
           </div>
         )}
@@ -123,12 +107,11 @@ export function SessionDetail({
         }}
       >
         <div className="rounded-lg border border-ink-700/60 bg-ink-900/30 transition-all focus-within:border-amber/30 focus-within:bg-ink-900/50">
-          <textarea
+          <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="describe the task… (⌘↩ to submit)"
             rows={3}
-            className="w-full resize-none rounded-t-lg bg-transparent px-3 py-2.5 font-mono text-ui-sm text-ink-100 placeholder:text-ink-600 focus:outline-none"
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                 e.preventDefault();
@@ -147,13 +130,14 @@ export function SessionDetail({
                 onWorkflowId={setWorkflowId}
               />
             </div>
-            <button
+            <Button
               type="submit"
+              variant="default"
+              size="sm"
               disabled={!prompt.trim() || create.isPending}
-              className="rounded-md bg-amber/90 px-4 py-1.5 font-mono text-ui-xs font-medium uppercase tracking-widest2 text-ink-950 transition-all hover:bg-amber disabled:opacity-40"
             >
               {create.isPending ? 'submitting…' : 'submit'}
-            </button>
+            </Button>
           </div>
         </div>
       </form>

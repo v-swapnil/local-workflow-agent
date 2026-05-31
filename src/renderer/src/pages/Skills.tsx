@@ -4,6 +4,7 @@ import { trpc } from '../trpc';
 import { SkillSidebar } from '../components/skills/SkillSidebar';
 import { SkillDetail } from '../components/skills/SkillDetail';
 import { NewSkillModal } from '../components/skills/NewSkillModal';
+import { Button } from '../components/ui/button';
 
 export function Skills() {
   const utils = trpc.useUtils();
@@ -37,19 +38,22 @@ export function Skills() {
       subtitle="Markdown-defined capabilities the planner can attach to a task. Edit on disk; ASE re-reads on refresh."
       actions={
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
-            className="rounded-md border border-ink-700/60 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-300 transition-all hover:border-ink-600 hover:text-ink-200 disabled:opacity-40"
+            className="font-mono uppercase tracking-widest2"
           >
             {refresh.isPending ? 'syncing…' : 'refresh'}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
             onClick={() => setShowNew(true)}
-            className="rounded-md bg-amber/90 px-3 py-1.5 font-mono text-ui-xs font-medium uppercase tracking-widest2 text-ink-950 shadow-glow-sm transition-all hover:bg-amber hover:shadow-glow"
           >
             + new skill
-          </button>
+          </Button>
         </div>
       }
     >

@@ -2,6 +2,10 @@ import { PageShell } from '../components/PageShell';
 import { ModelManager } from '../components/ModelManager';
 import { trpc } from '../trpc';
 import { useUI, type TextSize } from '../store/ui';
+import { Switch } from '../components/ui/switch';
+import { Button } from '../components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
+import { Label } from '../components/ui/label';
 
 export function Settings() {
   const health = trpc.health.useQuery();
@@ -50,45 +54,43 @@ export function Settings() {
                 Theme
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${theme === 'dark' ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
-                  onClick={() => {
-                    setThemeLocal('dark');
-                    setTheme.mutate({ value: 'dark' });
+                <ToggleGroup
+                  type="single"
+                  value={theme}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setThemeLocal(v as 'dark' | 'light');
+                    setTheme.mutate({ value: v as 'dark' | 'light' });
                   }}
                   disabled={setTheme.isPending}
+                  className="gap-1"
                 >
-                  dark
-                </button>
-                <button
-                  className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${theme === 'light' ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
-                  onClick={() => {
-                    setThemeLocal('light');
-                    setTheme.mutate({ value: 'light' });
-                  }}
-                  disabled={setTheme.isPending}
-                >
-                  light
-                </button>
+                  <ToggleGroupItem value="dark" size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">dark</ToggleGroupItem>
+                  <ToggleGroupItem value="light" size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">light</ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               <div className="mt-5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
                 text size
               </div>
               <div className="flex items-center gap-2">
-                {(['compact', 'default', 'comfortable'] as TextSize[]).map((size) => (
-                  <button
-                    key={size}
-                    className={`rounded-md border px-3 py-1.5 font-mono text-ui-sm uppercase tracking-widest2 transition-all ${textSize === size ? 'border-amber/30 bg-amber/8 text-amber shadow-sm shadow-amber/5' : 'border-ink-700/60 text-ink-400 hover:border-ink-600 hover:text-ink-200'}`}
-                    onClick={() => {
-                      setTextSizeLocal(size);
-                      setTextSize.mutate({ value: size });
-                    }}
-                    disabled={setTextSize.isPending}
-                  >
-                    {size}
-                  </button>
-                ))}
+                <ToggleGroup
+                  type="single"
+                  value={textSize}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setTextSizeLocal(v as TextSize);
+                    setTextSize.mutate({ value: v as TextSize });
+                  }}
+                  disabled={setTextSize.isPending}
+                  className="gap-1"
+                >
+                  {(['compact', 'default', 'comfortable'] as TextSize[]).map((size) => (
+                    <ToggleGroupItem key={size} value={size} size="sm" variant="outline" className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber">
+                      {size}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
               </div>
             </div>
           </div>
@@ -128,13 +130,15 @@ export function Settings() {
         <section>
           <SectionTitle index="05" title="System" />
           <div className="mb-3 flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => openLogs.mutate()}
                 disabled={openLogs.isPending}
-                className="rounded-md border border-ink-700/50 px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 transition-colors hover:border-ink-600 hover:text-ink-100 disabled:opacity-40"
+                className="font-mono uppercase tracking-widest2"
               >
                 {openLogs.isPending ? 'opening…' : 'open logs folder'}
-              </button>
+              </Button>
             </div>
             <Rows
               rows={[
@@ -167,19 +171,18 @@ function ToggleCard({
   description: string;
 }) {
   return (
-    <label className="group flex cursor-pointer items-start gap-3.5 rounded-lg border border-ink-800/40 bg-ink-900/15 p-4 transition-all hover:border-ink-700/50 hover:bg-ink-900/25">
-      <input
-        type="checkbox"
+    <Label className="group flex cursor-pointer items-start gap-3.5 rounded-lg border border-ink-800/40 bg-ink-900/15 p-4 font-normal transition-all hover:border-ink-700/50 hover:bg-ink-900/25">
+      <Switch
         checked={checked}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-        className="toggle-switch mt-0.5 shrink-0"
+        onCheckedChange={onChange}
+        className="mt-0.5 shrink-0"
       />
       <div>
         <div className="font-mono text-ui-sm font-medium text-ink-50">{title}</div>
         <div className="mt-1 font-mono text-ui-xs leading-relaxed text-ink-400">{description}</div>
       </div>
-    </label>
+    </Label>
   );
 }
 

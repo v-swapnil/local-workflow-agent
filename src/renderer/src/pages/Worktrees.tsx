@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageShell } from '../components/PageShell';
 import { trpc } from '../trpc';
 import { cn } from '../lib/utils';
+import { Button } from '../components/ui/button';
 
 export function Worktrees() {
   const navigate = useNavigate();
@@ -64,12 +65,14 @@ export function Worktrees() {
                 <div className="font-mono text-ui-xs text-ink-600">
                   base: {w.baseBranch} @ {w.baseCommit.slice(0, 8)} ·{' '}
                   {w.sessionId ? (
-                    <button
-                      className="text-amber hover:underline"
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="h-auto p-0 text-amber font-mono text-ui-xs"
                       onClick={() => navigate(`/sessions?id=${w.sessionId}`)}
                     >
                       session {w.sessionId}
-                    </button>
+                    </Button>
                   ) : (
                     <span className="text-amber/60">orphaned</span>
                   )}{' '}
@@ -79,15 +82,16 @@ export function Worktrees() {
 
               {w.status === 'active' && (
                 <div className="flex shrink-0 items-center gap-2 pt-0.5">
-                  <button
+                  <Button
+                    variant="danger"
+                    size="xs"
                     onClick={() => {
                       if (confirm(`Delete worktree "${w.branch}"?`)) remove.mutate({ id: w.id });
                     }}
                     disabled={remove.isPending}
-                    className="btn-danger !py-0.5 !px-2"
                   >
                     delete
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
