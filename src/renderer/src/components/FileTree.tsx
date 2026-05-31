@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { cn } from '../lib/utils';
 import type { inferProcedureOutput } from '@trpc/server';
 import type { AppRouter } from '../../../main/ipc/router';
+import { Button } from './ui/button';
 
 type Tree = inferProcedureOutput<AppRouter['file']['tree']>;
 
@@ -38,30 +39,32 @@ export function Node({
 
   if (!node.isDir) {
     return (
-      <button
+      <Button
+        variant="ghost"
         onClick={() => onOpen(node.path)}
         style={indent}
         className={cn(
-          'flex w-full items-center gap-1.5 py-[3px] text-left hover:bg-ink-800/50',
-          isActive && 'bg-ink-800 text-amber',
+          'h-auto w-full justify-start gap-1.5 rounded-none py-[3px] text-left font-normal hover:bg-ink-800/50',
+          isActive && 'bg-ink-800 text-amber hover:bg-ink-800',
         )}
       >
         <span className="text-ink-400">·</span>
         <span className="truncate">{node.name}</span>
-      </button>
+      </Button>
     );
   }
 
   return (
     <div>
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setOpen((o) => !o)}
         style={indent}
-        className="flex w-full items-center gap-1.5 py-[3px] text-left text-ink-300 hover:bg-ink-800/50"
+        className="h-auto w-full justify-start gap-1.5 rounded-none py-[3px] text-left font-normal text-ink-300 hover:bg-ink-800/50"
       >
         <span className="text-ui-2xs text-ink-500">{open ? '▾' : '▸'}</span>
         <span className="truncate">{node.name}</span>
-      </button>
+      </Button>
       {open &&
         node.children?.map((c) => (
           <Node key={c.path} node={c} depth={depth + 1} activePath={activePath} onOpen={onOpen} />

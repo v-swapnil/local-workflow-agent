@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { trpc } from '../../trpc';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Plus, Minus } from 'lucide-react';
 
 interface Props {
   workspaceId: string;
@@ -29,28 +32,31 @@ export function CommitPanel({ workspaceId, worktreeId, onDone }: Props) {
   return (
     <div className="border-t border-ink-800/40 p-3">
       <div className="mb-2 flex gap-1.5">
-        <button
+        <Button
+          variant="outline"
+          size="xs"
           onClick={() => stageAll.mutate({ workspaceId, worktreeId })}
           disabled={stageAll.isPending}
-          className="flex items-center gap-1 rounded-md border border-ink-700/50 px-2 py-1 font-mono text-ui-2xs text-ink-400 transition-colors hover:border-emerald-500/30 hover:text-signal-ok disabled:opacity-40"
+          className="flex items-center gap-1 font-mono hover:border-emerald-500/30 hover:text-signal-ok"
         >
-          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-2.5 w-2.5"><path d="M5 1v8M1 5h8" /></svg>
+          <Plus className="h-2.5 w-2.5" strokeWidth={1.5} />
           stage all
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="xs"
           onClick={() => unstageAll.mutate({ workspaceId, worktreeId })}
           disabled={unstageAll.isPending}
-          className="flex items-center gap-1 rounded-md border border-ink-700/50 px-2 py-1 font-mono text-ui-2xs text-ink-400 transition-colors hover:border-rose-500/30 hover:text-signal-err disabled:opacity-40"
+          className="flex items-center gap-1 font-mono hover:border-rose-500/30 hover:text-signal-err"
         >
-          <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-2.5 w-2.5"><path d="M1 5h8" /></svg>
+          <Minus className="h-2.5 w-2.5" strokeWidth={1.5} />
           unstage all
-        </button>
+        </Button>
       </div>
-      <input
+      <Input
         value={msg}
         onChange={(e) => setMsg(e.target.value)}
         placeholder="commit message…"
-        className="w-full rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none"
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey && msg.trim()) {
             commit.mutate({ workspaceId, worktreeId, message: msg.trim() });
@@ -64,20 +70,22 @@ export function CommitPanel({ workspaceId, worktreeId, onDone }: Props) {
         <div className="mt-1 font-mono text-ui-2xs text-signal-err">{commit.data.error}</div>
       )}
       <div className="mt-2 flex gap-1.5">
-        <button
+        <Button
+          variant="default"
+          size="sm"
           onClick={() => commit.mutate({ workspaceId, worktreeId, message: msg.trim() })}
           disabled={commit.isPending || !msg.trim()}
-          className="btn-primary !py-1 !px-3"
         >
           {commit.isPending ? '…' : 'commit'}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => push.mutate({ workspaceId, worktreeId })}
           disabled={push.isPending}
-          className="btn-secondary !py-1 !px-3"
         >
           {push.isPending ? '…' : 'push'}
-        </button>
+        </Button>
         {push.error && (
           <span className="font-mono text-ui-2xs text-signal-err self-center">{push.error.message}</span>
         )}

@@ -3,6 +3,7 @@ import { PatchDiff } from '@pierre/diffs/react';
 import { trpc } from '../../trpc';
 import type { ChangeKind } from './changeUtils';
 import { changeMeta } from './changeUtils';
+import { Toggle } from '../ui/toggle';
 
 interface DiffPanelEditorProps {
   workspaceId: string;
@@ -26,13 +27,15 @@ export function DiffPanelEditor({ workspaceId, worktreeId, path, kind }: DiffPan
           </span>
           <span className="min-w-0 truncate font-mono text-ui-sm text-ink-100">{path}</span>
         </div>
-        <button
-          type="button"
-          className="rounded-md border border-ink-700/50 px-2.5 py-1 font-mono text-ui-2xs text-ink-300 transition-colors hover:border-ink-600 hover:text-ink-100"
-          onClick={() => setInlineMode((v) => !v)}
+        <Toggle
+          pressed={inlineMode}
+          onPressedChange={setInlineMode}
+          size="sm"
+          variant="outline"
+          className="font-mono text-ui-2xs data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
         >
           {inlineMode ? 'Side-by-side' : 'Inline'}
-        </button>
+        </Toggle>
       </div>
       <div className="min-h-0 flex-1">
         {fileDiff.data ? (

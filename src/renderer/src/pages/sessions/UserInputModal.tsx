@@ -1,5 +1,13 @@
 import { useState } from 'react';
 import type { UserInputReq } from './types';
+import { Button } from '../../components/ui/button';
+import { Textarea } from '../../components/ui/textarea';
+import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Dialog, DialogContent } from '../../components/ui/dialog';
+import { Label } from '../../components/ui/label';
+import { cn } from '../../lib/utils';
 
 export function UserInputModal({
   req,
@@ -39,19 +47,19 @@ export function UserInputModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-[560px] max-w-[90vw] rounded-xl border border-sky-500/20 bg-ink-900 shadow-2xl animate-scale-in">
+    <Dialog open onOpenChange={(open) => { if (!open) onDismiss(); }}>
+      <DialogContent className="w-[560px] max-w-[90vw] border-sky-500/20 bg-ink-900 p-0 text-ink-50">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink-800/60 px-5 py-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-sky-500/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
+              <Badge variant="outline" className="border-sky-500/20 bg-sky-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
                 input requested
-              </span>
+              </Badge>
               {isAllowMultiple && (
-                <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-violet-400">
+                <Badge variant="outline" className="border-violet-500/20 bg-violet-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-violet-400">
                   multi-select
-                </span>
+                </Badge>
               )}
             </div>
             <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">{req.question}</div>
@@ -78,73 +86,75 @@ export function UserInputModal({
         >
           {hasChoices && mode === 'choices' ? (
             <div className="space-y-1.5">
-              {req.choices!.map((choice) => {
-                const isChecked = isAllowMultiple ? selected.has(choice) : answer === choice;
-                return (
-                  <button
-                    key={choice}
-                    type="button"
-                    onClick={() => {
-                      if (isAllowMultiple) toggleChoice(choice);
-                      else setAnswer(choice);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left font-mono text-ui-xs transition-colors ${
-                      isChecked
-                        ? 'border-sky-500/30 bg-sky-500/8 text-sky-200'
-                        : 'border-ink-700/50 bg-ink-900/30 text-ink-200 hover:border-ink-600 hover:bg-ink-800/30'
-                    }`}
-                  >
-                    {isAllowMultiple ? (
-                      /* Checkbox indicator */
-                      <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                          isChecked ? 'border-sky-500 bg-sky-500' : 'border-ink-600'
-                        }`}
-                      >
-                        {isChecked && (
-                          <svg className="h-2.5 w-2.5 text-ink-950" viewBox="0 0 10 10" fill="none">
-                            <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </span>
-                    ) : (
-                      /* Radio indicator */
-                      <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                          isChecked ? 'border-sky-500 bg-sky-500' : 'border-ink-600'
-                        }`}
-                      >
-                        {isChecked && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-ink-950" />
-                        )}
-                      </span>
-                    )}
-                    <span>{choice}</span>
-                  </button>
-                );
-              })}
+              {isAllowMultiple ? (
+                /* Multi-select with Checkbox */
+                req.choices!.map((choice) => {
+                  const isChecked = selected.has(choice);
+                  return (
+                    <Label
+                      key={choice}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 font-mono text-ui-xs font-normal transition-colors',
+                        isChecked
+                          ? 'border-sky-500/30 bg-sky-500/8 text-sky-200'
+                          : 'border-ink-700/50 bg-ink-900/30 text-ink-200 hover:border-ink-600 hover:bg-ink-800/30',
+                      )}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleChoice(choice)}
+                        className="border-ink-600 data-[state=checked]:border-sky-500 data-[state=checked]:bg-sky-500"
+                      />
+                      <span>{choice}</span>
+                    </Label>
+                  );
+                })
+              ) : (
+                /* Single-select with RadioGroup */
+                <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-1.5">
+                  {req.choices!.map((choice) => (
+                    <Label
+                      key={choice}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 font-mono text-ui-xs font-normal transition-colors',
+                        answer === choice
+                          ? 'border-sky-500/30 bg-sky-500/8 text-sky-200'
+                          : 'border-ink-700/50 bg-ink-900/30 text-ink-200 hover:border-ink-600 hover:bg-ink-800/30',
+                      )}
+                    >
+                      <RadioGroupItem
+                        value={choice}
+                        className="border-ink-600 text-sky-500 data-[state=checked]:border-sky-500"
+                      />
+                      <span>{choice}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              )}
 
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 onClick={() => {
                   setMode('freeform');
                   setAnswer('');
                   setSelected(new Set());
                 }}
-                className="mt-1 font-mono text-ui-xs text-ink-500 hover:text-ink-300 transition-colors"
+                className="mt-1 font-mono text-ink-500 hover:text-ink-300 hover:bg-transparent"
               >
                 or type a custom response…
-              </button>
+              </Button>
             </div>
           ) : (
             <div>
-              <textarea
+              <Textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 placeholder="type your response…"
                 rows={3}
                 autoFocus
-                className="w-full resize-none rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-2 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 focus:border-sky-500/30 focus:outline-none"
+                className="resize-none font-mono text-ui-xs placeholder:text-ink-600"
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                     e.preventDefault();
@@ -153,17 +163,19 @@ export function UserInputModal({
                 }}
               />
               {hasChoices && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="xs"
                   onClick={() => {
                     setMode('choices');
                     setAnswer('');
                     setSelected(new Set());
                   }}
-                  className="mt-1 font-mono text-ui-xs text-ink-500 hover:text-ink-300 transition-colors"
+                  className="mt-1 font-mono text-ink-500 hover:text-ink-300 hover:bg-transparent"
                 >
                   ← back to choices
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -171,21 +183,20 @@ export function UserInputModal({
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-2 border-t border-ink-800/60 px-5 py-3">
-          <button
-            onClick={onDismiss}
-            className="btn-secondary"
-          >
+          <Button variant="outline" size="sm" onClick={onDismiss}>
             skip
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-sky-300 transition-colors hover:bg-sky-500/20 disabled:opacity-40"
+            className="border-sky-500/40 bg-sky-500/10 font-mono uppercase tracking-widest2 text-sky-300 hover:bg-sky-500/20"
           >
             send
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

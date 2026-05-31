@@ -16,6 +16,7 @@ import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { KanbanLane } from '../components/KanbanLane';
 import { KanbanCardView } from '../components/KanbanCard';
+import { Button } from '../components/ui/button';
 
 const LANES: KanbanLaneType[] = ['todo', 'in_progress', 'done', 'need_help'];
 
@@ -115,8 +116,10 @@ export function KanbanBoard() {
             {totalCards} session{totalCards !== 1 ? 's' : ''}
           </p>
         </div>
-        <button
-          className="rounded border border-ink-700 px-3 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-ink-200 transition-colors hover:border-amber hover:text-amber disabled:opacity-40"
+        <Button
+          variant="outline"
+          size="sm"
+          className="font-mono uppercase tracking-widest2 hover:border-amber/60 hover:text-amber"
           disabled={!workspaceId || create.isPending}
           onClick={() =>
             create.mutate({
@@ -126,7 +129,7 @@ export function KanbanBoard() {
           }
         >
           + new session
-        </button>
+        </Button>
       </div>
 
       {/* Board */}

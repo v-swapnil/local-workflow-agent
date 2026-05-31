@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
 import type { ApprovalReq } from './types';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Dialog, DialogContent } from '../../components/ui/dialog';
+import { ScrollArea } from '../../components/ui/scroll-area';
 
 export function ApprovalModal({
   req,
@@ -24,16 +28,16 @@ export function ApprovalModal({
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-[560px] max-w-[90vw] rounded-xl border border-amber/20 bg-ink-900 shadow-2xl animate-scale-in">
+    <Dialog open>
+      <DialogContent className="w-[560px] max-w-[90vw] border-amber/20 bg-ink-900 p-0 text-ink-50">
         <div className="flex items-center justify-between border-b border-ink-800/60 px-5 py-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+              <Badge variant="outline" className="border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
                 approval required
-              </span>
+              </Badge>
               {remaining > 0 && (
-                <span className="font-mono text-ui-2xs text-ink-500">+{remaining} more</span>
+                <Badge variant="outline" className="border-ink-700/40 font-mono text-ui-2xs text-ink-500">+{remaining} more</Badge>
               )}
             </div>
             <div className="mt-1 font-mono text-ui-sm font-medium text-ink-50">{req.tool}</div>
@@ -54,9 +58,11 @@ export function ApprovalModal({
             {shellArgs.command && (
               <div>
                 <div className="mb-1 font-mono text-ui-2xs uppercase text-ink-500">command</div>
-                <pre className="max-h-[30vh] overflow-y-auto rounded-lg bg-ink-950 px-3 py-2 font-mono text-ui-xs leading-relaxed text-ink-100">
-                  {shellArgs.command}
-                </pre>
+                <ScrollArea className="max-h-[30vh] rounded-lg bg-ink-950">
+                  <pre className="px-3 py-2 font-mono text-ui-xs leading-relaxed text-ink-100">
+                    {shellArgs.command}
+                  </pre>
+                </ScrollArea>
               </div>
             )}
             {shellArgs.workdir && shellArgs.workdir !== '.' && (
@@ -67,32 +73,25 @@ export function ApprovalModal({
             )}
           </div>
         ) : (
-          <pre className="max-h-[40vh] overflow-y-auto px-5 py-3 font-mono text-ui-xs leading-relaxed text-ink-200">
-            {argsPretty}
-          </pre>
+          <ScrollArea className="max-h-[40vh]">
+            <pre className="px-5 py-3 font-mono text-ui-xs leading-relaxed text-ink-200">
+              {argsPretty}
+            </pre>
+          </ScrollArea>
         )}
 
         <div className="flex items-center justify-end gap-2 border-t border-ink-800/60 px-5 py-3">
-          <button
-            onClick={() => onDecide('deny')}
-            className="btn-danger"
-          >
+          <Button variant="danger" size="sm" onClick={() => onDecide('deny')}>
             deny
-          </button>
-          <button
-            onClick={() => onDecide('approve_session')}
-            className="btn-secondary"
-          >
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onDecide('approve_session')}>
             allow this task
-          </button>
-          <button
-            onClick={() => onDecide('approve')}
-            className="btn-primary"
-          >
+          </Button>
+          <Button variant="default" size="sm" onClick={() => onDecide('approve')}>
             approve once
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

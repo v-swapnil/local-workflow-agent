@@ -4,6 +4,8 @@ import { trpc } from '../../trpc';
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { SessionTreeNode } from './SessionTreeNode';
 import { SessionDetail } from './SessionDetail';
+import { Button } from '../../components/ui/button';
+import { Plus, SquarePlus, MessageCircle } from 'lucide-react';
 
 export function Sessions() {
   const { workspaceId } = useActiveWorkspace();
@@ -66,8 +68,10 @@ export function Sessions() {
       <aside className="flex flex-col border-r border-ink-800/60 bg-ink-900/20">
         <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800/40">
           <h2 className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">Sessions</h2>
-          <button
-            className="flex items-center gap-1.5 rounded-md border border-ink-700/50 bg-ink-800/40 px-2.5 py-1.5 font-mono text-ui-xs text-ink-300 transition-all hover:border-amber/30 hover:bg-amber/8 hover:text-amber disabled:opacity-40"
+          <Button
+            variant="outline"
+            size="xs"
+            className="flex items-center gap-1.5 font-mono hover:border-amber/30 hover:bg-amber/8 hover:text-amber"
             disabled={!workspaceId || create.isPending}
             onClick={() =>
               create.mutate({
@@ -76,11 +80,9 @@ export function Sessions() {
               })
             }
           >
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-3 w-3">
-              <path d="M6 2v8M2 6h8" />
-            </svg>
+            <Plus className="h-3 w-3" strokeWidth={1.5} />
             new
-          </button>
+          </Button>
         </div>
 
         {!workspaceId && (
@@ -111,10 +113,7 @@ export function Sessions() {
           ))}
           {sessionsQ.data?.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="h-8 w-8 text-ink-700">
-                <rect x="3" y="3" width="18" height="18" rx="3" />
-                <path d="M8 12h8M12 8v8" strokeWidth="1.5" />
-              </svg>
+              <SquarePlus className="h-8 w-8 text-ink-700" strokeWidth={1} />
               <div className="font-mono text-ui-xs text-ink-500">no sessions yet</div>
               <div className="font-mono text-ui-2xs text-ink-600">click "new" to start</div>
             </div>
@@ -133,9 +132,7 @@ export function Sessions() {
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="h-10 w-10 text-ink-700">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+            <MessageCircle className="h-10 w-10 text-ink-700" strokeWidth={1} />
             <div className="font-mono text-ui-xs text-ink-500">select or create a session</div>
           </div>
         )}

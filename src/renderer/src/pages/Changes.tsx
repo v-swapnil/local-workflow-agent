@@ -8,6 +8,13 @@ import { DiffPanelEditor } from '../components/changes/DiffPanelEditor';
 import { useChangedFiles } from '../components/changes/useChangedFiles';
 import type { ActiveChange } from '../components/changes/changeUtils';
 import { summarizeWorking } from '../components/changes/changeUtils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -88,23 +95,27 @@ function DiffPanel({
           <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             source
           </span>
-          <select
-            value={worktreeId}
-            onChange={(e) => {
-              setWorktreeId(e.target.value);
+          <Select
+            value={worktreeId || '__root__'}
+            onValueChange={(v) => {
+              setWorktreeId(v === '__root__' ? '' : v);
               setActive(null);
             }}
-            className="rounded-md border border-ink-700/50 bg-ink-900/40 px-3 py-1.5 font-mono text-ui-xs text-ink-200 transition-colors focus:border-amber/30 focus:outline-none hover:border-ink-600"
           >
-            <option value="">workspace root</option>
-            {(worktrees.data ?? [])
-              .filter((w) => w.status === 'active')
-              .map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.branch}
-                </option>
-              ))}
-          </select>
+            <SelectTrigger className="font-mono text-ui-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__root__">workspace root</SelectItem>
+              {(worktrees.data ?? [])
+                .filter((w) => w.status === 'active')
+                .map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.branch}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

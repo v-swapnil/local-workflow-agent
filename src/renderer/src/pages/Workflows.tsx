@@ -1,5 +1,8 @@
 import { lazy, Suspense, useState } from 'react';
 import { trpc } from '../trpc';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Plus, Network } from 'lucide-react';
 import type { WorkflowDefinition } from '../../../main/services/workflows';
 
 // Lazy-load the heavy React Flow canvas
@@ -24,26 +27,21 @@ function WorkflowList({
         <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
           workflows
         </span>
-        <button
+        <Button
+          variant="outline"
+          size="xs"
           onClick={onNew}
-          className="flex items-center gap-1 rounded-md border border-ink-700/60 bg-ink-800/30 px-2 py-1 font-mono text-ui-xs text-ink-300 transition-all hover:border-amber/30 hover:bg-amber/5 hover:text-amber"
+          className="flex items-center gap-1 font-mono hover:border-amber/30 hover:bg-amber/5 hover:text-amber"
         >
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-2.5 w-2.5">
-            <path d="M6 2v8M2 6h8" />
-          </svg>
+          <Plus className="h-2.5 w-2.5" strokeWidth={1.5} />
           new
-        </button>
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {workflows.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-800/40">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="h-4 w-4 text-ink-500">
-                <circle cx="4" cy="4" r="1.5" />
-                <circle cx="12" cy="4" r="1.5" />
-                <circle cx="8" cy="12" r="1.5" />
-                <path d="M5.2 5.2L7 10.5M10.8 5.2L9 10.5" />
-              </svg>
+              <Network className="h-4 w-4 text-ink-500" strokeWidth={1.3} />
             </div>
             <span className="font-mono text-ui-xs text-ink-500">no workflows yet</span>
           </div>
@@ -51,11 +49,12 @@ function WorkflowList({
           <ul className="space-y-0.5 px-2 py-2">
             {workflows.map((w) => (
               <li key={w.id}>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => onSelect(w.id)}
-                  className={`relative flex w-full flex-col gap-0.5 rounded-md border px-3 py-2.5 text-left transition-all ${
+                  className={`relative h-auto w-full flex-col gap-0.5 rounded-md border px-3 py-2.5 text-left justify-start font-normal ${
                     selectedId === w.id
-                      ? 'border-amber/20 bg-ink-800/60 text-ink-100 shadow-sm shadow-amber/5'
+                      ? 'border-amber/20 bg-ink-800/60 text-ink-100 shadow-sm shadow-amber/5 hover:bg-ink-800/60'
                       : 'border-transparent text-ink-300 hover:border-ink-700/60 hover:bg-ink-800/30 hover:text-ink-100'
                   }`}
                 >
@@ -68,7 +67,7 @@ function WorkflowList({
                       {w.description}
                     </span>
                   )}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -171,38 +170,40 @@ export function Workflows() {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Toolbar */}
         <div className="flex items-center gap-3 border-b border-ink-800 px-4 py-2">
-          <input
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="workflow name"
-            className="w-52 rounded border border-ink-700 bg-ink-950 px-3 py-1 font-mono text-ui-sm text-ink-100 focus:border-amber-700/60 focus:outline-none"
+            className="w-52"
           />
-          <input
+          <Input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="description (optional)"
-            className="flex-1 rounded border border-ink-700 bg-ink-950 px-3 py-1 font-mono text-ui-xs text-ink-400 focus:border-amber-700/60 focus:outline-none"
+            className="flex-1"
           />
           {!isValid && errors.length > 0 && (
             <span className="font-mono text-ui-xs text-signal-warn" title={errors.join('; ')}>
               ⚠ {errors.length} error{errors.length > 1 ? 's' : ''}
             </span>
           )}
-          <button
+          <Button
+            variant="default"
+            size="sm"
             onClick={save}
             disabled={upsert.isPending || !name.trim()}
-            className="rounded-md bg-amber/90 px-4 py-1.5 font-mono text-ui-xs font-medium uppercase tracking-widest2 text-ink-950 shadow-glow-sm transition-all hover:bg-amber hover:shadow-glow disabled:opacity-40 disabled:shadow-none"
           >
             {upsert.isPending ? 'saving…' : 'save'}
-          </button>
+          </Button>
           {selectedId && (
-            <button
+            <Button
+              variant="danger"
+              size="sm"
               onClick={() => del.mutate({ id: selectedId })}
               disabled={del.isPending}
-              className="rounded border border-signal-err/40 px-3 py-1 font-mono text-ui-xs text-signal-err hover:bg-signal-err/10 disabled:opacity-40"
             >
               delete
-            </button>
+            </Button>
           )}
           {saveError && (
             <span className="font-mono text-ui-xs text-signal-err">{saveError}</span>

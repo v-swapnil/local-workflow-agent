@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
-import { cn } from '../lib/utils';
 import type { ToolName } from '@shared/agent';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 const STREAMING: ToolName[] = ['run_shell'];
 
@@ -144,21 +146,33 @@ export function ToolPlayground() {
   }, [result]);
 
   return (
-    <div className="grid grid-cols-[200px_1fr] gap-6">
-      <aside className="flex flex-col rounded-lg border border-ink-800/40 bg-ink-900/15">
+    <Tabs value={tool} onValueChange={(v) => selectTool(v as ToolName)} orientation="vertical" className="grid grid-cols-[200px_1fr] gap-6">
+      <TabsList className="flex h-auto flex-col items-stretch rounded-lg border border-ink-800/40 bg-ink-900/15 p-0">
         <div className="px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500 border-b border-ink-800/30">
           read
         </div>
         {readTools.map((t) => (
-          <ToolButton key={t} name={t} active={tool === t} onSelect={selectTool} />
+          <TabsTrigger
+            key={t}
+            value={t}
+            className="h-auto w-full justify-start rounded-none border-b border-ink-800/30 px-3 py-2 text-left font-mono text-ui-xs last:border-b-0 text-ink-300 data-[state=active]:bg-ink-800/50 data-[state=active]:text-amber data-[state=active]:shadow-none"
+          >
+            {t}
+          </TabsTrigger>
         ))}
         <div className="px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500 border-b border-ink-800/30">
           write
         </div>
         {writeTools.map((t) => (
-          <ToolButton key={t} name={t} active={tool === t} onSelect={selectTool} />
+          <TabsTrigger
+            key={t}
+            value={t}
+            className="h-auto w-full justify-start rounded-none border-b border-ink-800/30 px-3 py-2 text-left font-mono text-ui-xs last:border-b-0 text-ink-300 data-[state=active]:bg-ink-800/50 data-[state=active]:text-amber data-[state=active]:shadow-none"
+          >
+            {t}
+          </TabsTrigger>
         ))}
-      </aside>
+      </TabsList>
 
       <section className="space-y-4">
         <div>
@@ -170,21 +184,22 @@ export function ToolPlayground() {
               workspace · <span className="text-amber">{workspaceId ?? 'none'}</span>
             </div>
           </div>
-          <textarea
+          <Textarea
             value={args}
             onChange={(e) => setArgs(e.target.value)}
             spellCheck={false}
             rows={8}
-            className="w-full resize-y rounded-md border border-ink-700/50 bg-ink-950/80 p-3 font-mono text-ui-xs text-ink-100 transition-colors focus:border-amber/30 focus:outline-none"
+            className="resize-y font-mono text-ui-xs"
           />
           <div className="mt-3 flex items-center gap-3">
-            <button
+            <Button
+              variant="default"
+              size="sm"
               onClick={execToolCall}
               disabled={running || !workspaceId}
-              className="btn-primary !py-1.5"
             >
               {running ? 'running…' : 'invoke →'}
-            </button>
+            </Button>
             {duration !== null && (
               <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
                 {duration}ms
@@ -222,28 +237,6 @@ export function ToolPlayground() {
           </pre>
         </div>
       </section>
-    </div>
-  );
-}
-
-function ToolButton({
-  name,
-  active,
-  onSelect,
-}: {
-  name: ToolName;
-  active: boolean;
-  onSelect: (t: ToolName) => void;
-}) {
-  return (
-    <button
-      onClick={() => onSelect(name)}
-      className={cn(
-        'border-b border-ink-800/30 px-3 py-2 text-left font-mono text-ui-xs last:border-b-0',
-        active ? 'bg-ink-800/50 text-amber' : 'text-ink-300 hover:bg-ink-800/30',
-      )}
-    >
-      {name}
-    </button>
+    </Tabs>
   );
 }

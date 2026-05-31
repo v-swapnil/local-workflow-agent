@@ -1,5 +1,7 @@
 import type { ChangedFile } from './changeUtils';
 import { changeMeta, splitPath } from './changeUtils';
+import { Button } from '../ui/button';
+import { Plus, Minus } from 'lucide-react';
 
 interface ChangedFileListProps {
   files: ChangedFile[];
@@ -37,56 +39,45 @@ export function ChangedFileList({
             className="flex items-center gap-0.5"
           >
             {file.section === 'working' && onStage && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 title="Stage file"
                 onClick={(e) => {
                   e.stopPropagation();
                   onStage(file.path);
                 }}
-                className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-emerald-500/10 hover:text-signal-ok"
+                className="shrink-0 h-6 w-6 text-ink-500 hover:bg-emerald-500/10 hover:text-signal-ok"
               >
-                <svg
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="h-3 w-3"
-                >
-                  <path d="M6 2v8M2 6h8" />
-                </svg>
-              </button>
+                <Plus className="h-3 w-3" strokeWidth={1.5} />
+              </Button>
             )}
             {file.section === 'staged' && onUnstage && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="xs"
                 title="Unstage file"
                 onClick={(e) => {
                   e.stopPropagation();
                   onUnstage(file.path);
                 }}
-                className="shrink-0 flex h-6 w-6 items-center justify-center rounded text-ink-500 transition-colors hover:bg-rose-500/10 hover:text-signal-err"
+                className="shrink-0 h-6 w-6 text-ink-500 hover:bg-rose-500/10 hover:text-signal-err"
               >
-                <svg
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  className="h-3 w-3"
-                >
-                  <path d="M2 6h8" />
-                </svg>
-              </button>
+                <Minus className="h-3 w-3" strokeWidth={1.5} />
+              </Button>
             )}
-            <button
+            <Button
               type="button"
-              className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-all ${
-                isActive
-                  ? 'bg-amber/8 text-ink-100 border border-amber/15'
-                  : 'border border-transparent text-ink-300 hover:bg-ink-800/30 hover:text-ink-100'
-              }`}
+              variant="ghost"
               onClick={() => onSelect(file.path)}
               title={file.path}
+              className={`h-auto min-w-0 flex-1 justify-start gap-2 rounded-md px-2 py-1.5 text-left font-normal ${
+                isActive
+                  ? 'bg-amber/8 text-ink-100 border border-amber/15 hover:bg-amber/12'
+                  : 'border border-transparent text-ink-300 hover:bg-ink-800/30 hover:text-ink-100'
+              }`}
             >
               <span
                 className={`w-4 shrink-0 text-center font-mono text-ui-2xs font-medium ${meta.className}`}
@@ -102,7 +93,7 @@ export function ChangedFileList({
                   </span>
                 ) : null}
               </span>
-            </button>
+            </Button>
           </li>
         );
       })}

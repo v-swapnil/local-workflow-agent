@@ -1,4 +1,9 @@
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
+import { Switch } from '../ui/switch';
+import { ScrollArea } from '../ui/scroll-area';
+import { Label } from '../ui/label';
+import { Card } from '../ui/card';
 
 type Skill = {
   name: string;
@@ -21,10 +26,10 @@ type SkillDetailProps = {
 
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-3">
+    <Card className="border-ink-800/40 bg-ink-900/15 p-3 shadow-none">
       <div className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">{label}</div>
       <div className={cn('mt-1 break-all font-mono text-ui-sm text-ink-100')}>{value}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -38,24 +43,23 @@ export function SkillDetail({ skill, onToggle, onReveal, onDelete }: SkillDetail
           <div className="mt-1 font-mono text-ui-sm text-ink-300">{skill.description}</div>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-ink-700/50 px-3 py-1.5 transition-colors hover:border-ink-600">
-            <input
-              type="checkbox"
-              checked={skill.enabled}
-              onChange={(e) => onToggle(e.target.checked)}
-              className="h-3.5 w-3.5 accent-amber"
-            />
+          <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-ink-700/50 px-3 py-1.5 transition-colors hover:border-ink-600">
+          <Switch
+            checked={skill.enabled}
+            onCheckedChange={onToggle}
+            aria-label="enabled"
+          />
             <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-200">
               enabled
             </span>
-          </label>
-          <button onClick={onReveal} className="btn-secondary !py-1.5">
+          </Label>
+          <Button variant="outline" size="sm" onClick={onReveal}>
             open folder
-          </button>
+          </Button>
           {!skill.builtin && (
-            <button onClick={onDelete} className="btn-danger !py-1.5">
+            <Button variant="danger" size="sm" onClick={onDelete}>
               delete
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -68,9 +72,11 @@ export function SkillDetail({ skill, onToggle, onReveal, onDelete }: SkillDetail
       </div>
 
       <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">body</div>
-      <pre className="max-h-[60vh] overflow-y-auto rounded-lg border border-ink-800/40 bg-ink-950/80 p-4 font-mono text-ui-xs leading-relaxed text-ink-100">
-        {skill.body}
-      </pre>
+      <ScrollArea className="max-h-[60vh] rounded-lg border border-ink-800/40 bg-ink-950/80">
+        <pre className="overflow-x-auto whitespace-pre-wrap break-words p-4 font-mono text-ui-xs leading-relaxed text-ink-100">
+          {skill.body}
+        </pre>
+      </ScrollArea>
     </div>
   );
 }

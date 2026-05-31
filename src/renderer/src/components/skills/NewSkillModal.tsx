@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { trpc } from '../../trpc';
-import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type NewSkillModalProps = {
   onClose: () => void;
 };
 
-function Input({
+function LabeledInput({
   label,
   value,
   onChange,
@@ -20,21 +24,18 @@ function Input({
   mono?: boolean;
 }) {
   return (
-    <label className="block">
-      <div className="mb-1 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+    <div className="space-y-1">
+      <Label className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
         {label}
-      </div>
-      <input
+      </Label>
+      <Input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={cn(
-          'w-full rounded-md border border-ink-700/50 bg-ink-950/80 px-3 py-1.5 font-mono text-ui-xs text-ink-100 placeholder:text-ink-600 transition-colors focus:border-amber/30 focus:outline-none',
-          mono && 'font-mono',
-        )}
+        className={mono ? 'font-mono' : undefined}
       />
-    </label>
+    </div>
   );
 }
 
@@ -54,15 +55,15 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-[520px] max-w-[90vw] rounded-xl border border-amber/20 bg-ink-900 shadow-2xl animate-scale-in">
-        <div className="border-b border-ink-800/60 px-5 py-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-amber/10 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="w-[520px] max-w-[90vw] border-amber/20 bg-ink-900 p-0 text-ink-50">
+        <DialogHeader className="border-b border-ink-800/60 px-5 py-3">
+          <DialogTitle asChild>
+            <Badge variant="outline" className="w-fit border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
               new skill
-            </span>
-          </div>
-        </div>
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
         <form
           className="space-y-3 px-5 py-4"
           onSubmit={(e) => {
@@ -80,21 +81,21 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
             });
           }}
         >
-          <Input label="id (folder name)" value={id} onChange={setId} placeholder="my-skill" mono />
-          <Input label="name" value={name} onChange={setName} placeholder="My Skill" />
-          <Input
+          <LabeledInput label="id (folder name)" value={id} onChange={setId} placeholder="my-skill" mono />
+          <LabeledInput label="name" value={name} onChange={setName} placeholder="My Skill" />
+          <LabeledInput
             label="description"
             value={description}
             onChange={setDescription}
             placeholder="What this skill does."
           />
-          <Input
+          <LabeledInput
             label="when_to_use"
             value={whenToUse}
             onChange={setWhenToUse}
             placeholder="When the user asks to…"
           />
-          <Input
+          <LabeledInput
             label="tags (comma-separated)"
             value={tags}
             onChange={setTags}
@@ -105,19 +106,20 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
             <div className="font-mono text-ui-xs text-signal-err">{create.error.message}</div>
           )}
           <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="default"
+              size="sm"
               disabled={!id || !name || !description || create.isPending}
-              className="btn-primary"
             >
               {create.isPending ? 'creating…' : 'create'}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

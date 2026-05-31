@@ -1,4 +1,5 @@
 import { cn } from '../../lib/utils';
+import { Badge } from '../../components/ui/badge';
 
 export function StatusPill({ status, compact }: { status: string; compact?: boolean }) {
   const palette: Record<string, string> = {
@@ -9,10 +10,11 @@ export function StatusPill({ status, compact }: { status: string; compact?: bool
     cancelled: 'border-ink-700/30 bg-ink-800/15 text-ink-500',
   };
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        'inline-flex items-center rounded-full border font-mono !text-ui-2xs uppercase tracking-widest2',
-        compact ? 'px-1.5 py-0' : 'gap-1.5 px-2 py-0.5',
+        'font-mono !text-ui-2xs uppercase tracking-widest2',
+        compact ? 'px-1.5 py-0' : 'gap-1.5',
         palette[status] ?? 'border-ink-700/30 bg-ink-800/15 text-ink-400',
       )}
     >
@@ -20,6 +22,6 @@ export function StatusPill({ status, compact }: { status: string; compact?: bool
         <span className="h-1.5 w-1.5 rounded-full bg-amber animate-pulse" />
       )}
       {status}
-    </span>
+    </Badge>
   );
 }

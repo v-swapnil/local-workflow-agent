@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { trpc } from '../../trpc';
 import { Pill } from '../Pill';
 import { ModelDropdown } from './ModelDropdown';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 export function CopilotPanel() {
   const utils = trpc.useUtils();
@@ -53,36 +55,38 @@ export function CopilotPanel() {
                     }
                   }}
                 >
-                  <input
+                  <Input
                     autoFocus
                     value={urlDraft}
                     onChange={(e) => setUrlDraft(e.target.value)}
-                    className="w-40 rounded border border-ink-700 bg-ink-950 px-2 py-0.5 font-mono text-ui-xs text-ink-100 focus:border-amber focus:outline-none"
+                    className="h-6 w-40 px-2 py-0.5 font-mono text-ui-xs"
                     placeholder="localhost:49393"
                   />
-                  <button type="submit" className="font-mono text-ui-xs text-amber hover:underline">
+                  <Button type="submit" variant="ghost" className="h-auto p-0 font-mono text-ui-xs text-amber">
                     save
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    className="h-auto p-0 font-mono text-ui-xs text-ink-500"
                     onClick={() => setEditing(false)}
-                    className="font-mono text-ui-xs text-ink-500 hover:underline"
                   >
                     cancel
-                  </button>
+                  </Button>
                 </form>
               ) : (
                 <>
                   {copilotHealth.data?.url ?? cliUrl.data ?? '...'}{' '}
-                  <button
+                  <Button
+                    variant="ghost"
+                    className="h-auto p-0 font-mono text-ui-xs text-amber"
                     onClick={() => {
                       setUrlDraft(cliUrl.data ?? '');
                       setEditing(true);
                     }}
-                    className="text-amber hover:underline"
                   >
                     edit
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

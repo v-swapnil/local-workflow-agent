@@ -1,8 +1,14 @@
+import { Badge } from '../ui/badge';
+import { Label } from '../ui/label';
+
 export function RoleBadge({ role }: { role: string }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-amber/8 px-2 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+    <Badge
+      variant="outline"
+      className="border-amber/20 bg-amber/8 font-mono text-ui-2xs uppercase tracking-widest2 text-amber"
+    >
       {role || '—'}
-    </span>
+    </Badge>
   );
 }
 
@@ -18,10 +24,10 @@ export function ModelTag({ model, provider }: { model: string; provider: string 
 
 export function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <Label className="flex flex-col gap-1.5 font-normal">
       <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">{label}</span>
       {children}
-    </label>
+    </Label>
   );
 }
 
