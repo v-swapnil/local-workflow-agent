@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { trpc } from '../trpc';
-import { PROVIDERS } from '@shared/constants';
-import type { ProviderId } from '@shared/types';
 import { AgentList } from '../components/agents/AgentList';
 import { AgentFormPanel } from '../components/agents/AgentFormPanel';
 import { BLANK } from '../components/agents/agentTypes';
@@ -13,8 +11,7 @@ export function Agents() {
   const [form, setForm] = useState<AgentFormState>(BLANK);
 
   const { data: agents = [] } = trpc.agent.list.useQuery();
-  const { data: modelsData } = trpc.llm.listModelsByProvider.useQuery({ provider: form.provider });
-  const models = modelsData ?? [];
+  const { data: toolsList = [] } = trpc.tool.list.useQuery();
 
   const upsert = trpc.agent.upsert.useMutation({
     onSuccess: async () => {
@@ -37,14 +34,11 @@ export function Agents() {
       id: a.id,
       name: a.name,
       role: a.role,
-      model: a.model,
       systemPrompt: a.systemPrompt,
-      tools: a.tools ?? '',
+      tools: a.tools ? a.tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
       temperature: a.temperature,
-      graphMode: (a.graphMode as 'full' | 'direct') ?? 'full',
       maxIterations: (a as { maxIterations?: number }).maxIterations ?? 10,
       description: (a as { description?: string }).description ?? '',
-      provider: ((a as { provider?: string }).provider as ProviderId) ?? PROVIDERS.OLLAMA,
     });
   }
 
@@ -58,21 +52,18 @@ export function Agents() {
       id: form.id,
       name: form.name,
       role: form.role,
-      model: form.model,
       systemPrompt: form.systemPrompt,
-      tools: form.tools || null,
+      tools: form.tools.length > 0 ? form.tools.join(',') : null,
       temperature: form.temperature,
-      graphMode: form.graphMode,
       maxIterations: form.maxIterations,
       description: form.description || undefined,
-      provider: form.provider,
     });
   }
 
   return (
     <div className="flex h-full min-h-0 animate-fade-in">
       <AgentList
-        agents={agents.map((a) => ({ ...a, provider: (a as { provider?: string }).provider }))}
+        agents={agents}
         selected={selected}
         onSelect={selectAgent}
         onNew={newAgent}
@@ -80,7 +71,7 @@ export function Agents() {
       <AgentFormPanel
         form={form}
         setForm={setForm}
-        models={models}
+        availableTools={toolsList}
         onSave={save}
         onDelete={() => form.id && del.mutate({ id: form.id })}
         isSaving={upsert.isPending}

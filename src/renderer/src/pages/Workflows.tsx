@@ -154,7 +154,6 @@ export function Workflows() {
     id: a.id,
     name: a.name,
     role: a.role,
-    model: a.model,
   }));
 
   const errors = validate.data?.errors ?? [];

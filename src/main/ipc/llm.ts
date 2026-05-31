@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
 import { getProvider } from '../services/llm/index.js';
-import { getCopilotService } from '../services/llm/copilot.js';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import {
   DEFAULT_OLLAMA_MODEL,
@@ -44,24 +43,26 @@ export const llmRouter = router({
   }),
 
   ollamaModels: publicProcedure.query(async () => {
-    const p = getProvider(PROVIDERS.OLLAMA);
-    if (!(await p.ping())) return [];
-    return p.listModels();
+    const provider = getProvider(PROVIDERS.OLLAMA);
+    if (!(await provider.ping())) return [];
+    return provider.listModels();
+  }),
+
+  copilotModels: publicProcedure.query(async () => {
+    const provider = getProvider(PROVIDERS.COPILOT);
+    if (!(await provider.ping())) return [];
+    return provider.listModels();
   }),
 
   listModelsByProvider: publicProcedure
     .input(z.object({ provider: z.enum([PROVIDERS.OLLAMA, PROVIDERS.COPILOT]) }))
     .query(async ({ input }) => {
       switch (input.provider) {
-        case PROVIDERS.COPILOT: {
-          const svc = getCopilotService();
-          if (!(await svc.ping())) return [];
-          return svc.listModels();
-        }
+        case PROVIDERS.COPILOT:
         case PROVIDERS.OLLAMA: {
-          const p = getProvider(PROVIDERS.OLLAMA);
-          if (!(await p.ping())) return [];
-          return p.listModels();
+          const provider = getProvider(input.provider);
+          if (!(await provider.ping())) return [];
+          return provider.listModels();
         }
         default:
           throw new Error(`unknown provider: ${input.provider}`);
@@ -111,10 +112,6 @@ export const llmRouter = router({
       return { ok: true };
     }),
 
-  copilotModels: publicProcedure.query(async () => {
-    return getCopilotService().listModels();
-  }),
-
   copilotCliUrl: publicProcedure.query(async () => {
     return await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
   }),
@@ -122,11 +119,7 @@ export const llmRouter = router({
   setCopilotCliUrl: publicProcedure
     .input(z.object({ url: z.string().min(1) }))
     .mutation(async ({ input }) => {
-      await setSetting(SETTING_KEYS.COPILOT_CLI_URL, input.url);
-      // Force reconnect on next use
-      getCopilotService()
-        .disconnect()
-        .catch(() => {});
+      await setSetting(SETTING_KEYS.COPILOT_CLI_URL, input.url.replace(/\/$/, ''));
       return { ok: true };
     }),
 

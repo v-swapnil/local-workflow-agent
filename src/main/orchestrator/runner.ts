@@ -17,7 +17,7 @@ import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
 import { runTaskViaCopilot } from './copilot-runner.js';
-import { runDirectAgent } from './direct-runner.js';
+
 import { runWorkflow } from './workflow-runner.js';
 import type { TaskResult } from '@shared/agent';
 import type { TaskRecord } from '@shared/schema';
@@ -89,10 +89,9 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
   const task = getTask(taskId);
   const session = await loadSessionWorkspace(task);
 
-  // Priority: task.model > agent.model > global ACTIVE_MODEL setting
   const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
   const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
-  const model = task.model ?? agent?.model ?? globalModel;
+  const model = task.model ?? globalModel;
 
   if (!model) {
     return finish(task, {
@@ -156,8 +155,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       result = await runWorkflow(taskId, task.workflowId, ctx);
     } else if (provider === PROVIDERS.COPILOT) {
       result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent, ctx);
-    } else if (agent && agent.graphMode === 'direct') {
-      result = await runDirectAgent(taskId, agent, task.prompt, ctx);
     } else {
       const graph = buildGraph(agent);
       const initial: Partial<AgentState> = {

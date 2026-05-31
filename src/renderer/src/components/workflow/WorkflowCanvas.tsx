@@ -34,7 +34,7 @@ const DEFAULT_NODES: Node[] = [
 
 interface Props {
   initialDefinition?: WorkflowDefinition | null;
-  agents: { id: string; name: string; role: string; model: string }[];
+  agents: { id: string; name: string; role: string }[];
   onChange?: (def: WorkflowDefinition) => void;
 }
 

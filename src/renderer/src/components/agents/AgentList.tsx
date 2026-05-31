@@ -1,13 +1,10 @@
 import { cn } from '../../lib/utils';
-import { PROVIDERS } from '@shared/constants';
-import { RoleBadge, ModelTag } from './AgentFormPrimitives';
+import { RoleBadge } from './AgentFormPrimitives';
 
 interface Agent {
   id: string;
   name: string;
   role: string;
-  model: string;
-  provider?: string;
 }
 
 interface AgentListProps {
@@ -65,7 +62,6 @@ export function AgentList({ agents, selected, onSelect, onNew }: AgentListProps)
                     <span className="truncate font-mono text-ui-sm font-medium">{a.name}</span>
                     <RoleBadge role={a.role} />
                   </div>
-                  <ModelTag model={a.model} provider={a.provider ?? PROVIDERS.OLLAMA} />
                 </button>
               </li>
             ))}

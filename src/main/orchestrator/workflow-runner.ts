@@ -2,7 +2,8 @@ import { StateGraph, START, END } from '@langchain/langgraph';
 import { getWorkflow, type WorkflowDefinition, type WorkflowNode, type WorkflowEdge } from '../services/workflows.js';
 import { getAgent } from '../services/agents.js';
 import { requestApproval } from '../services/approvals.js';
-import { runDirectAgent } from './direct-runner.js';
+import { buildGraph } from './graph.js';
+import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
 import { taskBus } from '../services/events.js';
@@ -91,8 +92,14 @@ export async function runWorkflow(
         });
         try {
           const agent = getAgent(agentId);
-          const agentCtx: RunCtx = { ...ctx, model: agent.model || ctx.model };
-          await runDirectAgent(taskId, agent, state.prompt, agentCtx);
+          const agentCtx: RunCtx = { ...ctx };
+          const agentGraph = buildGraph(agent);
+          const initial: Partial<AgentState> = { prompt: state.prompt };
+          await agentGraph.invoke(initial, {
+            configurable: { runCtx: agentCtx },
+            recursionLimit: 10,
+            signal: ctx.signal,
+          });
           return {
             currentNodeId: node.id,
             agentOutputs: { [node.id]: { done: true } },

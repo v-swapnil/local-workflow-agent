@@ -141,14 +141,11 @@ export const agents = sqliteTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   role: text('role').notNull(),
-  model: text('model').notNull(),
   systemPrompt: text('system_prompt').notNull(),
   tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
-  graphMode: text('graph_mode').notNull().default('full'),
   maxIterations: integer('max_iterations').notNull().default(10),
   description: text('description'),
-  provider: text('provider').notNull().default(PROVIDERS.OLLAMA),
 });
 
 export const workflows = sqliteTable('workflows', {

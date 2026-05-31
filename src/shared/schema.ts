@@ -108,14 +108,11 @@ export interface AgentRecord {
   id: string;
   name: string;
   role: string;
-  model: string;
   systemPrompt: string;
   tools: string | null;
   temperature: number;
-  graphMode: string;
   maxIterations: number;
   description: string | null;
-  provider: string;
 }
 
 export type TaskEventRecord =

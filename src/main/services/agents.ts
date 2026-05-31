@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { agents } from '../db/schema.js';
-import { PROVIDERS } from '@shared/constants';
 import type { AgentRecord } from '@shared/schema.js';
 
 export function listAgents(): AgentRecord[] {
@@ -24,14 +23,11 @@ interface UpsertAgentInput {
   id?: string;
   name: string;
   role: string;
-  model: string;
   systemPrompt: string;
   tools?: string | null;
   temperature: number;
-  graphMode: 'full' | 'direct';
   maxIterations?: number;
   description?: string;
-  provider?: string;
 }
 
 export function upsertAgent(input: UpsertAgentInput): AgentRecord {
@@ -42,14 +38,11 @@ export function upsertAgent(input: UpsertAgentInput): AgentRecord {
     id,
     name: input.name,
     role: input.role,
-    model: input.model,
     systemPrompt: input.systemPrompt,
     tools: input.tools ?? null,
     temperature: input.temperature,
-    graphMode: input.graphMode,
     maxIterations: input.maxIterations ?? 10,
     description: input.description ?? null,
-    provider: input.provider ?? PROVIDERS.OLLAMA,
   };
 
   getDb()
