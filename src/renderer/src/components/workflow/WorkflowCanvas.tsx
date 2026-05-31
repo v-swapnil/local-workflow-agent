@@ -17,6 +17,7 @@ import { AgentNode, ConditionNode, ApprovalNode, StartNode, EndNode } from './no
 import { NodePalette } from './NodePalette';
 import { PropertiesPanel } from './PropertiesPanel';
 import type { WorkflowDefinition } from '../../../../main/services/workflows';
+import { trpc } from '@renderer/trpc';
 
 const nodeTypes = {
   agent: AgentNode,
@@ -38,21 +39,25 @@ interface Props {
 }
 
 export function WorkflowCanvas({ initialDefinition, agents, onChange }: Props) {
-  const initNodes: Node[] = initialDefinition?.nodes.map((n) => ({
-    id: n.id,
-    type: n.type,
-    position: n.position,
-    data: n.data,
-  })) ?? DEFAULT_NODES;
+  const savedTheme = trpc.settings.theme.useQuery();
 
-  const initEdges: Edge[] = initialDefinition?.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.sourceHandle,
-    label: e.label,
-    data: { maxIterations: e.maxIterations },
-  })) ?? [];
+  const initNodes: Node[] =
+    initialDefinition?.nodes.map((n) => ({
+      id: n.id,
+      type: n.type,
+      position: n.position,
+      data: n.data,
+    })) ?? DEFAULT_NODES;
+
+  const initEdges: Edge[] =
+    initialDefinition?.edges.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      label: e.label,
+      data: { maxIterations: e.maxIterations },
+    })) ?? [];
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
@@ -136,6 +141,7 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Props) {
 
   function deleteSelected() {
     if (selectedNode) {
+      if (selectedNode.type === 'start' || selectedNode.type === 'end') return;
       setNodes((ns) => {
         const next = ns.filter((n) => n.id !== selectedNode.id);
         setEdges((es) => {
@@ -176,7 +182,7 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Props) {
           onSelectionChange={onSelectionChange}
           fitView
           className="bg-ink-950"
-          style={{ background: '#09090b' }}
+          colorMode={savedTheme.data === 'light' ? 'light' : 'dark'}
         >
           <Background color="#27272a" gap={20} />
           <Controls className="border-ink-700 bg-ink-900 text-ink-300" />

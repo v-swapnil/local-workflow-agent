@@ -124,13 +124,17 @@ export async function runWorkflow(
           stream: 'stdout',
           text: `[workflow] approval gate "${node.id}"\n`,
         });
-        await requestApproval(taskId, 'ask_user', node.data, ctx.signal);
+        const decision = await requestApproval(taskId, 'ask_user', node.data, ctx.signal);
+        if (decision === 'deny') {
+          throw new Error(`Approval denied at node "${node.id}"`);
+        }
         return { currentNodeId: node.id };
       });
     }
   }
 
   // Add edges
+  const processedConditions = new Set<string>();
   for (const edge of definition.edges) {
     const sourceNode = definition.nodes.find((n) => n.id === edge.source);
     const targetIsEnd = edge.target === endNode.id;
@@ -147,6 +151,8 @@ export async function runWorkflow(
     const targetNodeId: any = targetIsEnd ? END : edge.target;
 
     if (sourceNode.type === 'condition') {
+      if (processedConditions.has(sourceNode.id)) continue;
+      processedConditions.add(sourceNode.id);
       // Conditional edges: find both true/false outgoing edges
       const outEdges: WorkflowEdge[] = edgeMap.get(sourceNode.id) ?? [];
       if (outEdges.length >= 2) {

@@ -2,7 +2,6 @@ const PALETTE_NODES = [
   { type: 'agent', label: 'Agent', color: 'text-amber-400 border-amber-700/50' },
   { type: 'condition', label: 'Condition', color: 'text-purple-400 border-purple-700/50' },
   { type: 'approval', label: 'Approval', color: 'text-signal-warn border-signal-warn/50' },
-  { type: 'end', label: 'End', color: 'text-signal-err border-signal-err/50' },
 ];
 
 export function NodePalette() {

@@ -146,7 +146,8 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
       id TEXT PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
       description TEXT,
-      graph_json TEXT NOT NULL,
+      nodes TEXT NOT NULL DEFAULT '[]',
+      edges TEXT NOT NULL DEFAULT '[]',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )`);
@@ -164,6 +165,11 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
       WHERE nodes = '[]' AND edges = '[]' AND graph_json != '{}'
     `);
   } catch { /* ignore — graph_json may already be gone */ }
+  // Remove NOT NULL constraint from legacy graph_json by giving it a default
+  try { _sqlite.exec(`ALTER TABLE workflows RENAME COLUMN graph_json TO _graph_json_old`); } catch { /* already renamed or doesn't exist */ }
+  // Drop the legacy column entirely (SQLite 3.35+)
+  try { _sqlite.exec(`ALTER TABLE workflows DROP COLUMN _graph_json_old`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE workflows DROP COLUMN graph_json`); } catch { /* already dropped */ }
   // Additive migration: rename model_override → model on tasks
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN model_override TO model`); } catch { /* already renamed or doesn't exist */ }
   // Additive migration: rename tools_json → tools on agents + convert data from JSON to CSV
