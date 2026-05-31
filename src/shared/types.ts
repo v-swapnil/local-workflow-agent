@@ -16,7 +16,6 @@ export type StepStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'cance
 export interface AppHealth {
   app: { name: string; version: string };
   db: { ok: boolean; path: string };
-  ollama: { ok: boolean; url: string; models?: string[] };
 }
 
 export type ProviderId = (typeof PROVIDERS)[keyof typeof PROVIDERS];

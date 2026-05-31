@@ -18,8 +18,8 @@ export function buildGraph(agent?: AgentRecord | null) {
       .compile();
   }
 
-  const plannerSys = `${agent.systemPrompt}\n\n---\n\n${PLANNER_SYSTEM}`;
-  const executorSys = `${agent.systemPrompt}\n\n---\n\n${EXECUTOR_SYSTEM}`;
+  const plannerSys = [PLANNER_SYSTEM, '---', agent.systemPrompt].join('\n\n');
+  const executorSys = [EXECUTOR_SYSTEM, '---', agent.systemPrompt].join('\n\n');
   const temp = agent.temperature;
 
   const plannerNodeWithAgent = (state: AgentState, config?: RunnableConfig) =>

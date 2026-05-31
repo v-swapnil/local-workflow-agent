@@ -17,7 +17,7 @@ export function AdvancedOptions({
   onAgentId,
   onWorkflowId,
 }: Props) {
-  const { data: modelsData } = trpc.llm.listModels.useQuery();
+  const { data: modelsData } = trpc.llm.ollamaModels.useQuery();
   const { data: agents = [] } = trpc.agent.list.useQuery();
   const { data: workflowsData = [] } = trpc.workflow.list.useQuery();
 

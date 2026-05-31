@@ -28,6 +28,7 @@ export const SETTING_KEYS = {
   ACTIVE_PROVIDER: 'activeProvider',
   PRIMARY_MODEL: 'primaryModel',
   SECONDARY_MODEL: 'secondaryModel',
+  OLLAMA_URL: 'ollamaUrl',
   COPILOT_CLI_URL: 'copilotCliUrl',
   GIT_AUTO_BRANCH: 'gitAutoBranch',
   UI_THEME: 'uiTheme',

@@ -6,7 +6,7 @@ import { getCopilotService } from '../services/llm/copilot.js';
 import { taskBus } from '../services/events.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { requestApproval, requestUserInput } from '../services/approvals.js';
-import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
+import { emitToolCallStarted, emitToolCallFinished, emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult, ToolName } from '@shared/agent';
@@ -45,18 +45,18 @@ export async function runTaskViaCopilot(
   let iterationCount = 0;
 
   // Bridge Copilot permission requests → ASE approval system
-  const onPermissionRequest = async (
+  const handlePermissionRequest = async (
     request: PermissionRequest,
   ): Promise<PermissionRequestResult> => {
     const toolName = describePermission(request);
-    const decision = await requestApproval(taskId, toolName as any, request, signal);
+    const decision = await requestApproval(taskId, toolName as ToolName, request, signal);
     if (decision === 'approve' || decision === 'approve_session') {
       return { kind: 'approve-once' };
     }
     return { kind: 'no-result' };
   };
 
-  const onUserInputRequest = async (req: UserInputRequest): Promise<UserInputResponse> => {
+  const handlerUserInputRequest = async (req: UserInputRequest): Promise<UserInputResponse> => {
     try {
       const answer = await requestUserInput(taskId, req.question, { choices: req.choices }, signal);
       return { answer, wasFreeform: !req.choices?.includes(answer) };
@@ -65,31 +65,29 @@ export async function runTaskViaCopilot(
     }
   };
 
+  const handleSessionEvent = (event: SessionEvent) => {
+    bridgeEvent(taskId, event, ctx);
+    if (event.type === 'tool.execution_complete') {
+      iterationCount++;
+    }
+  };
+
+  const agentInstruction = agent?.systemPrompt?.trim();
   const session = await client.createSession({
     model,
+    systemMessage: { mode: 'append', content: agentInstruction },
     workingDirectory: workspace.workspacePath,
     streaming: true,
-    onPermissionRequest,
-    onUserInputRequest,
-    onEvent: (event: SessionEvent) => {
-      bridgeEvent(taskId, event, ctx);
-      if (event.type === 'tool.execution_complete') {
-        iterationCount++;
-      }
-    },
+    onPermissionRequest: handlePermissionRequest,
+    onUserInputRequest: handlerUserInputRequest,
+    onEvent: handleSessionEvent,
   });
-
   const sessionId = session.sessionId;
 
   try {
     const task = await getTask(taskId);
     const memory = workspace.memoryText?.trim();
-    const agentInstruction = agent?.systemPrompt?.trim();
-    const promptParts = [
-      agentInstruction ? `Agent instructions:\n${agentInstruction}` : '',
-      task.prompt,
-      memory ? `Session memory:\n${memory}` : '',
-    ].filter(Boolean);
+    const promptParts = [task.prompt, memory ? `Session memory:\n${memory}` : ''].filter(Boolean);
     const prompt = promptParts.join('\n\n');
     const result = await session.sendAndWait({ prompt }, 10 * 60 * 1000);
 
@@ -111,11 +109,7 @@ export async function runTaskViaCopilot(
       reason: msg,
     };
   } finally {
-    try {
-      if (sessionId) await session.disconnect();
-    } catch {
-      // Best-effort cleanup
-    }
+    if (sessionId) await session.disconnect();
   }
 }
 
@@ -127,23 +121,11 @@ function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
 
   switch (event.type) {
     case 'assistant.message_delta':
-      taskBus.emit(taskId, {
-        type: 'llm.delta',
-        taskId,
-        ts,
-        agent: 'copilot',
-        content: event.data.deltaContent,
-      });
+      emitMessageDelta(taskId, 'copilot', event.data.deltaContent);
       break;
 
     case 'assistant.reasoning_delta':
-      taskBus.emit(taskId, {
-        type: 'llm.thinking_delta',
-        taskId,
-        ts,
-        agent: 'copilot',
-        content: event.data.deltaContent,
-      });
+      emitThinkingDelta(taskId, 'copilot', event.data.deltaContent);
       break;
 
     case 'tool.execution_start': {

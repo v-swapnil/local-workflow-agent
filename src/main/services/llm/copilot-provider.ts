@@ -1,8 +1,12 @@
-import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
-import type { SessionEvent } from '@github/copilot-sdk';
+import { COPILOT_CLI_URL, DEFAULT_COPILOT_MODEL } from '@shared/constants';
+import { CopilotClient, type SessionEvent } from '@github/copilot-sdk';
 import { getCopilotService } from './copilot.js';
 import { BaseLLMProvider } from './provider.js';
-import type { ChatMessage, ChatOptions, ChatResult, ModelInfo, PullProgress } from './provider.js';
+import type { ChatMessage, ChatOptions, ChatResult, ModelInfo } from './provider.js';
+import { getSetting, SETTING_KEYS } from '../settings.js';
+import { logger } from '../logger.js';
+
+const log = logger.child({ mod: 'copilot' });
 
 function eventDeltaContent(event: SessionEvent): string {
   const data = (event as { data?: { deltaContent?: string } }).data;
@@ -33,6 +37,21 @@ function toPrompt(messages: ChatMessage[]): string {
 export class CopilotProvider extends BaseLLMProvider {
   readonly id = 'copilot';
   readonly label = 'GitHub Copilot';
+
+  private async client(): Promise<CopilotClient> {
+    log.info('connecting to Copilot CLI server...');
+    const url = await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
+    const client = new CopilotClient({
+      cliUrl: url,
+      logLevel: 'warning',
+    });
+    log.info('Connected to Copilot CLI server at %s', url);
+    return client;
+  }
+
+  async url(): Promise<string> {
+    return await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
+  }
 
   async ping(): Promise<boolean> {
     const svc = getCopilotService();
@@ -90,13 +109,5 @@ export class CopilotProvider extends BaseLLMProvider {
     } finally {
       await session.disconnect().catch(() => undefined);
     }
-  }
-
-  async pullModel(_name: string, _onProgress: (p: PullProgress) => void): Promise<void> {
-    throw new Error('copilot: pullModel is not supported');
-  }
-
-  async deleteModel(_name: string): Promise<void> {
-    throw new Error('copilot: deleteModel is not supported');
   }
 }

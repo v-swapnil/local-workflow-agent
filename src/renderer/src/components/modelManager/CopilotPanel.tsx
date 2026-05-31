@@ -23,12 +23,6 @@ export function CopilotPanel() {
       utils.llm.copilotModels.invalidate();
     },
   });
-  const retryCopilot = trpc.llm.copilotRetry.useMutation({
-    onSuccess: () => {
-      utils.llm.copilotHealth.invalidate();
-      utils.llm.copilotModels.invalidate();
-    },
-  });
   const [urlDraft, setUrlDraft] = useState('');
   const [editing, setEditing] = useState(false);
 
@@ -100,16 +94,6 @@ export function CopilotPanel() {
             <div className="mb-1 text-amber">Copilot CLI not reachable.</div>
             Start the server with <code className="text-amber">copilot --stdio=false</code>, then
             check the URL above matches the port.
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={() => retryCopilot.mutate()}
-                disabled={retryCopilot.isPending}
-                className="rounded-md border border-ink-700/50 px-2 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-amber transition-colors hover:border-amber/40 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {retryCopilot.isPending ? 'retrying...' : 'retry now'}
-              </button>
-            </div>
           </div>
         )}
       </div>

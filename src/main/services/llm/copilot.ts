@@ -16,6 +16,24 @@ export class CopilotService {
   private connecting: Promise<void> | null = null;
   private lastUrl: string | null = null;
 
+  private async doConnect(url: string): Promise<void> {
+    log.info({ url }, 'connecting to Copilot CLI server...');
+    const client = new CopilotClient({
+      cliUrl: url,
+      logLevel: 'warning',
+    });
+    try {
+      await client.start();
+      this.client = client;
+      this.lastUrl = url;
+      log.info({ url }, 'connected to Copilot CLI server');
+    } catch (err) {
+      this.client = null;
+      this.lastUrl = null;
+      throw err;
+    }
+  }
+
   /** Get (or lazily connect to) the CopilotClient. */
   async getClient(): Promise<CopilotClient> {
     const url = await getSetting(SETTING_KEYS.COPILOT_CLI_URL, COPILOT_CLI_URL);
@@ -37,24 +55,6 @@ export class CopilotService {
     }
     if (!this.client) throw new Error('copilot: client unavailable after connect');
     return this.client;
-  }
-
-  private async doConnect(url: string): Promise<void> {
-    log.info({ url }, 'connecting to Copilot CLI server...');
-    const client = new CopilotClient({
-      cliUrl: url,
-      logLevel: 'warning',
-    });
-    try {
-      await client.start();
-      this.client = client;
-      this.lastUrl = url;
-      log.info({ url }, 'connected to Copilot CLI server');
-    } catch (err) {
-      this.client = null;
-      this.lastUrl = null;
-      throw err;
-    }
   }
 
   async ping(): Promise<boolean> {

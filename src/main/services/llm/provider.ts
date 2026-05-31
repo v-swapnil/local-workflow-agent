@@ -67,34 +67,18 @@ export interface PullProgress {
 export interface LLMProvider {
   readonly id: string;
   readonly label: string;
+  url(): Promise<string>;
   ping(): Promise<boolean>;
   listModels(): Promise<ModelInfo[]>;
   chat(opts: ChatOptions): Promise<ChatResult>;
-  pullModel(
-    name: string,
-    onProgress: (p: PullProgress) => void,
-    signal?: AbortSignal,
-  ): Promise<void>;
-  deleteModel(name: string): Promise<void>;
 }
 
 export abstract class BaseLLMProvider implements LLMProvider {
   abstract readonly id: string;
   abstract readonly label: string;
 
+  abstract url(): Promise<string>;
   abstract ping(): Promise<boolean>;
   abstract listModels(): Promise<ModelInfo[]>;
   abstract chat(opts: ChatOptions): Promise<ChatResult>;
-
-  async pullModel(
-    name: string,
-    onProgress: (p: PullProgress) => void,
-    signal?: AbortSignal,
-  ): Promise<void> {
-    throw new Error(`${this.id}: pullModel is not supported`);
-  }
-
-  async deleteModel(name: string): Promise<void> {
-    throw new Error(`${this.id}: deleteModel is not supported`);
-  }
 }

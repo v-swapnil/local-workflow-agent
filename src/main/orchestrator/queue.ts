@@ -1,6 +1,6 @@
 import { runTask, cancelTask, isRunning } from './runner.js';
 import { updateTask } from '../services/store.js';
-import { taskBus } from '../services/events.js';
+import { emitTaskFinished } from './eventEmitter.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { logger } from '../services/logger.js';
 
@@ -30,13 +30,7 @@ export function cancelQueuedOrRunning(taskId: string): boolean {
   const idx = queue.indexOf(taskId);
   if (idx >= 0) {
     queue.splice(idx, 1);
-    updateTask(taskId, { status: 'cancelled', finishedAt: Date.now() });
-    taskBus.emit(taskId, {
-      type: 'task.finished',
-      taskId,
-      ts: Date.now(),
-      status: 'cancelled',
-    });
+    emitTaskFinished(taskId, 'cancelled');
     return true;
   }
   return cancelTask(taskId);

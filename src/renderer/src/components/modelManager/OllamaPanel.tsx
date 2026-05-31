@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { trpc } from '../../trpc';
 import { OLLAMA_URL } from '@shared/constants';
 import { Pill } from '../Pill';
@@ -7,7 +8,7 @@ import { ModelDropdown } from './ModelDropdown';
 export function OllamaPanel() {
   const utils = trpc.useUtils();
   const health = trpc.llm.ollamaHealth.useQuery(undefined, { refetchInterval: 5000 });
-  const models = trpc.llm.listModels.useQuery(undefined, { refetchInterval: 8000 });
+  const models = trpc.llm.ollamaModels.useQuery(undefined, { refetchInterval: 8000 });
   const active = trpc.llm.activeModel.useQuery();
   const setActive = trpc.llm.setActiveModel.useMutation({
     onSuccess: () => utils.llm.activeModel.invalidate(),
@@ -16,10 +17,16 @@ export function OllamaPanel() {
   const setSecondary = trpc.llm.setSecondaryModel.useMutation({
     onSuccess: () => utils.llm.secondaryModel.invalidate(),
   });
-  const del = trpc.llm.deleteModel.useMutation({
-    onSuccess: () => utils.llm.listModels.invalidate(),
+  const ollamaUrl = trpc.llm.ollamaUrl.useQuery();
+  const setOllamaUrl = trpc.llm.setOllamaUrl.useMutation({
+    onSuccess: () => {
+      utils.llm.ollamaUrl.invalidate();
+      utils.llm.ollamaHealth.invalidate();
+      utils.llm.ollamaModels.invalidate();
+    },
   });
-
+  const [urlDraft, setUrlDraft] = useState('');
+  const [editing, setEditing] = useState(false);
   const ollamaOk = health.data?.ok === true;
   const ollamaState = health.isLoading ? 'checking' : ollamaOk ? 'online' : 'offline';
   const modelList = models.data ?? [];
@@ -34,7 +41,49 @@ export function OllamaPanel() {
             </div>
             <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">Ollama</div>
             <div className="font-mono text-ui-2xs text-ink-500">
-              {health.data?.url ?? OLLAMA_URL}
+              {editing ? (
+                <form
+                  className="mt-1 flex items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (urlDraft.trim()) {
+                      setOllamaUrl.mutate({ url: urlDraft.trim() });
+                      setEditing(false);
+                    }
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={urlDraft}
+                    onChange={(e) => setUrlDraft(e.target.value)}
+                    className="w-48 rounded border border-ink-700 bg-ink-950 px-2 py-0.5 font-mono text-ui-xs text-ink-100 focus:border-amber focus:outline-none"
+                    placeholder={OLLAMA_URL}
+                  />
+                  <button type="submit" className="font-mono text-ui-xs text-amber hover:underline">
+                    save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    className="font-mono text-ui-xs text-ink-500 hover:underline"
+                  >
+                    cancel
+                  </button>
+                </form>
+              ) : (
+                <>
+                  {health.data?.url ?? ollamaUrl.data ?? OLLAMA_URL}{' '}
+                  <button
+                    onClick={() => {
+                      setUrlDraft(ollamaUrl.data ?? OLLAMA_URL);
+                      setEditing(true);
+                    }}
+                    className="text-amber hover:underline"
+                  >
+                    edit
+                  </button>
+                </>
+              )}
             </div>
           </div>
           <Pill ok={health.isLoading ? undefined : ollamaOk} label={ollamaState} />
@@ -47,15 +96,6 @@ export function OllamaPanel() {
             {health.error?.message && (
               <div className="mt-2 text-signal-err">query error: {health.error.message}</div>
             )}
-            {health.data?.attempts?.length ? (
-              <div className="mt-2 space-y-1">
-                {health.data.attempts.map((a, idx) => (
-                  <div key={`${a.url}-${idx}`} className="text-ink-500">
-                    {a.url} {a.ok ? 'ok' : a.status ? `status ${a.status}` : (a.error ?? 'failed')}
-                  </div>
-                ))}
-              </div>
-            ) : null}
           </div>
         )}
       </div>
@@ -95,22 +135,12 @@ export function OllamaPanel() {
                 {modelList.map((m) => (
                   <li
                     key={m.name}
-                    className="flex items-center justify-between rounded px-3 py-1.5 hover:bg-ink-800/20"
+                    className="flex items-center rounded px-3 py-1.5 hover:bg-ink-800/20"
                   >
-                    <div>
-                      <span className="font-mono text-ui-sm text-ink-100">{m.name}</span>
-                      <span className="ml-2 font-mono text-ui-2xs text-ink-500">
-                        {m.sizeBytes ? formatBytes(m.sizeBytes) : ''}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Delete ${m.name}?`)) del.mutate({ name: m.name });
-                      }}
-                      className="btn-danger !py-0.5 !px-2 text-ui-2xs"
-                    >
-                      remove
-                    </button>
+                    <span className="font-mono text-ui-sm text-ink-100">{m.name}</span>
+                    <span className="ml-2 font-mono text-ui-2xs text-ink-500">
+                      {m.sizeBytes ? formatBytes(m.sizeBytes) : ''}
+                    </span>
                   </li>
                 ))}
               </ul>

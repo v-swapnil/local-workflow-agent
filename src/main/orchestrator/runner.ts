@@ -2,6 +2,7 @@ import { getWorkspace } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { taskBus } from '../services/events.js';
+import { emitTaskStarted, emitTaskFinished } from './eventEmitter.js';
 import { getTask, updateTask, setSessionKanbanLane } from '../services/store.js';
 import { getAgentOrNull } from '../services/agents.js';
 import { getDb } from '../db/index.js';
@@ -102,8 +103,7 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     });
   }
 
-  updateTask(taskId, { status: 'running', startedAt: Date.now() });
-  taskBus.emit(taskId, { type: 'task.started', taskId, ts: Date.now() });
+  emitTaskStarted(taskId);
 
   // Optional: auto-branch per task before any code is written.
   // Skip branching if session has an active worktree (it already has its own branch).
@@ -214,26 +214,18 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 }
 
 function finish(task: TaskRecord, result: TaskResult): TaskResult {
-  updateTask(task.id, {
-    status: result.status,
-    result: JSON.stringify(result),
-    iterations: result.iterations,
-    finishedAt: Date.now(),
-  });
   // Reset manual kanban lane so card auto-derives from new task status
   // Respects kanban.autoClearOverride setting (default: true)
   getSetting(SETTING_KEYS.KANBAN_AUTO_CLEAR).then((v) => {
     if (v !== 'false') setSessionKanbanLane(task.sessionId, null);
   });
   clearTaskApprovals(task.id);
-  taskBus.emit(task.id, {
-    type: 'task.finished',
-    taskId: task.id,
-    ts: Date.now(),
-    status: result.status,
+  emitTaskFinished(
+    task.id,
+    result.status,
     result,
-    error: result.status !== 'succeeded' ? result.reason : undefined,
-  });
+    result.status !== 'succeeded' ? result.reason : undefined,
+  );
   return result;
 }
 

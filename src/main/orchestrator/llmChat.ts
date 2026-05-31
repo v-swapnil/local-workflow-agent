@@ -6,7 +6,7 @@ import { listToolsForLLM } from '../services/tools/registry.js';
 import { workspaceStatus, getWorktreeRoot } from '../services/git';
 import { resolveShell } from '../services/shell/env.js';
 import { extractJson } from '../util/json.js';
-import { taskBus } from '../services/events.js';
+import { emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
 import type { EnvironmentContext } from './prompts.js';
 import type { RunCtx } from './runCtx.js';
@@ -47,22 +47,10 @@ export async function llmChat(
     tools,
     onDelta: (d) => {
       buf.push(d);
-      taskBus.emit(ctx.taskId, {
-        type: 'llm.delta',
-        taskId: ctx.taskId,
-        ts: Date.now(),
-        agent,
-        content: d,
-      });
+      emitMessageDelta(ctx.taskId, agent, d);
     },
     onThinkingDelta: (d) => {
-      taskBus.emit(ctx.taskId, {
-        type: 'llm.thinking_delta',
-        taskId: ctx.taskId,
-        ts: Date.now(),
-        agent,
-        content: d,
-      });
+      emitThinkingDelta(ctx.taskId, agent, d);
     },
   });
   const text = result.content || buf.join('');

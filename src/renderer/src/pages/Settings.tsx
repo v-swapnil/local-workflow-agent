@@ -1,6 +1,5 @@
 import { PageShell } from '../components/PageShell';
 import { ModelManager } from '../components/ModelManager';
-import { DebugChat } from '../components/DebugChat';
 import { trpc } from '../trpc';
 import { useUI, type TextSize } from '../store/ui';
 
@@ -127,12 +126,8 @@ export function Settings() {
         </section>
 
         <section>
-          <SectionTitle index="05" title="Debug Chat" />
-          <DebugChat />
-
-          <div className="mt-8">
-            <SectionTitle index="06" title="System" />
-            <div className="mb-3 flex items-center gap-2">
+          <SectionTitle index="05" title="System" />
+          <div className="mb-3 flex items-center gap-2">
               <button
                 onClick={() => openLogs.mutate()}
                 disabled={openLogs.isPending}
@@ -147,17 +142,11 @@ export function Settings() {
                 ['provider', activeProvider.data ?? '...'],
                 ['db.path', health.data?.db.path ?? '...'],
                 ['logs.path', openLogs.data?.path ?? '...'],
-                ['ollama.url', health.data?.ollama.url ?? '...'],
-                [
-                  'ollama.status',
-                  health.data ? (health.data.ollama.ok ? 'online' : 'offline') : '...',
-                ],
               ]}
             />
-            <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
+          <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
               shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
             </div>
-          </div>
         </section>
       </div>
     </PageShell>

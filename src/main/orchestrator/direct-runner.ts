@@ -3,7 +3,7 @@ import { PROVIDERS } from '@shared/constants';
 import type { ProviderId } from '@shared/types';
 import { invokeTool, listToolsForLLM, isReadOnlyTool } from '../services/tools/registry.js';
 import { taskBus } from '../services/events.js';
-import { emitToolCallStarted, emitToolCallFinished } from './eventEmitter.js';
+import { emitToolCallStarted, emitToolCallFinished, emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import type { TaskResult } from '@shared/agent';
 import type { ChatMessage, ToolCall } from '../services/llm/provider.js';
 import type { ToolName } from '../services/tools/types.js';
@@ -60,22 +60,10 @@ export async function runDirectAgent(
       tools,
       onDelta: (d) => {
         buf.push(d);
-        taskBus.emit(taskId, {
-          type: 'llm.delta',
-          taskId,
-          ts: Date.now(),
-          agent: 'direct',
-          content: d,
-        });
+        emitMessageDelta(taskId, 'direct', d);
       },
       onThinkingDelta: (d) => {
-        taskBus.emit(taskId, {
-          type: 'llm.thinking_delta',
-          taskId,
-          ts: Date.now(),
-          agent: 'direct',
-          content: d,
-        });
+        emitThinkingDelta(taskId, 'direct', d);
       },
     });
 

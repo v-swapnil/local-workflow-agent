@@ -36,7 +36,8 @@ export async function plannerLoop(
   while (budget-- > 0) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
-    const response = await llmChat(ctx, 'planner', conv.getMessages(), temperature, readOnlyTools);
+    const messages = conv.getMessages();
+    const response = await llmChat(ctx, 'planner', messages, temperature, readOnlyTools);
 
     if (response.done) {
       const plan = response.text;

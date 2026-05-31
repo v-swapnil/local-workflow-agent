@@ -1,13 +1,9 @@
-import { addStep, updateStep, addToolCall, updateToolCall } from '../services/store.js';
+import { addStep, updateStep, addToolCall, updateToolCall, updateTask } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import type { ToolName } from '../services/tools/types.js';
 import type { RunCtx } from './runCtx.js';
 
-export function emitStepStarted(
-  ctx: RunCtx,
-  agent: string,
-  input?: unknown,
-): { stepId: string } {
+export function emitStepStarted(ctx: RunCtx, agent: string, input?: unknown): { stepId: string } {
   const sequence = ctx.stepIdx.n++;
   const row = addStep({
     taskId: ctx.taskId,
@@ -103,5 +99,56 @@ export function emitToolCallFinished(
     tool,
     output,
     error,
+  });
+}
+
+export function emitTaskStarted(taskId: string): void {
+  updateTask(taskId, { status: 'running', startedAt: Date.now() });
+  taskBus.emit(taskId, {
+    type: 'task.started',
+    taskId,
+    ts: Date.now(),
+  });
+}
+
+export function emitTaskFinished(
+  taskId: string,
+  status: 'succeeded' | 'failed' | 'cancelled',
+  result?: unknown,
+  error?: string,
+): void {
+  updateTask(taskId, {
+    status,
+    finishedAt: Date.now(),
+    result: result ? JSON.stringify(result) : null,
+    iterations: (result as { iterations?: number })?.iterations,
+  });
+  taskBus.emit(taskId, {
+    type: 'task.finished',
+    taskId,
+    ts: Date.now(),
+    status,
+    result,
+    error,
+  });
+}
+
+export function emitMessageDelta(taskId: string, agent: string, content: string): void {
+  taskBus.emit(taskId, {
+    type: 'llm.delta',
+    taskId,
+    ts: Date.now(),
+    agent,
+    content,
+  });
+}
+
+export function emitThinkingDelta(taskId: string, agent: string, content: string): void {
+  taskBus.emit(taskId, {
+    type: 'llm.thinking_delta',
+    taskId,
+    ts: Date.now(),
+    agent,
+    content,
   });
 }
