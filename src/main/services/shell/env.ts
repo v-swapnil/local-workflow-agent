@@ -6,11 +6,17 @@ export interface ShellConfig {
   shellName: string;
 }
 
+export interface ResolvedShellConfig extends ShellConfig {
+  configuredPath: string | null;
+  configuredPathExists: boolean;
+}
+
 export async function resolveShell(): Promise<ShellConfig> {
   const configured = await getSetting(SETTING_KEYS.SHELL_PATH);
+  const configuredPathExists = configured ? existsSync(configured) : false;
   let shellPath: string;
 
-  if (configured && existsSync(configured)) {
+  if (configured && configuredPathExists) {
     shellPath = configured;
   } else {
     shellPath = process.env.SHELL ?? '/bin/bash';
@@ -24,6 +30,18 @@ export async function resolveShell(): Promise<ShellConfig> {
 
   const shellName = shellPath.split('/').pop() ?? 'sh';
   return { shellPath, shellName };
+}
+
+export async function resolveShellDetails(): Promise<ResolvedShellConfig> {
+  const configuredPath = (await getSetting(SETTING_KEYS.SHELL_PATH)) ?? null;
+  const configuredPathExists = configuredPath ? existsSync(configuredPath) : false;
+  const { shellPath, shellName } = await resolveShell();
+  return {
+    shellPath,
+    shellName,
+    configuredPath,
+    configuredPathExists,
+  };
 }
 
 export function buildShellArgs(shellName: string, command: string): string[] {

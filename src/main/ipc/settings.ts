@@ -2,7 +2,8 @@ import { shell } from 'electron';
 import { z } from 'zod';
 import { publicProcedure, router } from './trpc.js';
 import { logsDir } from '../util/paths.js';
-import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
+import { deleteSetting, getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
+import { resolveShellDetails } from '../services/shell/index.js';
 
 const themeSchema = z.enum(['dark', 'light']);
 const textSizeSchema = z.enum(['compact', 'default', 'comfortable']);
@@ -89,10 +90,19 @@ export const settingsRouter = router({
     return (await getSetting(SETTING_KEYS.SHELL_PATH)) ?? null;
   }),
 
+  resolvedShell: publicProcedure.query(async () => {
+    return resolveShellDetails();
+  }),
+
   setShellPath: publicProcedure
     .input(z.object({ value: z.string().min(1) }))
     .mutation(async ({ input }) => {
-      await setSetting(SETTING_KEYS.SHELL_PATH, input.value);
+      await setSetting(SETTING_KEYS.SHELL_PATH, input.value.trim());
+      return { ok: true as const };
+    }),
+
+  resetShellPath: publicProcedure.mutation(async () => {
+    await deleteSetting(SETTING_KEYS.SHELL_PATH);
       return { ok: true as const };
     }),
 });

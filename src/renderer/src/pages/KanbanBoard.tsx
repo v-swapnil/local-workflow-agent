@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -17,13 +17,31 @@ import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { KanbanLane } from '../components/KanbanLane';
 import { KanbanCardView } from '../components/KanbanCard';
 import { Button } from '../components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 
 const LANES: KanbanLaneType[] = ['todo', 'in_progress', 'done', 'need_help'];
+const LANE_LABELS: Record<KanbanLaneType, string> = {
+  todo: 'todo',
+  in_progress: 'in progress',
+  done: 'done',
+  need_help: 'need help',
+};
+
+type KanbanView = 'board' | 'list';
 
 export function KanbanBoard() {
   const { workspaceId } = useActiveWorkspace();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
+  const defaultView = trpc.settings.kanbanDefaultView.useQuery();
+  const setDefaultView = trpc.settings.setKanbanDefaultView.useMutation({
+    onSuccess: () => utils.settings.kanbanDefaultView.invalidate(),
+  });
+  const [view, setView] = useState<KanbanView>('board');
+
+  useEffect(() => {
+    if (defaultView.data) setView(defaultView.data);
+  }, [defaultView.data]);
 
   const kanbanQ = trpc.session.kanban.useQuery(
     { workspaceId: workspaceId ?? undefined },
@@ -103,6 +121,10 @@ export function KanbanBoard() {
   }
 
   const totalCards = kanbanQ.data?.length ?? 0;
+  const sortedCards = useMemo(
+    () => [...(kanbanQ.data ?? [])].sort((a, b) => b.lastActivity - a.lastActivity),
+    [kanbanQ.data],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -116,24 +138,94 @@ export function KanbanBoard() {
             {totalCards} session{totalCards !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="font-mono uppercase tracking-widest2 hover:border-amber/60 hover:text-amber"
-          disabled={!workspaceId || create.isPending}
-          onClick={() =>
-            create.mutate({
-              workspaceId: workspaceId!,
-              title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            })
-          }
-        >
-          + new session
-        </Button>
+        <div className="flex items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(value) => {
+              if (value !== 'board' && value !== 'list') return;
+              setView(value);
+              setDefaultView.mutate({ value });
+            }}
+            disabled={setDefaultView.isPending}
+            className="gap-1"
+          >
+            {(['board', 'list'] as KanbanView[]).map((mode) => (
+              <ToggleGroupItem
+                key={mode}
+                value={mode}
+                size="sm"
+                variant="outline"
+                className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+              >
+                {mode}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Button
+            variant="outline"
+            size="sm"
+            className="font-mono uppercase tracking-widest2 hover:border-amber/60 hover:text-amber"
+            disabled={!workspaceId || create.isPending}
+            onClick={() =>
+              create.mutate({
+                workspaceId: workspaceId!,
+                title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              })
+            }
+          >
+            + new session
+          </Button>
+        </div>
       </div>
 
       {/* Board */}
-      <div className="min-h-0 flex-1 overflow-x-auto p-4">
+      {view === 'list' ? (
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <div className="overflow-hidden rounded-lg border border-ink-800/50 bg-ink-900/20">
+            <div className="grid grid-cols-[minmax(220px,1fr)_120px_110px_110px] gap-4 border-b border-ink-800/50 px-4 py-2.5 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+              <div>session</div>
+              <div>lane</div>
+              <div>tasks</div>
+              <div>activity</div>
+            </div>
+            {sortedCards.map((card) => (
+              <button
+                key={card.sessionId}
+                type="button"
+                className="grid w-full grid-cols-[minmax(220px,1fr)_120px_110px_110px] gap-4 border-b border-ink-800/30 px-4 py-3 text-left last:border-b-0 hover:bg-ink-800/20"
+                onClick={() => handleCardClick(card.sessionId)}
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-mono text-ui-sm font-medium text-ink-50">
+                    {card.title}
+                  </div>
+                  <div className="mt-1 truncate font-mono text-ui-2xs text-ink-500">
+                    {card.sessionId}
+                  </div>
+                </div>
+                <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-300">
+                  {LANE_LABELS[card.lane]}
+                </div>
+                <div className="font-mono text-ui-xs text-ink-300">
+                  {card.taskSummary.total}
+                  {card.taskSummary.running > 0 ? `, ${card.taskSummary.running} running` : ''}
+                  {card.taskSummary.failed > 0 ? `, ${card.taskSummary.failed} failed` : ''}
+                </div>
+                <div className="font-mono text-ui-xs text-ink-500">
+                  {relativeTime(card.lastActivity)}
+                </div>
+              </button>
+            ))}
+            {totalCards === 0 && !kanbanQ.isLoading && (
+              <div className="px-4 py-10 text-center font-mono text-ui-sm text-ink-500">
+                no sessions yet
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-x-auto p-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -157,10 +249,11 @@ export function KanbanBoard() {
             {activeCard && <KanbanCardView card={activeCard} isOverlay />}
           </DragOverlay>
         </DndContext>
-      </div>
+        </div>
+      )}
 
       {/* Empty state */}
-      {totalCards === 0 && !kanbanQ.isLoading && (
+      {view === 'board' && totalCards === 0 && !kanbanQ.isLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <div className="font-mono text-ui-sm text-ink-500">
             no sessions yet — create one to get started
@@ -169,4 +262,16 @@ export function KanbanBoard() {
       )}
     </div>
   );
+}
+
+function relativeTime(ms: number): string {
+  const diff = Date.now() - ms;
+  const secs = Math.floor(diff / 1000);
+  if (secs < 60) return 'just now';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }

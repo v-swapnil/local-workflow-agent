@@ -1,3 +1,4 @@
+import { useEffect, useState, type ReactNode } from 'react';
 import { PageShell } from '../components/PageShell';
 import { ModelManager } from '../components/ModelManager';
 import { trpc } from '../trpc';
@@ -6,6 +7,8 @@ import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
+import { Slider } from '../components/ui/slider';
 
 export function Settings() {
   const health = trpc.health.useQuery();
@@ -34,6 +37,43 @@ export function Settings() {
     onSuccess: () => utils.settings.useWorktrees.invalidate(),
   });
   const activeProvider = trpc.llm.activeProvider.useQuery();
+  const shellPath = trpc.settings.shellPath.useQuery();
+  const resolvedShell = trpc.settings.resolvedShell.useQuery();
+  const setShellPath = trpc.settings.setShellPath.useMutation({
+    onSuccess: () => {
+      utils.settings.shellPath.invalidate();
+      utils.settings.resolvedShell.invalidate();
+    },
+  });
+  const resetShellPath = trpc.settings.resetShellPath.useMutation({
+    onSuccess: () => {
+      utils.settings.shellPath.invalidate();
+      utils.settings.resolvedShell.invalidate();
+    },
+  });
+  const queueConcurrency = trpc.settings.queueConcurrency.useQuery();
+  const setQueueConcurrency = trpc.settings.setQueueConcurrency.useMutation({
+    onSuccess: () => utils.settings.queueConcurrency.invalidate(),
+  });
+  const kanbanAutoClear = trpc.settings.kanbanAutoClear.useQuery();
+  const setKanbanAutoClear = trpc.settings.setKanbanAutoClear.useMutation({
+    onSuccess: () => utils.settings.kanbanAutoClear.invalidate(),
+  });
+  const kanbanDefaultView = trpc.settings.kanbanDefaultView.useQuery();
+  const setKanbanDefaultView = trpc.settings.setKanbanDefaultView.useMutation({
+    onSuccess: () => utils.settings.kanbanDefaultView.invalidate(),
+  });
+  const [shellDraft, setShellDraft] = useState('');
+
+  useEffect(() => {
+    setShellDraft(shellPath.data ?? '');
+  }, [shellPath.data]);
+
+  const shellConfigured = shellPath.data ?? '';
+  const shellChanged = shellDraft.trim() !== shellConfigured;
+  const shellInvalid =
+    !!resolvedShell.data?.configuredPath && !resolvedShell.data.configuredPathExists;
+  const concurrency = queueConcurrency.data ?? 1;
 
   return (
     <PageShell
@@ -41,7 +81,7 @@ export function Settings() {
       title="Settings"
       subtitle="Local configuration. All data stays on your machine."
     >
-      <div className="grid grid-cols-[1fr_1fr] gap-8">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_1fr]">
         <section>
           <SectionTitle index="01" title="LLM" />
           <ModelManager />
@@ -125,9 +165,86 @@ export function Settings() {
               description="When off, write_file / apply_patch / run_shell will prompt for approval before executing. Recommended for unfamiliar workspaces."
             />
           </div>
+        </section>
+
+        <section>
+          <SectionTitle index="04" title="Execution" />
+          <SettingCard
+            title="shell path"
+            description="Used by run_shell and task execution. Leave empty to auto-detect from your environment."
+          >
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const next = shellDraft.trim();
+                if (next) setShellPath.mutate({ value: next });
+              }}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={shellDraft}
+                  onChange={(e) => setShellDraft(e.target.value)}
+                  className="font-mono text-ui-sm"
+                  placeholder="/bin/zsh"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={!shellDraft.trim() || !shellChanged || setShellPath.isPending}
+                  >
+                    save
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!shellConfigured || resetShellPath.isPending}
+                    onClick={() => resetShellPath.mutate()}
+                  >
+                    reset
+                  </Button>
+                </div>
+              </div>
+              <div className="font-mono text-ui-xs leading-relaxed text-ink-500">
+                effective: {resolvedShell.data?.shellPath ?? '...'}
+                {resolvedShell.data?.shellName ? ` (${resolvedShell.data.shellName})` : ''}
+              </div>
+              {shellInvalid && (
+                <div className="font-mono text-ui-xs leading-relaxed text-signal-warn">
+                  configured path was not found, so ASE is using the fallback shell above.
+                </div>
+              )}
+            </form>
+          </SettingCard>
+          <div className="mt-2">
+            <SettingCard
+              title="queue concurrency"
+              description="Maximum tasks ASE can run from the queue at the same time."
+            >
+              <div className="grid grid-cols-[1fr_42px] items-center gap-4">
+                <Slider
+                  value={[concurrency]}
+                  min={1}
+                  max={8}
+                  step={1}
+                  disabled={setQueueConcurrency.isPending}
+                  onValueCommit={([value]) => {
+                    if (value && value !== concurrency) {
+                      setQueueConcurrency.mutate({ value });
+                    }
+                  }}
+                />
+                <div className="rounded border border-ink-800/50 bg-ink-950/50 px-2 py-1 text-center font-mono text-ui-xs text-ink-200">
+                  {concurrency}
+                </div>
+              </div>
+            </SettingCard>
+          </div>
 
           <div className="mt-8">
-            <SectionTitle index="04" title="Git" />
+            <SectionTitle index="05" title="Git" />
             <ToggleCard
               checked={!!autoBranch.data}
               disabled={setAutoBranch.isPending}
@@ -145,10 +262,50 @@ export function Settings() {
               />
             </div>
           </div>
-        </section>
 
-        <section>
-          <SectionTitle index="05" title="System" />
+          <div className="mt-8">
+            <SectionTitle index="06" title="Kanban" />
+            <ToggleCard
+              checked={kanbanAutoClear.data ?? true}
+              disabled={setKanbanAutoClear.isPending}
+              onChange={(v) => setKanbanAutoClear.mutate({ value: v })}
+              title="auto-clear manual lanes"
+              description="When a task finishes, sessions return to their automatic lane unless this is turned off."
+            />
+            <div className="mt-2">
+              <SettingCard
+                title="default board view"
+                description="Choose whether the Kanban page opens as draggable lanes or a compact table."
+              >
+                <ToggleGroup
+                  type="single"
+                  value={kanbanDefaultView.data ?? 'board'}
+                  onValueChange={(value) => {
+                    if (value === 'board' || value === 'list') {
+                      setKanbanDefaultView.mutate({ value });
+                    }
+                  }}
+                  disabled={setKanbanDefaultView.isPending}
+                  className="justify-start gap-1"
+                >
+                  {(['board', 'list'] as const).map((view) => (
+                    <ToggleGroupItem
+                      key={view}
+                      value={view}
+                      size="sm"
+                      variant="outline"
+                      className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                    >
+                      {view}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </SettingCard>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <SectionTitle index="07" title="System" />
           <Rows
             rows={[
               ['app.version', health.data?.app.version ?? '...'],
@@ -160,9 +317,28 @@ export function Settings() {
           <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
             shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
           </div>
+          </div>
         </section>
       </div>
     </PageShell>
+  );
+}
+
+function SettingCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-ink-800/40 bg-ink-900/15 p-4">
+      <div className="font-mono text-ui-sm font-medium text-ink-50">{title}</div>
+      <div className="mt-1 font-mono text-ui-xs leading-relaxed text-ink-400">{description}</div>
+      <div className="mt-4">{children}</div>
+    </div>
   );
 }
 
