@@ -1,15 +1,15 @@
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { listReadOnlyToolsForLLM } from '../services/tools/registry.js';
 import { updateTask } from '../services/store.js';
-import { PLANNER_SYSTEM, plannerUser } from './prompts.js';
+import { PLANNER_SYSTEM } from './prompts.js';
 import { Conversation } from './conversation.js';
-import { llmChat, gatherEnvContext } from './llmChat.js';
+import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import type { RunCtx } from './runCtx.js';
-import type { EnvironmentContext } from './prompts.js';
 import type { AgentState } from './state.js';
+import { buildPromptContext } from './prompts-context.js';
 
 /** Max read-only tool calls the planner can make while exploring. */
 const PLANNER_EXPLORE_BUDGET = 15;
@@ -20,16 +20,19 @@ const PLANNER_EXPLORE_BUDGET = 15;
  * what it already explored before deciding on the next step.
  * Returns the final markdown plan when the LLM responds with text only.
  */
-export async function plannerLoop(
+export async function runPlannerLoop(
   ctx: RunCtx,
   systemPrompt: string,
   userPrompt: string,
-  env: EnvironmentContext,
   temperature?: number,
 ): Promise<string> {
   const readOnlyTools = listReadOnlyToolsForLLM();
   const conv = new Conversation({ system: systemPrompt });
-  conv.addUserMessage(plannerUser(userPrompt, env, ctx.sessionMemory));
+
+  const promptContext = await buildPromptContext(ctx);
+  const userMessages = [promptContext, userPrompt].join('\n\n');
+
+  conv.addUserMessage(userMessages);
 
   let budget = PLANNER_EXPLORE_BUDGET;
 
@@ -76,8 +79,8 @@ export async function runPlannerNode(
   const sequence = ctx.stepIdx.n++;
   const { stepId } = emitStepStarted(ctx.taskId, sequence, 'planner');
   try {
-    const env = await gatherEnvContext(ctx);
-    const plan = await plannerLoop(ctx, systemPrompt, state.prompt, env, temperature);
+    const prompt = state.prompt;
+    const plan = await runPlannerLoop(ctx, systemPrompt, prompt, temperature);
     updateTask(ctx.taskId, { plan });
     emitStepFinished(ctx.taskId, stepId, true, { plan });
     return { plan };

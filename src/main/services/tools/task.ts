@@ -27,3 +27,22 @@ export const createTaskTool: Tool<{ prompt: string }, { taskId: string; status: 
     return { taskId: task.id, status: task.status };
   },
 };
+
+export const taskCompleteTool: Tool<
+  { summary?: string },
+  { done: true; summary?: string }
+> = {
+  name: 'task_complete',
+  description:
+    'Signal that the current task is complete.\n\n' +
+    'Call this only after the requested work is finished and verification has been run, ' +
+    'or after you have clearly determined no further action is needed. Do not call this ' +
+    'while there are outstanding edits, unresolved failures, or pending user questions.\n\n' +
+    'Parameters:\n' +
+    '- summary: optional concise summary of what was completed',
+  schema: z.object({
+    summary: z.string().min(1).optional(),
+  }),
+  needsApproval: false,
+  run: async ({ summary }) => ({ done: true, summary }),
+};

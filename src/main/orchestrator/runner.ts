@@ -9,9 +9,8 @@ import { sessions, tasks as tasksTable } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
-import { createBranch, commitAll } from '../services/git';
+import { createBranch } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
-import { listSessionMemories } from '../services/memories.js';
 import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
@@ -122,10 +121,10 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 
   const ctx: RunCtx = {
     taskId,
+    sessionId: task.sessionId,
     workspaceId: session.workspaceId,
     workspacePath: session.workspacePath,
     model,
-    sessionMemory: session.memoryText,
     signal: ctrl.signal,
     stepIdx: { n: 0 },
   };
@@ -187,25 +186,10 @@ function finish(task: TaskRecord, result: TaskResult): TaskResult {
   return result;
 }
 
-async function loadSessionWorkspace(task: TaskRecord): Promise<{
-  workspaceId: string;
-  workspacePath: string;
-  hasWorktree: boolean;
-  memoryText: string | null;
-}> {
+async function loadSessionWorkspace(task: TaskRecord) {
   const sess = getDb().select().from(sessions).where(eq(sessions.id, task.sessionId)).get();
   if (!sess) throw new Error(`session not found for task ${task.id}`);
   const ws = await getWorkspace(sess.workspaceId);
-
-  const sessionMemories = listSessionMemories(task.sessionId);
-  const memoryText =
-    sessionMemories.length > 0
-      ? sessionMemories
-          .slice(0, 40)
-          .reverse()
-          .map((m) => `[${m.type}] ${m.content}`)
-          .join('\n')
-      : null;
 
   // Use worktree path if one exists and is valid on disk
   const worktree = getWorktreeForSession(task.sessionId);
@@ -214,7 +198,6 @@ async function loadSessionWorkspace(task: TaskRecord): Promise<{
       workspaceId: ws.id,
       workspacePath: worktree.path,
       hasWorktree: true,
-      memoryText,
     };
   }
 
@@ -222,6 +205,5 @@ async function loadSessionWorkspace(task: TaskRecord): Promise<{
     workspaceId: ws.id,
     workspacePath: ws.path,
     hasWorktree: false,
-    memoryText,
   };
 }

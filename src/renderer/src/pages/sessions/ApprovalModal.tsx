@@ -42,17 +42,24 @@ export function ApprovalModal({
         <AlertDialogHeader className="flex-row items-center justify-between border-b border-ink-800/60 px-5 py-3 space-y-0">
           <div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
+              <Badge
+                variant="outline"
+                className="border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber"
+              >
                 approval required
               </Badge>
               {remaining > 0 && (
-                <Badge variant="outline" className="border-ink-700/40 font-mono text-ui-2xs text-ink-500">+{remaining} more</Badge>
+                <Badge
+                  variant="outline"
+                  className="border-ink-700/40 font-mono text-ui-2xs text-ink-500"
+                >
+                  +{remaining} more
+                </Badge>
               )}
             </div>
-            <AlertDialogTitle className="mt-1 font-mono text-ui-sm font-medium text-ink-50">{req.tool}</AlertDialogTitle>
-          </div>
-          <div className="font-mono text-ui-2xs tabular-nums text-ink-600">
-            {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
+            <AlertDialogTitle className="mt-1 font-mono text-ui-sm font-medium text-ink-50">
+              {req.tool}
+            </AlertDialogTitle>
           </div>
         </AlertDialogHeader>
 
@@ -101,16 +108,10 @@ export function ApprovalModal({
             deny
           </AlertDialogCancel>
           <AlertDialogAction
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            onClick={() => onDecide('approve_session')}
-          >
-            allow this task
-          </AlertDialogAction>
-          <AlertDialogAction
             className={buttonVariants({ size: 'sm' })}
             onClick={() => onDecide('approve')}
           >
-            approve once
+            approve
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

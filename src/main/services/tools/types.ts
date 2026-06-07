@@ -5,7 +5,6 @@ export type { ToolName };
 export interface ToolContext {
   workspaceId: string;
   workspacePath: string;
-  /** The session this task belongs to. Required for create_task. */
   sessionId?: string;
   taskId?: string;
   signal?: AbortSignal;

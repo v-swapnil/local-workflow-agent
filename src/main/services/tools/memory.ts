@@ -10,7 +10,7 @@ import type { Tool } from './types.js';
 const SCOPES = ['session', 'workspace'] as const;
 
 export const readMemoriesTool: Tool<
-  { scope?: 'session' | 'workspace'; sessionId?: string; limit?: number; type?: (typeof MEMORY_TYPES)[number] },
+  { scope?: 'session' | 'workspace'; limit?: number; type?: (typeof MEMORY_TYPES)[number] },
   { scope: string; total: number; memories: unknown[] }
 > = {
   name: 'read_memories',
@@ -23,12 +23,11 @@ export const readMemoriesTool: Tool<
     'Memory types: semantic, episodic, procedural, preference, fact, summary, observation',
   schema: z.object({
     scope: z.enum(SCOPES).optional().default('session'),
-    sessionId: z.string().min(1).optional(),
-    limit: z.number().int().min(1).max(200).optional(),
     type: z.enum(MEMORY_TYPES).optional(),
+    limit: z.number().int().min(1).max(200).optional(),
   }),
   needsApproval: false,
-  run: async ({ scope = 'session', sessionId, limit = 100, type }, ctx) => {
+  run: async ({ scope = 'session', limit = 20, type }, ctx) => {
     if (scope === 'workspace') {
       const all = listWorkspaceMemories(ctx.workspaceId, type);
       return {
@@ -37,9 +36,9 @@ export const readMemoriesTool: Tool<
         memories: all.slice(0, limit),
       };
     }
-    const sid = sessionId ?? ctx.sessionId;
-    if (!sid) return { scope: 'session', total: 0, memories: [] };
-    const all = listSessionMemories(sid);
+    const sessionId = ctx.sessionId;
+    if (!sessionId) return { scope: 'session', total: 0, memories: [] };
+    const all = listSessionMemories(sessionId);
     const filtered = type ? all.filter((m) => m.type === type) : all;
     return {
       scope: 'session',
@@ -50,13 +49,7 @@ export const readMemoriesTool: Tool<
 };
 
 export const addMemoryTool: Tool<
-  {
-    scope?: 'session' | 'workspace';
-    sessionId?: string;
-    type: (typeof MEMORY_TYPES)[number];
-    content: string;
-    taskId?: string;
-  },
+  { scope?: 'session' | 'workspace'; type: (typeof MEMORY_TYPES)[number]; content: string },
   { ok: true; memory: unknown }
 > = {
   name: 'add_memory',
@@ -75,13 +68,11 @@ export const addMemoryTool: Tool<
     '- semantic: conceptual/domain knowledge',
   schema: z.object({
     scope: z.enum(SCOPES).optional().default('session'),
-    sessionId: z.string().min(1).optional(),
     type: z.enum(MEMORY_TYPES),
     content: z.string().min(1),
-    taskId: z.string().min(1).optional(),
   }),
   needsApproval: false,
-  run: async ({ scope = 'session', sessionId, type, content, taskId }, ctx) => {
+  run: async ({ scope = 'session', type, content }, ctx) => {
     if (scope === 'workspace') {
       const memory = addMemory({
         workspaceId: ctx.workspaceId,
@@ -91,8 +82,9 @@ export const addMemoryTool: Tool<
       return { ok: true, memory };
     }
     const memory = addMemory({
-      sessionId: sessionId ?? ctx.sessionId,
-      taskId: taskId ?? ctx.taskId ?? null,
+      workspaceId: ctx.workspaceId,
+      sessionId: ctx.sessionId,
+      taskId: ctx.taskId,
       type,
       content,
     });

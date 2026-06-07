@@ -1,14 +1,15 @@
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { logger } from '../services/logger.js';
-import { EXECUTOR_SYSTEM, executorUser } from './prompts.js';
+import { EXECUTOR_SYSTEM } from './prompts.js';
 import { Conversation } from './conversation.js';
-import { llmChat, gatherEnvContext } from './llmChat.js';
+import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import type { Observation } from '@shared/agent';
+import { buildPromptContext } from './prompts-context.js';
 
 const log = logger.child({ mod: 'orchestrator' });
 
@@ -28,9 +29,12 @@ export async function runExecutorLoop(
   const plan = state.plan;
   if (!plan) throw new Error('executor: no plan in state');
 
-  const env = await gatherEnvContext(ctx);
   const conv = new Conversation({ system: systemPrompt });
-  conv.addUserMessage(executorUser(state.prompt, plan, env, ctx.sessionMemory));
+
+  const promptContext = await buildPromptContext(ctx);
+  const userMessages = [promptContext, `GOAL: ${state.prompt}`, `PLAN: ${plan}`].join('\n\n');
+
+  conv.addUserMessage(userMessages);
 
   const newObs: Observation[] = [];
   let budget = EXECUTOR_BUDGET;
@@ -58,6 +62,11 @@ export async function runExecutorLoop(
         error: r.error,
         durationMs: r.durationMs,
       });
+    }
+
+    if (results.some((r) => r.ok && r.tool === 'task_complete')) {
+      log.info('executor completed task');
+      break;
     }
 
     if (results.some((r) => !r.ok) && budget <= 0) {

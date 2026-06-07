@@ -16,6 +16,7 @@ export type ToolName =
   | 'read_memories'
   | 'add_memory'
   | 'create_task'
+  | 'task_complete'
   // ── codebase search ──
   | 'list_symbols'
   | 'list_imports'

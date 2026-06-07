@@ -70,6 +70,8 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
       return 'Reading memories';
     case 'add_memory':
       return `Adding ${a.type ?? 'memory'}`;
+    case 'task_complete':
+      return 'Marking task complete';
     default:
       return tool;
   }
@@ -128,6 +130,8 @@ export function summarizeToolResult(
       return o.committed === false ? 'nothing to commit' : 'committed';
     case 'ask_user':
       return 'answered';
+    case 'task_complete':
+      return 'complete';
     default:
       return 'done';
   }

@@ -1,13 +1,11 @@
-import { platform } from 'node:os';
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { listToolsForLLM } from '../services/tools/registry.js';
-import { workspaceStatus, getWorktreeRoot } from '../services/git';
-import { resolveShell } from '../services/shell/env.js';
 import { emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
-import type { EnvironmentContext } from './prompts.js';
 import type { RunCtx } from './runCtx.js';
+import { getSetting, SETTING_KEYS } from '@main/services/settings.js';
+import { ProviderId } from '@shared/types.js';
 
 export interface ToolCallResponse {
   toolCalls: ToolCall[];
@@ -34,7 +32,8 @@ export async function llmChat(
   temperature = 0.2,
   availableTools?: ChatToolDef[],
 ): Promise<ToolCallResponse | DoneResponse> {
-  const provider = getProvider(PROVIDERS.OLLAMA);
+  const activeProviderId = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
+  const provider = getProvider(activeProviderId as ProviderId);
   const tools = availableTools ?? listToolsForLLM();
 
   const result = await provider.chat({
@@ -54,42 +53,4 @@ export async function llmChat(
   }
 
   return { done: true, text: result.content };
-}
-
-export async function gatherEnvContext(ctx: RunCtx): Promise<EnvironmentContext> {
-  let isGitRepo = false;
-  let worktree = ctx.workspacePath;
-  let branch: string | null = null;
-  let changedFiles: string[] = [];
-  let shell = process.env.SHELL ?? null;
-
-  try {
-    const resolvedShell = await resolveShell();
-    if (resolvedShell.shellPath) shell = resolvedShell.shellPath;
-
-    const status = await workspaceStatus(ctx.workspaceId);
-    isGitRepo = status.isRepo;
-    if (isGitRepo) {
-      const root = await getWorktreeRoot(ctx.workspacePath);
-      if (root) worktree = root;
-      branch = status.branch;
-      changedFiles = [
-        ...status.staged.map((f) => `staged: ${f}`),
-        ...status.modified.map((f) => `modified: ${f}`),
-        ...status.not_added.map((f) => `untracked: ${f}`),
-      ];
-    }
-  } catch {
-    // git info is best-effort; swallow errors
-  }
-
-  return {
-    directory: ctx.workspacePath,
-    worktree,
-    isGitRepo,
-    platform: platform(),
-    shell,
-    model: ctx.model,
-    git: { branch, changedFiles },
-  };
 }

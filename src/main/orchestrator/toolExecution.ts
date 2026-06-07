@@ -31,6 +31,7 @@ export async function executeToolCalls(
     const result = await invokeTool(tool, args, {
       workspaceId: ctx.workspaceId,
       workspacePath: ctx.workspacePath,
+      sessionId: ctx.sessionId,
       taskId: ctx.taskId,
       signal: ctx.signal,
       onLog: ({ stream, text }) => emitLog(ctx.taskId, stepId, stream !== 'stderr', text),

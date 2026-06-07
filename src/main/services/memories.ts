@@ -24,23 +24,19 @@ export interface MemoryRecord {
   createdAt: number;
 }
 
-export function listSessionMemories(sessionId: string): MemoryRecord[] {
+export function listSessionMemories(sessionId: string, type?: MemoryType): MemoryRecord[] {
+  const conditions = [eq(memories.sessionId, sessionId)];
+  if (type) conditions.push(eq(memories.type, type));
   return getDb()
     .select()
     .from(memories)
-    .where(eq(memories.sessionId, sessionId))
+    .where(and(...conditions))
     .orderBy(desc(memories.createdAt), desc(memories.id))
     .all() as MemoryRecord[];
 }
 
-export function listWorkspaceMemories(
-  workspaceId: string,
-  type?: MemoryType,
-): MemoryRecord[] {
-  const conditions = [
-    eq(memories.workspaceId, workspaceId),
-    isNull(memories.sessionId),
-  ];
+export function listWorkspaceMemories(workspaceId: string, type?: MemoryType): MemoryRecord[] {
+  const conditions = [eq(memories.workspaceId, workspaceId), isNull(memories.sessionId)];
   if (type) conditions.push(eq(memories.type, type));
   return getDb()
     .select()
@@ -83,13 +79,4 @@ export function addMemory(input: {
 
 export function deleteSessionMemories(sessionId: string): void {
   getDb().delete(memories).where(eq(memories.sessionId, sessionId)).run();
-}
-
-export function listTaskMemories(taskId: string): MemoryRecord[] {
-  return getDb()
-    .select()
-    .from(memories)
-    .where(and(eq(memories.taskId, taskId)))
-    .orderBy(desc(memories.createdAt), desc(memories.id))
-    .all() as MemoryRecord[];
 }

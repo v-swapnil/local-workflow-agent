@@ -17,7 +17,7 @@ import { runShellTool } from './shell.js';
 import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
 import { askUserTool } from './user.js';
 import { readMemoriesTool, addMemoryTool } from './memory.js';
-import { createTaskTool } from './task.js';
+import { createTaskTool, taskCompleteTool } from './task.js';
 import {
   listSymbolsTool,
   listImportsTool,
@@ -46,6 +46,7 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_memories: readMemoriesTool as Tool<unknown, unknown>,
   add_memory: addMemoryTool as Tool<unknown, unknown>,
   create_task: createTaskTool as Tool<unknown, unknown>,
+  task_complete: taskCompleteTool as Tool<unknown, unknown>,
   // ── codebase search ──
   list_symbols: listSymbolsTool as Tool<unknown, unknown>,
   list_imports: listImportsTool as Tool<unknown, unknown>,
