@@ -14,7 +14,36 @@ import type { AppRouter } from '../../../main/ipc/router';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 
-const CODE_EXTS = new Set(['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'py', 'rb', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'cs', 'php', 'swift', 'kt', 'sh', 'bash', 'zsh', 'css', 'scss', 'sass', 'less', 'html', 'vue', 'svelte']);
+const CODE_EXTS = new Set([
+  'ts',
+  'tsx',
+  'js',
+  'jsx',
+  'mjs',
+  'cjs',
+  'py',
+  'rb',
+  'go',
+  'rs',
+  'java',
+  'c',
+  'cpp',
+  'h',
+  'cs',
+  'php',
+  'swift',
+  'kt',
+  'sh',
+  'bash',
+  'zsh',
+  'css',
+  'scss',
+  'sass',
+  'less',
+  'html',
+  'vue',
+  'svelte',
+]);
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico', 'bmp']);
 const TEXT_EXTS = new Set(['md', 'mdx', 'txt', 'yaml', 'yml', 'toml', 'env', 'gitignore', 'lock']);
 
@@ -35,17 +64,7 @@ interface FileTreeProps {
   onOpen: (path: string) => void;
 }
 
-export function FileTree({ root, activePath, onOpen }: FileTreeProps) {
-  return (
-    <div className="select-none font-mono text-ui-base text-ink-200">
-      {root.children?.map((child) => (
-        <Node key={child.path} node={child} depth={0} activePath={activePath} onOpen={onOpen} />
-      ))}
-    </div>
-  );
-}
-
-export function Node({
+function Node({
   node,
   depth,
   activePath,
@@ -96,5 +115,15 @@ export function Node({
         ))}
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+export function FileTree({ root, activePath, onOpen }: FileTreeProps) {
+  return (
+    <div className="select-none font-mono text-ui-base text-ink-200">
+      {root.children?.map((child) => (
+        <Node key={child.path} node={child} depth={0} activePath={activePath} onOpen={onOpen} />
+      ))}
+    </div>
   );
 }

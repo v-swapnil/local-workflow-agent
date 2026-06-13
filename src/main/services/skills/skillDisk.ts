@@ -54,7 +54,7 @@ export async function ensureBundledSkills(): Promise<void> {
   }
 }
 
-export async function readSkillFolder(
+async function readSkillFolder(
   absDir: string,
   builtinIds: Set<string>,
 ): Promise<SkillRecord | null> {

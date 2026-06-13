@@ -13,10 +13,6 @@ import type { WorktreeRecord } from '@shared/schema.js';
 
 const log = logger.child({ mod: 'worktrees' });
 
-export function worktreeDirForSession(workspaceId: string, sessionId: string): string {
-  return join(worktreesRoot(), workspaceId, sessionId);
-}
-
 export async function createWorktree(
   workspaceId: string,
   sessionId: string,
@@ -30,7 +26,7 @@ export async function createWorktree(
     return null;
   }
 
-  const worktreePath = worktreeDirForSession(workspaceId, sessionId);
+  const worktreePath = join(worktreesRoot(), workspaceId, sessionId);
   const branch = `ase/session/${sessionId}`;
 
   const g = simpleGit({

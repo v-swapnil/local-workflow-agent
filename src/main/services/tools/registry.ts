@@ -129,7 +129,7 @@ export function listReadOnlyToolsForLLM(): ChatToolDef[] {
     }));
 }
 
-export function getTool(name: ToolName): Tool<unknown, unknown> {
+function getTool(name: ToolName): Tool<unknown, unknown> {
   const tool = REGISTRY[name];
   if (!tool) throw new Error(`unknown tool: ${name}`);
   return tool;
@@ -221,13 +221,32 @@ function buildDiffPreview(
   return undefined;
 }
 
-const RECOVERY_HINTS: [string, string][] = [  ['oldString not found in file', 'Use read_file to verify the current file content before retrying.'],
-  ['oldString appears multiple times', 'Include more surrounding context lines to make the match unique.'],
+const RECOVERY_HINTS: [string, string][] = [
+  [
+    'oldString not found in file',
+    'Use read_file to verify the current file content before retrying.',
+  ],
+  [
+    'oldString appears multiple times',
+    'Include more surrounding context lines to make the match unique.',
+  ],
   ['ENOENT', 'Use glob or list_dir to verify the correct file path.'],
-  ['file too large', 'Use grep to search within the file, or read_file with offset/limit for specific sections.'],
-  ['failed to apply patch', 'File content may have changed. Use read_file to verify current state, or use edit_file for simpler changes.'],
-  ['path escapes workspace', 'Use paths relative to the workspace root. Do not use absolute paths or "..".'],
-  ['Binary file detected', 'Use run_shell with the "file" command to inspect, or "xxd" for a hex dump.'],
+  [
+    'file too large',
+    'Use grep to search within the file, or read_file with offset/limit for specific sections.',
+  ],
+  [
+    'failed to apply patch',
+    'File content may have changed. Use read_file to verify current state, or use edit_file for simpler changes.',
+  ],
+  [
+    'path escapes workspace',
+    'Use paths relative to the workspace root. Do not use absolute paths or "..".',
+  ],
+  [
+    'Binary file detected',
+    'Use run_shell with the "file" command to inspect, or "xxd" for a hex dump.',
+  ],
 ];
 
 function addRecoveryHint(msg: string, _toolName: ToolName): string {
