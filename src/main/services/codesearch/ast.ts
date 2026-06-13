@@ -37,7 +37,7 @@ export function extractSignature(node: SyntaxNode, lines: string[]): string {
     parts.push((lines[r] ?? '').trim());
   }
   const sig = parts.join(' ').trim();
-  return sig.length > MAX_SIGNATURE_LENGTH ? sig.slice(0, MAX_SIGNATURE_LENGTH) + '…' : sig;
+  return sig.length > MAX_SIGNATURE_LENGTH ? sig.slice(0, MAX_SIGNATURE_LENGTH) + '...' : sig;
 }
 
 /** Check if a node is wrapped in an export_statement. */

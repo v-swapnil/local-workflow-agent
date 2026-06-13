@@ -2,7 +2,7 @@ import { listSessionMemories, listWorkspaceMemories, MemoryRecord } from '@main/
 import { RunCtx } from './runCtx';
 import { EnvironmentContext, getEnvironmentContext } from '@main/services/env';
 
-export function formatEnvContext(env: EnvironmentContext): string {
+function formatEnvContext(env: EnvironmentContext): string {
   const lines = [
     `<env>`,
     `  Working directory: ${env.directory}`,
@@ -27,10 +27,7 @@ export function formatEnvContext(env: EnvironmentContext): string {
   return lines.join('\n');
 }
 
-export function formatMemoryContext(
-  scope: 'session' | 'workspace',
-  memories: MemoryRecord[],
-): string {
+function formatMemoryContext(scope: 'session' | 'workspace', memories: MemoryRecord[]): string {
   const lines = [`<memories scope="${scope}">`];
   for (const memory of memories) {
     const type = memory.type;

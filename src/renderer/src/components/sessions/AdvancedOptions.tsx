@@ -14,7 +14,7 @@ import {
 } from '../ui/accordion';
 import { Label } from '../ui/label';
 
-interface Props {
+interface AdvancedOptionsProps {
   modelOverride: string;
   agentId: string;
   workflowId: string;
@@ -30,7 +30,7 @@ export function AdvancedOptions({
   onModelOverride,
   onAgentId,
   onWorkflowId,
-}: Props) {
+}: AdvancedOptionsProps) {
   const { data: modelsData } = trpc.llm.ollamaModels.useQuery();
   const { data: agents = [] } = trpc.agent.list.useQuery();
   const { data: workflowsData = [] } = trpc.workflow.list.useQuery();

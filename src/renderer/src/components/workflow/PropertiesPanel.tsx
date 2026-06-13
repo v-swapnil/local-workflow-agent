@@ -13,7 +13,7 @@ import { Label } from '../ui/label';
 
 const OPERATORS = ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'contains', 'exists'] as const;
 
-interface Props {
+interface PropertiesPanelProps {
   selectedNode: Node | null;
   selectedEdge: Edge | null;
   agents: { id: string; name: string; role: string }[];
@@ -21,7 +21,7 @@ interface Props {
   onDelete: () => void;
 }
 
-export function PropertiesPanel({ selectedNode, selectedEdge, agents, onUpdateNode, onDelete }: Props) {
+export function PropertiesPanel({ selectedNode, selectedEdge, agents, onUpdateNode, onDelete }: PropertiesPanelProps) {
   if (!selectedNode && !selectedEdge) {
     return (
       <aside className="flex w-56 shrink-0 flex-col border-l border-ink-800 bg-ink-950 p-4">

@@ -142,11 +142,6 @@ export function listPendingForTask(taskId: string): ApprovalRequestRecord[] {
     .map((p) => p.request);
 }
 
-export function onApprovalsChanged(listener: () => void): () => void {
-  bus.on('changed', listener);
-  return () => bus.off('changed', listener);
-}
-
 /** Called when a task ends — clear any in-memory state for it. */
 export function clearTaskApprovals(taskId: string): void {
   taskAllow.delete(taskId);

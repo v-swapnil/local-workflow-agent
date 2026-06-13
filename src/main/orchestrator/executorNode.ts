@@ -20,7 +20,7 @@ const EXECUTOR_BUDGET = 30;
  * Shared executor loop logic. Creates a Conversation and drives it to
  * completion, returning accumulated Observations for state/UI display.
  */
-export async function runExecutorLoop(
+async function runExecutorLoop(
   ctx: RunCtx,
   systemPrompt: string,
   state: AgentState,

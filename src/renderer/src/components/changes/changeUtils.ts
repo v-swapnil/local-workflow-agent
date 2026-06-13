@@ -17,6 +17,7 @@ export interface ActiveChange {
   path: string;
   kind: ChangeKind;
   originalPath?: string;
+  staged?: boolean;
 }
 
 export function mapStatusCode(code: string): ChangeKind | null {

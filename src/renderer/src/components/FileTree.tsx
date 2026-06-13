@@ -29,13 +29,13 @@ function FileNodeIcon({ name, className }: { name: string; className?: string })
 
 type Tree = inferProcedureOutput<AppRouter['file']['tree']>;
 
-interface Props {
+interface FileTreeProps {
   root: Tree;
   activePath: string | null;
   onOpen: (path: string) => void;
 }
 
-export function FileTree({ root, activePath, onOpen }: Props) {
+export function FileTree({ root, activePath, onOpen }: FileTreeProps) {
   return (
     <div className="select-none font-mono text-ui-base text-ink-200">
       {root.children?.map((child) => (

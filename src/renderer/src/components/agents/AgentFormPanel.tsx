@@ -112,7 +112,7 @@ export function AgentFormPanel({
             value={form.systemPrompt}
             onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
             rows={7}
-            placeholder="You are a skilled backend engineer…"
+            placeholder="You are a skilled backend engineer..."
             className="resize-y leading-relaxed font-mono text-ui-sm"
           />
         </FormField>

@@ -2,6 +2,7 @@ import { mkdir, readdir, stat, readFile, writeFile, rename, rm, open } from 'nod
 import { join, dirname, sep } from 'node:path';
 import { safeJoin } from '../../util/safePath.js';
 import { getWorkspace } from './workspaceDb.js';
+import { gitFor } from '../git/gitCore.js';
 
 const IGNORED = new Set(['.git', 'node_modules', '.DS_Store', '.next', 'dist', 'out', '.turbo']);
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -70,6 +71,14 @@ async function walk(root: string, abs: string, depth: number): Promise<FileNode>
   children.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name));
   node.children = children;
   return node;
+}
+
+export async function listWorkspaceFiles({ workspaceId }: { workspaceId: string }) {
+  const workspace = await getWorkspace(workspaceId);
+  const git = gitFor(workspace.path);
+  const result = await git.raw(['ls-files', '--cached', '--others', '--exclude-standard']);
+  const paths = result.split('\n');
+  return paths;
 }
 
 export async function readSourceFile(filePath: string): Promise<{ content: string; size: number }> {

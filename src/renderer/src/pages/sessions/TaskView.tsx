@@ -118,7 +118,7 @@ export function TaskView({ taskId }: { taskId: string }) {
                   onClick={() => exportReport.mutate({ id: taskId })}
                   disabled={exportReport.isPending}
                 >
-                  {exportReport.isPending ? 'exporting…' : 'export'}
+                  {exportReport.isPending ? 'exporting...' : 'export'}
                 </Button>
                 {status !== 'succeeded' && (
                   <Button

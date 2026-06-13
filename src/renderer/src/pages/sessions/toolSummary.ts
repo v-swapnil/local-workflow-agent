@@ -7,12 +7,12 @@ function str(v: unknown): string {
 function truncPath(p: string, maxLen = 40): string {
   if (p.length <= maxLen) return p;
   const parts = p.split('/');
-  if (parts.length <= 2) return '…' + p.slice(-maxLen);
-  return parts[0] + '/…/' + parts.slice(-2).join('/');
+  if (parts.length <= 2) return '...' + p.slice(-maxLen);
+  return parts[0] + '/.../' + parts.slice(-2).join('/');
 }
 
 function truncStr(s: string, maxLen = 60): string {
-  return s.length <= maxLen ? s : s.slice(0, maxLen) + '…';
+  return s.length <= maxLen ? s : s.slice(0, maxLen) + '...';
 }
 
 /**

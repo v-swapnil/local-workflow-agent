@@ -22,7 +22,7 @@ export function Worktrees() {
       subtitle="Git worktrees created per session for isolated task execution."
     >
       {worktrees.isLoading && (
-        <div className="font-mono text-ui-sm text-ink-500">loading…</div>
+        <div className="font-mono text-ui-sm text-ink-500">loading...</div>
       )}
 
       {!worktrees.isLoading && worktrees.data?.length === 0 && (

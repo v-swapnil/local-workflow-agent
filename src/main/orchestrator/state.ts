@@ -1,12 +1,6 @@
 import type { Observation } from '@shared/agent';
 
-/* ───────── State ───────── */
-
-import { Annotation, MessagesValue, StateSchema } from '@langchain/langgraph';
-
-export const StateSc = new StateSchema({
-  messages: MessagesValue,
-});
+import { Annotation } from '@langchain/langgraph';
 
 export const StateAnnotation = Annotation.Root({
   prompt: Annotation<string>(),

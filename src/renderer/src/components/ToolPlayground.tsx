@@ -198,7 +198,7 @@ export function ToolPlayground() {
               onClick={execToolCall}
               disabled={running || !workspaceId}
             >
-              {running ? 'running…' : 'invoke →'}
+              {running ? 'running...' : 'invoke →'}
             </Button>
             {duration !== null && (
               <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
@@ -233,7 +233,7 @@ export function ToolPlayground() {
             result
           </div>
           <pre className="h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-ink-800/40 bg-ink-950/80 p-3 font-mono text-ui-xs leading-relaxed text-ink-100">
-            {resultPretty || (running ? '…' : '// no result yet')}
+            {resultPretty || (running ? '...' : '// no result yet')}
           </pre>
         </div>
       </section>

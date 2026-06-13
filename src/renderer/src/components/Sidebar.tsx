@@ -108,7 +108,7 @@ export function Sidebar() {
             )}
           />
           <span className="font-mono text-ui-xs text-ink-500">
-            {ping.isLoading ? 'connecting…' : ping.data ? 'ipc connected' : 'offline'}
+            {ping.isLoading ? 'connecting...' : ping.data ? 'ipc connected' : 'offline'}
           </span>
         </div>
       </div>

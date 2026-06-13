@@ -6,7 +6,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 
-interface Props {
+interface PrSectionProps {
   workspaceId: string;
   worktreeId?: string;
   currentBranch: string | null;
@@ -28,7 +28,9 @@ function PrBadge({ url, state, title }: { url?: string; state?: string; title?: 
         ? 'text-purple-400 border-purple-400/20 bg-purple-400/5'
         : 'text-signal-err border-signal-err/20 bg-signal-err/5';
   return (
-    <div className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-ui-2xs ${color}`}>
+    <div
+      className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 font-mono text-ui-2xs ${color}`}
+    >
       <span className="uppercase tracking-widest2 font-medium">{state ?? 'PR'}</span>
       {title && <span className="max-w-xs truncate text-ink-200">{title}</span>}
       {url && (
@@ -46,7 +48,7 @@ function PrBadge({ url, state, title }: { url?: string; state?: string; title?: 
   );
 }
 
-export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
+export function PrSection({ workspaceId, worktreeId, currentBranch }: PrSectionProps) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [baseBranch, setBaseBranch] = useState('');
@@ -79,9 +81,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
         pull request
       </div>
 
-      {!ghAuth.data?.installed && (
-        <Banner>gh CLI not installed — brew install gh</Banner>
-      )}
+      {!ghAuth.data?.installed && <Banner>gh CLI not installed — brew install gh</Banner>}
       {ghAuth.data?.installed && !ghAuth.data?.authenticated && (
         <Banner>not authenticated — run: gh auth login</Banner>
       )}
@@ -125,7 +125,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                   <Textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="Description (optional)…"
+                    placeholder="Description (optional)"
                     rows={3}
                     className="resize-none font-mono text-ui-xs"
                   />
@@ -137,10 +137,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                       className="flex-1"
                     />
                     <Label className="flex items-center gap-1.5 font-mono text-ui-2xs text-ink-400">
-                      <Checkbox
-                        checked={draft}
-                        onCheckedChange={(v) => setDraft(v === true)}
-                      />
+                      <Checkbox checked={draft} onCheckedChange={(v) => setDraft(v === true)} />
                       draft
                     </Label>
                   </div>
@@ -163,7 +160,7 @@ export function PrSection({ workspaceId, worktreeId, currentBranch }: Props) {
                       }
                       disabled={createPr.isPending || !title.trim()}
                     >
-                      {createPr.isPending ? '…' : 'create PR'}
+                      {createPr.isPending ? '...' : 'create PR'}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setShowForm(false)}>
                       cancel

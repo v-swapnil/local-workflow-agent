@@ -45,7 +45,7 @@ export function Skills() {
             disabled={refresh.isPending}
             className="font-mono uppercase tracking-widest2"
           >
-            {refresh.isPending ? 'syncing…' : 'refresh'}
+            {refresh.isPending ? 'syncing...' : 'refresh'}
           </Button>
           <Button
             variant="default"

@@ -16,8 +16,6 @@ import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { KanbanLane } from '../components/KanbanLane';
 import { KanbanCardView } from '../components/KanbanCard';
-import { Button } from '../components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 
 const LANES: KanbanLaneType[] = ['todo', 'in_progress', 'done', 'need_help'];
 const LANE_LABELS: Record<KanbanLaneType, string> = {
@@ -34,9 +32,6 @@ export function KanbanBoard() {
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   const defaultView = trpc.settings.kanbanDefaultView.useQuery();
-  const setDefaultView = trpc.settings.setKanbanDefaultView.useMutation({
-    onSuccess: () => utils.settings.kanbanDefaultView.invalidate(),
-  });
   const [view, setView] = useState<KanbanView>('board');
 
   useEffect(() => {
@@ -49,10 +44,6 @@ export function KanbanBoard() {
   );
 
   const setLane = trpc.session.setLane.useMutation({
-    onSuccess: () => utils.session.kanban.invalidate(),
-  });
-
-  const create = trpc.session.create.useMutation({
     onSuccess: () => utils.session.kanban.invalidate(),
   });
 
@@ -128,57 +119,6 @@ export function KanbanBoard() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
-      <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-6 py-4">
-        <div>
-          <h1 className="text-xl font-medium leading-tight tracking-tight text-ink-50">
-            Kanban Board
-          </h1>
-          <p className="mt-1 text-ui-sm leading-relaxed text-ink-400">
-            {totalCards} session{totalCards !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ToggleGroup
-            type="single"
-            value={view}
-            onValueChange={(value) => {
-              if (value !== 'board' && value !== 'list') return;
-              setView(value);
-              setDefaultView.mutate({ value });
-            }}
-            disabled={setDefaultView.isPending}
-            className="gap-1"
-          >
-            {(['board', 'list'] as KanbanView[]).map((mode) => (
-              <ToggleGroupItem
-                key={mode}
-                value={mode}
-                size="sm"
-                variant="outline"
-                className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
-              >
-                {mode}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <Button
-            variant="outline"
-            size="sm"
-            className="font-mono uppercase tracking-widest2 hover:border-amber/60 hover:text-amber"
-            disabled={!workspaceId || create.isPending}
-            onClick={() =>
-              create.mutate({
-                workspaceId: workspaceId!,
-                title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-              })
-            }
-          >
-            + new session
-          </Button>
-        </div>
-      </div>
-
       {/* Board */}
       {view === 'list' ? (
         <div className="min-h-0 flex-1 overflow-auto p-4">
@@ -226,29 +166,29 @@ export function KanbanBoard() {
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-x-auto p-4">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex h-full gap-3">
-            {LANES.map((lane) => (
-              <KanbanLane
-                key={lane}
-                lane={lane}
-                cards={cardsByLane[lane]}
-                onCardClick={handleCardClick}
-                onResetLane={handleResetLane}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex h-full gap-3">
+              {LANES.map((lane) => (
+                <KanbanLane
+                  key={lane}
+                  lane={lane}
+                  cards={cardsByLane[lane]}
+                  onCardClick={handleCardClick}
+                  onResetLane={handleResetLane}
+                />
+              ))}
+            </div>
 
-          <DragOverlay dropAnimation={null}>
-            {activeCard && <KanbanCardView card={activeCard} isOverlay />}
-          </DragOverlay>
-        </DndContext>
+            <DragOverlay dropAnimation={null}>
+              {activeCard && <KanbanCardView card={activeCard} isOverlay />}
+            </DragOverlay>
+          </DndContext>
         </div>
       )}
 

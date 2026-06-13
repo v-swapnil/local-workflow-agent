@@ -85,7 +85,7 @@ export function WorkspaceSwitcher() {
           className="app-no-drag gap-2 px-4 py-2.5 font-mono text-ui-xs uppercase tracking-widest2 text-amber rounded-none cursor-pointer focus:bg-ink-800/60 focus:text-amber"
         >
           <FolderPlus className="h-3.5 w-3.5" />
-          {openExisting.isLoading ? 'opening…' : 'new workspace'}
+          {openExisting.isLoading ? 'opening...' : 'new workspace'}
         </DropdownMenuItem>
         {openExisting.error && (
           <div className="border-t border-ink-800 px-3 py-2 font-mono text-ui-xs text-signal-err">

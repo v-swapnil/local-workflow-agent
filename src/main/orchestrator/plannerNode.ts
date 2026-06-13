@@ -20,7 +20,7 @@ const PLANNER_EXPLORE_BUDGET = 15;
  * what it already explored before deciding on the next step.
  * Returns the final markdown plan when the LLM responds with text only.
  */
-export async function runPlannerLoop(
+async function runPlannerLoop(
   ctx: RunCtx,
   systemPrompt: string,
   userPrompt: string,

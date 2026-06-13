@@ -32,13 +32,13 @@ const DEFAULT_NODES: Node[] = [
   { id: 'end', type: 'end', position: { x: 200, y: 300 }, data: {} },
 ];
 
-interface Props {
+interface WorkflowCanvasProps {
   initialDefinition?: WorkflowDefinition | null;
   agents: { id: string; name: string; role: string }[];
   onChange?: (def: WorkflowDefinition) => void;
 }
 
-export function WorkflowCanvas({ initialDefinition, agents, onChange }: Props) {
+export function WorkflowCanvas({ initialDefinition, agents, onChange }: WorkflowCanvasProps) {
   const savedTheme = trpc.settings.theme.useQuery();
 
   const initNodes: Node[] =

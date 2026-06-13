@@ -186,7 +186,7 @@ export function SessionTreeNode({
                             minute: '2-digit',
                           })
                         : t.startedAt
-                          ? '…'
+                          ? '...'
                           : ''}
                     </span>
                   </Button>

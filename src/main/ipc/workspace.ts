@@ -14,6 +14,7 @@ import {
   deleteWorkspacePath,
 } from '../services/workspaces';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
+import { listWorkspaceFiles } from '@main/services/workspaces/workspaceFiles.js';
 
 export const workspaceRouter = router({
   list: publicProcedure.query(() => listWorkspaces()),
@@ -51,6 +52,9 @@ export const workspaceRouter = router({
 });
 
 export const fileRouter = router({
+  files: publicProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(({ input }) => listWorkspaceFiles({ workspaceId: input.workspaceId })),
   tree: publicProcedure
     .input(
       z.object({

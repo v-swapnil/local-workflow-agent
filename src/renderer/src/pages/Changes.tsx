@@ -15,10 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { Button } from '@renderer/components/ui/button';
+import { Minus, Plus } from 'lucide-react';
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="border-b border-ink-800/40 px-3 py-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+    <div className="border-b border-ink-800/40 px-3 py-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500 flex items-center justify-between">
       {children}
     </div>
   );
@@ -56,6 +58,9 @@ function DiffPanel({
 
   const stage = trpc.git.stage.useMutation({ onSuccess: invalidateStatus });
   const unstage = trpc.git.unstage.useMutation({ onSuccess: invalidateStatus });
+
+  const stageAll = trpc.git.stageAll.useMutation({ onSuccess: invalidateStatus });
+  const unstageAll = trpc.git.unstageAll.useMutation({ onSuccess: invalidateStatus });
 
   useEffect(() => {
     const activeIds = new Set(
@@ -121,7 +126,20 @@ function DiffPanel({
 
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col border-r border-ink-800/40 bg-ink-900/15">
-          <SectionHeader>Staged ({filesBySection.staged.length})</SectionHeader>
+          <SectionHeader>
+            <div>Staged ({filesBySection.staged.length})</div>
+            {filesBySection.staged.length > 0 && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => unstageAll.mutate({ workspaceId, worktreeId })}
+                disabled={unstageAll.isPending}
+                className="flex items-center gap-1 font-mono hover:border-rose-500/30 hover:text-signal-err"
+              >
+                <Minus className="h-2.5 w-2.5" strokeWidth={1.5} />
+              </Button>
+            )}
+          </SectionHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {status.data && !status.data.isRepo ? (
               <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
@@ -138,6 +156,7 @@ function DiffPanel({
                       path: selected.path,
                       kind: selected.kind,
                       originalPath: selected.originalPath,
+                      staged: true,
                     });
                   }
                 }}
@@ -145,7 +164,20 @@ function DiffPanel({
               />
             )}
           </div>
-          <SectionHeader>Unstaged ({filesBySection.others.length})</SectionHeader>
+          <SectionHeader>
+            <div>Unstaged ({filesBySection.others.length})</div>
+            {filesBySection.others.length > 0 && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() => stageAll.mutate({ workspaceId, worktreeId })}
+                disabled={stageAll.isPending}
+                className="flex items-center gap-1 font-mono hover:border-emerald-500/30 hover:text-signal-ok"
+              >
+                <Plus className="h-2.5 w-2.5" strokeWidth={1.5} />
+              </Button>
+            )}
+          </SectionHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {status.data && !status.data.isRepo ? (
               <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
@@ -166,6 +198,7 @@ function DiffPanel({
                       path: selected.path,
                       kind: selected.kind,
                       originalPath: selected.originalPath,
+                      staged: false,
                     });
                   }
                 }}
@@ -175,11 +208,7 @@ function DiffPanel({
           </div>
           {/* Commit panel */}
           {status.data?.isRepo && (
-            <CommitPanel
-              workspaceId={workspaceId}
-              worktreeId={worktreeId || undefined}
-              onDone={invalidateStatus}
-            />
+            <CommitPanel workspaceId={workspaceId} worktreeId={worktreeId || undefined} />
           )}
           {/* PR section */}
           {status.data?.isRepo && (
@@ -201,7 +230,7 @@ function DiffPanel({
               workspaceId={workspaceId}
               worktreeId={worktreeId}
               path={active.path}
-              kind={active.kind}
+              staged={active.staged}
             />
           ) : (
             <Empty>select a file to view changes.</Empty>

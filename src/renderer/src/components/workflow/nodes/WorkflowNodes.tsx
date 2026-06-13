@@ -31,7 +31,7 @@ export function AgentNode({ data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Top} className="!bg-ink-400" />
       <div className="mb-1 text-ui-xs uppercase tracking-widest2 text-ink-500">agent</div>
-      <div className="font-medium text-ink-100">{d.label || d.agentName || d.agentId || '…'}</div>
+      <div className="font-medium text-ink-100">{d.label || d.agentName || d.agentId || '...'}</div>
       <Handle type="source" position={Position.Bottom} className="!bg-ink-400" />
     </div>
   );

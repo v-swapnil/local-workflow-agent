@@ -193,7 +193,7 @@ export function Workflows() {
             onClick={save}
             disabled={upsert.isPending || !name.trim()}
           >
-            {upsert.isPending ? 'saving…' : 'save'}
+            {upsert.isPending ? 'saving...' : 'save'}
           </Button>
           {selectedId && (
             <Button

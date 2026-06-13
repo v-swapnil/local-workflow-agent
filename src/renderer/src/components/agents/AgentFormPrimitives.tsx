@@ -17,7 +17,7 @@ export function ModelTag({ model, provider }: { model: string; provider: string 
     <span className="flex items-center gap-1 font-mono text-ui-2xs text-ink-500">
       <span className="text-ink-600">{provider}</span>
       <span className="text-ink-700">/</span>
-      <span>{model || '…'}</span>
+      <span>{model || '...'}</span>
     </span>
   );
 }

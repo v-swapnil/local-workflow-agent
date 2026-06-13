@@ -87,7 +87,7 @@ function ModelBadge() {
   return (
     <div className="flex items-center gap-1.5 rounded-md border border-ink-800/60 bg-ink-900/40 px-2.5 py-1 font-mono text-ui-xs text-ink-300">
       <Bot className="h-3 w-3 text-ink-500" strokeWidth={1.3} />
-      <span className="normal-case text-ink-200">{active.data ?? '…'}</span>
+      <span className="normal-case text-ink-200">{active.data ?? '...'}</span>
     </div>
   );
 }

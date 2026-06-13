@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { FileTree } from '../components/FileTree';
-import { MonacoPane } from '../components/MonacoPane';
+import { FilePreview } from '../components/FilePreview';
 
 export function Files() {
   const { workspaceId, isLoading } = useActiveWorkspace();
   const [activePath, setActivePath] = useState<string | null>(null);
 
   if (isLoading) {
-    return <Empty>loading workspace…</Empty>;
+    return <Empty>loading workspace...</Empty>;
   }
   if (!workspaceId) {
     return (
@@ -53,22 +53,21 @@ function FilesView({
           <div className="border-b border-ink-800 px-3 py-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
             files
           </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
-            {tree.isLoading && <div className="px-3 text-ui-base text-ink-400">…</div>}
+            {tree.isLoading && <div className="px-3 text-ui-base text-ink-400">...</div>}
             {tree.data && (
               <FileTree root={tree.data} activePath={activePath} onOpen={setActivePath} />
             )}
             {tree.data && (tree.data.children?.length ?? 0) === 0 && (
-              <div className="px-3 py-4 font-mono text-ui-sm text-ink-500">
-                empty workspace.
-              </div>
+              <div className="px-3 py-4 font-mono text-ui-sm text-ink-500">empty workspace.</div>
             )}
           </div>
         </aside>
 
         <section className="flex min-h-0 flex-1 flex-col">
           {activePath ? (
-            <MonacoPane workspaceId={workspaceId} path={activePath} />
+            <FilePreview workspaceId={workspaceId} path={activePath} />
           ) : (
             <Empty>select a file from the tree on the left.</Empty>
           )}

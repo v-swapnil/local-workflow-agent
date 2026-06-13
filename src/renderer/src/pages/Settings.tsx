@@ -306,17 +306,14 @@ export function Settings() {
 
           <div className="mt-8">
             <SectionTitle index="07" title="System" />
-          <Rows
-            rows={[
-              ['app.version', health.data?.app.version ?? '...'],
-              ['provider', activeProvider.data ?? '...'],
-              ['db.path', health.data?.db.path ?? '...'],
-              ['logs.path', openLogs.data?.path ?? '...'],
-            ]}
-          />
-          <div className="mt-3 rounded-lg border border-ink-800/40 bg-ink-900/15 px-4 py-3 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
-            shortcuts: cmd/ctrl+1..7 navigate pages, cmd/ctrl+, opens settings
-          </div>
+            <Rows
+              rows={[
+                ['app.version', health.data?.app.version ?? '...'],
+                ['provider', activeProvider.data ?? '...'],
+                ['db.path', health.data?.db.path ?? '...'],
+                ['logs.path', openLogs.data?.path ?? '...'],
+              ]}
+            />
           </div>
         </section>
       </div>

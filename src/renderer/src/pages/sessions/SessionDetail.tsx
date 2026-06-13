@@ -62,7 +62,7 @@ export function SessionDetail({
       <header className="shrink-0 mb-4 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-medium leading-tight tracking-tight text-ink-50">
-            {session.data?.title ?? '…'}
+            {session.data?.title ?? '...'}
           </h1>
           <div className="mt-1 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
             <span>{session.data?.id.slice(0, 8)}</span>
