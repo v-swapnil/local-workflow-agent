@@ -63,11 +63,20 @@ export function Settings() {
   const setKanbanDefaultView = trpc.settings.setKanbanDefaultView.useMutation({
     onSuccess: () => utils.settings.kanbanDefaultView.invalidate(),
   });
+
+  const linearApiKey = trpc.settings.linearApiKey.useQuery();
+  const setLinearApiKey = trpc.settings.setLinearApiKey.useMutation();
+
   const [shellDraft, setShellDraft] = useState('');
+  const [linearApiKeyDraft, setLinearApiKeyDraft] = useState('');
 
   useEffect(() => {
     setShellDraft(shellPath.data ?? '');
   }, [shellPath.data]);
+
+  useEffect(() => {
+    setLinearApiKeyDraft(linearApiKey.data ?? '');
+  }, [linearApiKey.data]);
 
   const shellConfigured = shellPath.data ?? '';
   const shellChanged = shellDraft.trim() !== shellConfigured;
@@ -300,6 +309,31 @@ export function Settings() {
                     </ToggleGroupItem>
                   ))}
                 </ToggleGroup>
+              </SettingCard>
+            </div>
+            <div className="mt-2">
+              <SettingCard
+                title="linear integration"
+                description="Set your Linear API key to import issues into the Kanban board."
+              >
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={linearApiKeyDraft}
+                    onChange={(e) => setLinearApiKeyDraft(e.target.value)}
+                    className="font-mono text-ui-sm"
+                    placeholder="lin_api_..."
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!linearApiKeyDraft.trim() || setLinearApiKey.isPending}
+                      onClick={() => setLinearApiKey.mutate({ value: linearApiKeyDraft.trim() })}
+                    >
+                      save
+                    </Button>
+                  </div>
+                </div>
               </SettingCard>
             </div>
           </div>

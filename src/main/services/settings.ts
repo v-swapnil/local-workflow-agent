@@ -38,4 +38,5 @@ export const SETTING_KEYS = {
   KANBAN_DEFAULT_VIEW: 'kanban.defaultView',
   USE_WORKTREES: 'use_worktrees',
   SHELL_PATH: 'shell.path',
+  LINEAR_API_KEY: 'linear.apiKey',
 } as const;

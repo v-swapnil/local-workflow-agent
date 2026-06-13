@@ -103,6 +103,16 @@ export const settingsRouter = router({
 
   resetShellPath: publicProcedure.mutation(async () => {
     await deleteSetting(SETTING_KEYS.SHELL_PATH);
+    return { ok: true as const };
+  }),
+
+  linearApiKey: publicProcedure.query(async () => {
+    return (await getSetting(SETTING_KEYS.LINEAR_API_KEY)) ?? null;
+  }),
+  setLinearApiKey: publicProcedure
+    .input(z.object({ value: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.LINEAR_API_KEY, input.value.trim());
       return { ok: true as const };
     }),
 });

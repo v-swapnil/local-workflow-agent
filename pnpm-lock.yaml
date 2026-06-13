@@ -26,6 +26,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^1.2.9
         version: 1.2.9(@langchain/core@1.1.40)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.2(zod@3.25.76))(zod@3.25.76)
+      '@linear/sdk':
+        specifier: ^86.0.0
+        version: 86.0.0(graphql@16.14.2)
       '@pierre/diffs':
         specifier: ^1.2.3
         version: 1.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -962,6 +965,11 @@ packages:
     resolution: {integrity: sha512-AY0VPYf6QQm88wUcOav2B36iedWKBUaMegKRxxY2uIHESiU6HueEuQR/n7D3U2UdD0zLox3jFRjYbZAsr2CgkQ==}
     hasBin: true
 
+  '@graphql-typed-document-node/core@3.2.0':
+    resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -1052,6 +1060,10 @@ packages:
     peerDependenciesMeta:
       zod-to-json-schema:
         optional: true
+
+  '@linear/sdk@86.0.0':
+    resolution: {integrity: sha512-Lr47874CGGPCDiPQoKYjcZDWyyu18N8zzEGvss86uzjZaeZrhNsuwKTARswG27VAJ3fPVJAvl/5dPl8QwndSlg==}
+    engines: {node: '>=18.x'}
 
   '@malept/cross-spawn-promise@2.0.0':
     resolution: {integrity: sha512-1DpKU0Z5ThltBwjNySMC14g0CkbyhCaz9FkhxqNsZI6uAPJXFS8cMXlBKo26FJ8ZuW6S9GCMcR9IO5k2X5/9Fg==}
@@ -3382,6 +3394,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  graphql@16.14.2:
+    resolution: {integrity: sha512-Chq1s4CY7jmh8gO2qvLIJyfCDIN+EHLFW/9iShnp1z8FjBQMoodWP1kDC36VAMXXIvAjj4ARa7ntfAV2BrjsbA==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
 
   gray-matter@4.0.3:
     resolution: {integrity: sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q==}
@@ -5832,6 +5848,10 @@ snapshots:
       '@github/copilot-win32-arm64': 1.0.39
       '@github/copilot-win32-x64': 1.0.39
 
+  '@graphql-typed-document-node/core@3.2.0(graphql@16.14.2)':
+    dependencies:
+      graphql: 16.14.2
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -5939,6 +5959,12 @@ snapshots:
       - react-dom
       - svelte
       - vue
+
+  '@linear/sdk@86.0.0(graphql@16.14.2)':
+    dependencies:
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.2)
+    transitivePeerDependencies:
+      - graphql
 
   '@malept/cross-spawn-promise@2.0.0':
     dependencies:
@@ -8500,6 +8526,8 @@ snapshots:
       responselike: 2.0.1
 
   graceful-fs@4.2.11: {}
+
+  graphql@16.14.2: {}
 
   gray-matter@4.0.3:
     dependencies:

@@ -1,7 +1,6 @@
 import { app } from 'electron';
 import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
-import type { AppHealth } from '@shared/types';
 import { dbPath } from '../util/paths.js';
 import { workspaceRouter, fileRouter } from './workspace.js';
 import { llmRouter } from './llm.js';
@@ -14,18 +13,16 @@ import { settingsRouter } from './settings.js';
 import { worktreeRouter } from './worktree.js';
 import { agentRouter } from './agent.js';
 import { workflowRouter } from './workflow.js';
+import { kanbanRouter } from './kanban.js';
 
 export const appRouter = router({
-  ping: publicProcedure.input(z.string().optional()).query(({ input }) => ({
-    pong: input ?? 'pong',
-    at: Date.now(),
+  ping: publicProcedure
+    .input(z.string().optional())
+    .query(({ input }) => ({ pong: input ?? 'pong', at: Date.now() })),
+  health: publicProcedure.query(() => ({
+    app: { name: 'ASE', version: app.getVersion() },
+    db: { ok: true, path: dbPath() },
   })),
-  health: publicProcedure.query(async (): Promise<AppHealth> => {
-    return {
-      app: { name: 'ASE', version: app.getVersion() },
-      db: { ok: true, path: dbPath() },
-    };
-  }),
   workspace: workspaceRouter,
   llm: llmRouter,
   file: fileRouter,
@@ -39,6 +36,7 @@ export const appRouter = router({
   worktree: worktreeRouter,
   agent: agentRouter,
   workflow: workflowRouter,
+  kanban: kanbanRouter,
 });
 
 export type AppRouter = typeof appRouter;

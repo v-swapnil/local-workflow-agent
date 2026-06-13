@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { KanbanCard as KanbanCardData, KanbanLane } from '@shared/types';
-import { cn } from '../lib/utils';
+import { cn, relativeTime } from '../lib/utils';
 import { Button } from './ui/button';
 
 const LANE_STYLES: Record<KanbanLane, { border: string; icon: string }> = {
@@ -10,18 +10,6 @@ const LANE_STYLES: Record<KanbanLane, { border: string; icon: string }> = {
   done: { border: 'border-l-signal-ok', icon: '✓' },
   need_help: { border: 'border-l-signal-err', icon: '!' },
 };
-
-function relativeTime(ms: number): string {
-  const diff = Date.now() - ms;
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
 
 interface KanbanCardProps {
   card: KanbanCardData;

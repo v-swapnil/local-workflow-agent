@@ -16,6 +16,7 @@ import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { KanbanLane } from '../components/KanbanLane';
 import { KanbanCardView } from '../components/KanbanCard';
+import { relativeTime } from '@renderer/lib/utils';
 
 const LANES: KanbanLaneType[] = ['todo', 'in_progress', 'done', 'need_help'];
 const LANE_LABELS: Record<KanbanLaneType, string> = {
@@ -38,13 +39,13 @@ export function KanbanBoard() {
     if (defaultView.data) setView(defaultView.data);
   }, [defaultView.data]);
 
-  const kanbanQ = trpc.session.kanban.useQuery(
+  const kanbanQ = trpc.kanban.board.useQuery(
     { workspaceId: workspaceId ?? undefined },
     { enabled: !!workspaceId, refetchInterval: 3000 },
   );
 
-  const setLane = trpc.session.setLane.useMutation({
-    onSuccess: () => utils.session.kanban.invalidate(),
+  const setLane = trpc.kanban.setLane.useMutation({
+    onSuccess: () => utils.kanban.board.invalidate(),
   });
 
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
@@ -103,6 +104,12 @@ export function KanbanBoard() {
     setLane.mutate({ sessionId, lane: null });
   }
 
+  const totalCards = kanbanQ.data?.length ?? 0;
+  const sortedCards = useMemo(
+    () => [...(kanbanQ.data ?? [])].sort((a, b) => b.lastActivity - a.lastActivity),
+    [kanbanQ.data],
+  );
+
   if (!workspaceId) {
     return (
       <div className="flex h-full items-center justify-center font-mono text-ui-sm text-ink-500">
@@ -110,12 +117,6 @@ export function KanbanBoard() {
       </div>
     );
   }
-
-  const totalCards = kanbanQ.data?.length ?? 0;
-  const sortedCards = useMemo(
-    () => [...(kanbanQ.data ?? [])].sort((a, b) => b.lastActivity - a.lastActivity),
-    [kanbanQ.data],
-  );
 
   return (
     <div className="flex h-full flex-col">
@@ -202,16 +203,4 @@ export function KanbanBoard() {
       )}
     </div>
   );
-}
-
-function relativeTime(ms: number): string {
-  const diff = Date.now() - ms;
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return 'just now';
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
 }
