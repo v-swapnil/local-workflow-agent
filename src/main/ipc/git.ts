@@ -35,11 +35,16 @@ async function resolveGitPath(workspaceId: string, worktreeId?: string): Promise
 export const gitRouter = router({
   status: publicProcedure
     .input(workspaceIn)
-    .query(async ({ input }) => workspaceStatusAtPath(await resolveGitPath(input.workspaceId, input.worktreeId))),
+    .query(async ({ input }) =>
+      workspaceStatusAtPath(await resolveGitPath(input.workspaceId, input.worktreeId)),
+    ),
   diff: publicProcedure
     .input(workspaceIn.extend({ staged: z.boolean().optional() }))
     .query(async ({ input }) =>
-      workspaceDiffAtPath(await resolveGitPath(input.workspaceId, input.worktreeId), !!input.staged),
+      workspaceDiffAtPath(
+        await resolveGitPath(input.workspaceId, input.worktreeId),
+        !!input.staged,
+      ),
     ),
   showFileAtHead: publicProcedure
     .input(workspaceIn.extend({ path: z.string().min(1) }))
@@ -49,7 +54,11 @@ export const gitRouter = router({
   fileDiff: publicProcedure
     .input(workspaceIn.extend({ path: z.string().min(1), staged: z.boolean().optional() }))
     .query(async ({ input }) =>
-      fileDiffAtPath(await resolveGitPath(input.workspaceId, input.worktreeId), input.path, !!input.staged),
+      fileDiffAtPath(
+        await resolveGitPath(input.workspaceId, input.worktreeId),
+        input.path,
+        !!input.staged,
+      ),
     ),
   currentBranch: publicProcedure
     .input(workspaceIn)
@@ -86,21 +95,17 @@ export const gitRouter = router({
       return { ok: true as const };
     }),
 
-  stageAll: publicProcedure
-    .input(workspaceIn)
-    .mutation(async ({ input }) => {
-      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
-      await stageAll(cwd);
-      return { ok: true as const };
-    }),
+  stageAll: publicProcedure.input(workspaceIn).mutation(async ({ input }) => {
+    const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+    await stageAll(cwd);
+    return { ok: true as const };
+  }),
 
-  unstageAll: publicProcedure
-    .input(workspaceIn)
-    .mutation(async ({ input }) => {
-      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
-      await unstageAll(cwd);
-      return { ok: true as const };
-    }),
+  unstageAll: publicProcedure.input(workspaceIn).mutation(async ({ input }) => {
+    const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+    await unstageAll(cwd);
+    return { ok: true as const };
+  }),
 
   commit: publicProcedure
     .input(workspaceIn.extend({ message: z.string().min(1).max(500) }))
@@ -116,12 +121,10 @@ export const gitRouter = router({
       return pushBranch(cwd, input.setUpstream);
     }),
 
-  ghAuthStatus: publicProcedure
-    .input(workspaceIn)
-    .query(async ({ input }) => {
-      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
-      return checkGhAuth(cwd);
-    }),
+  ghAuthStatus: publicProcedure.input(workspaceIn).query(async ({ input }) => {
+    const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+    return checkGhAuth(cwd);
+  }),
 
   createPr: publicProcedure
     .input(
@@ -142,10 +145,8 @@ export const gitRouter = router({
       });
     }),
 
-  prStatus: publicProcedure
-    .input(workspaceIn)
-    .query(async ({ input }) => {
-      const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
-      return getPrStatus(cwd);
-    }),
+  prStatus: publicProcedure.input(workspaceIn).query(async ({ input }) => {
+    const cwd = await resolveGitPath(input.workspaceId, input.worktreeId);
+    return getPrStatus(cwd);
+  }),
 });

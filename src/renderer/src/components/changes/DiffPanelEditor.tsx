@@ -15,10 +15,7 @@ export function DiffPanelEditor({ workspaceId, worktreeId, path, staged }: DiffP
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-auto">
         {fileDiff.data ? (
-          <PatchDiff
-            patch={fileDiff.data}
-            options={{ diffStyle: 'split', disableFileHeader: true, overflow: 'wrap' }}
-          />
+          <PatchDiff patch={fileDiff.data} options={{ diffStyle: 'split', overflow: 'wrap' }} />
         ) : (
           <div className="p-6 font-mono text-ui-sm text-ink-500">
             {fileDiff.isLoading ? '...' : 'no diff available'}

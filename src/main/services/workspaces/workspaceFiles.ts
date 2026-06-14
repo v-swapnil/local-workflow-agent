@@ -1,7 +1,7 @@
 import { mkdir, readdir, stat, readFile, writeFile, rename, rm, open } from 'node:fs/promises';
 import { join, dirname, sep } from 'node:path';
 import { safeJoin } from '../../util/safePath.js';
-import { getWorkspace } from './workspaceDb.js';
+import { getWorkspace } from './workspace.js';
 import { gitFor } from '../git/gitCore.js';
 
 const IGNORED = new Set(['.git', 'node_modules', '.DS_Store', '.next', 'dist', 'out', '.turbo']);

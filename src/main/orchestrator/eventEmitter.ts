@@ -1,6 +1,7 @@
-import { addStep, updateStep, addToolCall, updateToolCall, updateTask } from '../services/store.js';
+import { addStep, updateStep, addToolCall, updateToolCall } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import type { ToolName } from '../services/tools/types.js';
+import { updateTask } from '@main/services/workspaces';
 
 export function emitStepStarted(
   taskId: string,

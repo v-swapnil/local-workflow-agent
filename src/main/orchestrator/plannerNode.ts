@@ -1,6 +1,6 @@
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { listReadOnlyToolsForLLM } from '../services/tools/registry.js';
-import { updateTask } from '../services/store.js';
+import { updateTask } from '../services/workspaces';
 import { PLANNER_SYSTEM } from './prompts.js';
 import { Conversation } from './conversation.js';
 import { llmChat } from './llmChat.js';

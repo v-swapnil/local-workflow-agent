@@ -7,7 +7,7 @@ import { workspaces } from '../../db/schema.js';
 import { workspacesRoot } from '../../util/paths.js';
 import type { WorkspaceRecord } from '@shared/schema.js';
 
-export function toWorkspace(row: typeof workspaces.$inferSelect): WorkspaceRecord {
+function toWorkspace(row: typeof workspaces.$inferSelect): WorkspaceRecord {
   return {
     id: row.id,
     name: row.name,

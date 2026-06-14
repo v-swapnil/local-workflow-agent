@@ -1,8 +1,7 @@
-import { getWorkspace } from '../services/workspaces';
+import { getTask, getWorkspace, setSessionKanbanLane, updateTask } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
-import { getTask, updateTask, setSessionKanbanLane } from '../services/store.js';
 import { getAgentOrNull } from '../services/agents.js';
 import { getDb } from '../db/index.js';
 import { sessions, tasks as tasksTable } from '../db/schema.js';

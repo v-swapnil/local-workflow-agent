@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
 import { buildKanbanBoard, listIssues } from '@main/services/kanban';
 import { KanbanCard } from '@shared/types.js';
-import { setSessionKanbanLane } from '@main/services/store.js';
+import { setSessionKanbanLane } from '@main/services/workspaces';
 
 export const kanbanRouter = router({
   board: publicProcedure

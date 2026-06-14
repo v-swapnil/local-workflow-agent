@@ -3,7 +3,7 @@ import { trpc } from '../trpc';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Plus, Network } from 'lucide-react';
-import type { WorkflowDefinition } from '../../../main/services/workflows';
+import type { WorkflowDefinition } from '@main/services/workflows';
 
 // Lazy-load the heavy React Flow canvas
 const WorkflowCanvas = lazy(() =>
@@ -205,9 +205,7 @@ export function Workflows() {
               delete
             </Button>
           )}
-          {saveError && (
-            <span className="font-mono text-ui-xs text-signal-err">{saveError}</span>
-          )}
+          {saveError && <span className="font-mono text-ui-xs text-signal-err">{saveError}</span>}
         </div>
 
         {/* Canvas */}

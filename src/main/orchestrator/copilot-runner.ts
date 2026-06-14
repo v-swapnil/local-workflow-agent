@@ -15,9 +15,9 @@ import { logger } from '../services/logger.js';
 import { DEFAULT_COPILOT_MODEL } from '@shared/constants';
 import type { TaskResult, ToolName } from '@shared/agent';
 import type { SessionEvent, PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk';
-import { getTask } from '../services/store.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentRecord } from '@shared/schema.js';
+import { getTask } from '@main/services/workspaces';
 
 /** Mirrors UserInputRequest / UserInputResponse from @github/copilot-sdk */
 interface UserInputRequest {
@@ -141,7 +141,14 @@ function bridgeEvent(taskId: string, event: SessionEvent, ctx: RunCtx): void {
       const ok = !event.data.error;
       const result = toolCallMap.get(event.data.toolCallId);
       if (result) {
-        emitToolCallFinished(ctx.taskId, result.stepId, ok, result.tool, {}, event.data.error?.message);
+        emitToolCallFinished(
+          ctx.taskId,
+          result.stepId,
+          ok,
+          result.tool,
+          {},
+          event.data.error?.message,
+        );
       }
       break;
     }

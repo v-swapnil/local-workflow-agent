@@ -4,7 +4,6 @@ import {
   addEdge,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   type Node,
@@ -16,8 +15,8 @@ import '@xyflow/react/dist/style.css';
 import { AgentNode, ConditionNode, ApprovalNode, StartNode, EndNode } from './nodes/WorkflowNodes';
 import { NodePalette } from './NodePalette';
 import { PropertiesPanel } from './PropertiesPanel';
-import type { WorkflowDefinition } from '../../../../main/services/workflows';
 import { trpc } from '@renderer/trpc';
+import { type WorkflowDefinition } from '@main/services/workflows';
 
 const nodeTypes = {
   agent: AgentNode,
@@ -186,7 +185,6 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
         >
           <Background color="#27272a" gap={20} />
           <Controls className="border-ink-700 bg-ink-900 text-ink-300" />
-          <MiniMap className="border-ink-700 bg-ink-900" nodeColor="#52525b" />
         </ReactFlow>
       </div>
       <PropertiesPanel

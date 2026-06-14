@@ -14,29 +14,16 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
   switch (ev.type) {
     case 'task.started':
       return (
-        <div className="my-2 flex items-center gap-3">
-          <div className="h-px flex-1 bg-amber/15" />
+        <Line ts={t} tone="ink">
           <span className="flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
             <Play className="h-2 w-2" fill="currentColor" strokeWidth={0} />
             task started
           </span>
-          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
-          <div className="h-px flex-1 bg-amber/15" />
-        </div>
+        </Line>
       );
     case 'task.finished':
       return (
-        <div className="my-2 flex items-center gap-3">
-          <div
-            className={cn(
-              'h-px flex-1',
-              ev.status === 'succeeded'
-                ? 'bg-emerald-500/20'
-                : ev.status === 'cancelled'
-                  ? 'bg-ink-700/40'
-                  : 'bg-rose-500/20',
-            )}
-          />
+        <Line ts={t} tone="ink">
           <span
             className={cn(
               'flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2',
@@ -50,18 +37,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
             <Square className="h-2 w-2" fill="currentColor" strokeWidth={0} />
             task {ev.status}
           </span>
-          <span className="font-mono text-ui-2xs text-ink-600">{t}</span>
-          <div
-            className={cn(
-              'h-px flex-1',
-              ev.status === 'succeeded'
-                ? 'bg-emerald-500/20'
-                : ev.status === 'cancelled'
-                  ? 'bg-ink-700/40'
-                  : 'bg-rose-500/20',
-            )}
-          />
-        </div>
+        </Line>
       );
     case 'step.started':
       return (

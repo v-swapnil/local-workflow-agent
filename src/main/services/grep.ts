@@ -50,6 +50,14 @@ let rgPath: string | null | undefined;
 
 const execFileAsync = promisify(execFile);
 
+function getOptions(root: string, opts: GrepOptions) {
+  const maxHits = opts.maxHits ?? 500;
+  const maxFileBytes = opts.maxFileBytes ?? 512 * 1024;
+  const cwd = opts.rel ? join(root, opts.rel) : root;
+  const contextLines = opts.context ?? 0;
+  return { maxHits, maxFileBytes, cwd, contextLines };
+}
+
 async function findRipgrep(): Promise<string | null> {
   if (rgPath !== undefined) return rgPath;
   try {
@@ -65,10 +73,7 @@ async function grepWithRipgrep(root: string, opts: GrepOptions): Promise<GrepRes
   const rg = await findRipgrep();
   if (!rg) throw new Error('rg not available');
 
-  const maxHits = opts.maxHits ?? 500;
-  const maxFileBytes = opts.maxFileBytes ?? 512 * 1024;
-  const cwd = opts.rel ? join(root, opts.rel) : root;
-  const contextLines = opts.context ?? 0;
+  const { maxHits, maxFileBytes, cwd, contextLines } = getOptions(root, opts);
 
   const args: string[] = ['--json'];
   if (!opts.caseSensitive) args.push('--ignore-case');
@@ -146,10 +151,7 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepResult>
     // Fall through to JS implementation
   }
 
-  const maxHits = opts.maxHits ?? 500;
-  const maxFileBytes = opts.maxFileBytes ?? 512 * 1024;
-  const cwd = opts.rel ? join(root, opts.rel) : root;
-  const contextLines = opts.context ?? 0;
+  const { maxHits, maxFileBytes, cwd, contextLines } = getOptions(root, opts);
 
   const matcher = opts.isRegex ? new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i') : null;
   const needle = opts.caseSensitive ? opts.pattern : opts.pattern.toLowerCase();
@@ -201,7 +203,10 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepResult>
             }
           }
         }
-        if (total >= MAX_COUNT) { done = true; break; }
+        if (total >= MAX_COUNT) {
+          done = true;
+          break;
+        }
       }
     }
   }

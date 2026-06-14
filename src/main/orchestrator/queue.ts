@@ -1,5 +1,4 @@
 import { runTask, cancelTask, isRunning } from './runner.js';
-import { updateTask } from '../services/store.js';
 import { emitTaskFinished } from './eventEmitter.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { logger } from '../services/logger.js';

@@ -5,7 +5,7 @@ import { getDb } from '../db/index.js';
 import { approvals } from '../db/schema.js';
 import { taskBus } from './events.js';
 import { getSetting, setSetting } from './settings.js';
-import { updateTask } from './store.js';
+import { updateTask } from './workspaces';
 import type { ToolName } from './tools/types.js';
 import type { ApprovalRequestRecord } from '@shared/schema.js';
 

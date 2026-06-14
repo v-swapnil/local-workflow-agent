@@ -18,9 +18,11 @@ import {
 import { Button } from '@renderer/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionHeader({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="border-b border-ink-800/40 px-3 py-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500 flex items-center justify-between">
+    <div
+      className={`border-b border-ink-800/40 px-3 py-2 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500 flex items-center justify-between ${className}`}
+    >
       {children}
     </div>
   );
@@ -126,7 +128,7 @@ function DiffPanel({
 
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col border-r border-ink-800/40 bg-ink-900/15">
-          <SectionHeader>
+          <SectionHeader className="bg-ink-950 h-10">
             <div>Staged ({filesBySection.staged.length})</div>
             {filesBySection.staged.length > 0 && (
               <Button
@@ -164,7 +166,7 @@ function DiffPanel({
               />
             )}
           </div>
-          <SectionHeader>
+          <SectionHeader className="bg-ink-950 h-10">
             <div>Unstaged ({filesBySection.others.length})</div>
             {filesBySection.others.length > 0 && (
               <Button

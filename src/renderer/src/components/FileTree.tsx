@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { inferProcedureOutput } from '@trpc/server';
-import type { AppRouter } from '../../../main/ipc/router';
+import { type AppRouter } from '@main/ipc/router';
 import { Button } from './ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 

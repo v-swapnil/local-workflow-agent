@@ -6,11 +6,10 @@ import {
   getSession,
   renameSession,
   deleteSession,
-  addMessage,
-  listMessages,
-} from '../services/store.js';
-import { listSessionMemories } from '../services/memories.js';
-import { getWorktreeForSession } from '../services/worktrees.js';
+} from '@main/services/workspaces';
+import { listSessionMemories } from '@main/services/memories.js';
+import { getWorktreeForSession } from '@main/services/worktrees.js';
+import { addMessage, listMessages } from '@main/services/store.js';
 
 export const sessionRouter = router({
   create: publicProcedure

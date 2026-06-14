@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createTask } from '../store.js';
+import { createTask } from '../workspaces';
 import { enqueueTask } from '../../orchestrator/queue.js';
 import type { Tool } from './types.js';
 
@@ -28,10 +28,7 @@ export const createTaskTool: Tool<{ prompt: string }, { taskId: string; status: 
   },
 };
 
-export const taskCompleteTool: Tool<
-  { summary?: string },
-  { done: true; summary?: string }
-> = {
+export const taskCompleteTool: Tool<{ summary?: string }, { done: true; summary?: string }> = {
   name: 'task_complete',
   description:
     'Signal that the current task is complete.\n\n' +

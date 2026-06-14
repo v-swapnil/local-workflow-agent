@@ -1,5 +1,5 @@
 import { KanbanLane, TaskStatus } from '@shared/types';
-import { listSessions, listTasks } from '../store';
+import { listSessions, listTasks } from '../workspaces';
 
 export function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
   if (taskStatuses.length === 0) return 'todo';

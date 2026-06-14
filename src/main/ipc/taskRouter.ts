@@ -1,19 +1,11 @@
 import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
-import { shell } from 'electron';
 import { router, publicProcedure } from './trpc.js';
-import {
-  addMessage,
-  createTask,
-  getTask,
-  listTasks,
-  listSteps,
-  updateTask,
-} from '../services/store.js';
+import { addMessage, listSteps } from '../services/store.js';
 import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
 import { taskBus } from '../services/events.js';
-import { exportTaskReport } from '../services/reports.js';
 import type { TaskEventRecord } from '@shared/schema.js';
+import { createTask, getTask, listTasks, updateTask } from '@main/services/workspaces';
 
 export const taskRouter = router({
   create: publicProcedure
@@ -73,14 +65,6 @@ export const taskRouter = router({
     enqueueTask(orig.id);
     return orig;
   }),
-
-  exportReport: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      const out = await exportTaskReport(input.id);
-      shell.showItemInFolder(out.markdownPath);
-      return out;
-    }),
 
   events: publicProcedure
     .input(z.object({ taskId: z.string().min(1) }))

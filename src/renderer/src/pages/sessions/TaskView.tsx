@@ -14,9 +14,10 @@ const getEvents = (previousEvents: TaskEventRecord[], currentEvent: TaskEventRec
     (lastEvent?.type === 'llm.delta' && currentEvent.type === 'llm.delta') ||
     (lastEvent?.type === 'llm.thinking_delta' && currentEvent.type === 'llm.thinking_delta')
   ) {
-    return previousEvents
-      .slice(0, -1)
-      .concat({ ...lastEvent, content: lastEvent.content + currentEvent.content } as TaskEventRecord);
+    return previousEvents.slice(0, -1).concat({
+      ...lastEvent,
+      content: lastEvent.content + currentEvent.content,
+    } as TaskEventRecord);
   }
   return previousEvents.concat(currentEvent);
 };
@@ -30,7 +31,6 @@ export function TaskView({ taskId }: { taskId: string }) {
   const retry = trpc.task.retry.useMutation({
     onSuccess: (t) => utils.task.list.invalidate({ sessionId: t.sessionId }),
   });
-  const exportReport = trpc.task.exportReport.useMutation();
   const decide = trpc.approval.decide.useMutation();
   const respondInput = trpc.approval.respondUserInput.useMutation();
 
@@ -102,35 +102,19 @@ export function TaskView({ taskId }: { taskId: string }) {
           </div>
           <div className="flex items-center gap-1.5">
             {running && (
-              <Button
-                variant="danger"
-                size="xs"
-                onClick={() => cancel.mutate({ id: taskId })}
-              >
+              <Button variant="danger" size="xs" onClick={() => cancel.mutate({ id: taskId })}>
                 cancel
               </Button>
             )}
-            {finished && (
-              <>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => exportReport.mutate({ id: taskId })}
-                  disabled={exportReport.isPending}
-                >
-                  {exportReport.isPending ? 'exporting...' : 'export'}
-                </Button>
-                {status !== 'succeeded' && (
-                  <Button
-                    variant="default"
-                    size="xs"
-                    onClick={() => retry.mutate({ id: taskId })}
-                    disabled={retry.isPending}
-                  >
-                    retry
-                  </Button>
-                )}
-              </>
+            {finished && status !== 'succeeded' && (
+              <Button
+                variant="default"
+                size="xs"
+                onClick={() => retry.mutate({ id: taskId })}
+                disabled={retry.isPending}
+              >
+                retry
+              </Button>
             )}
           </div>
         </div>
