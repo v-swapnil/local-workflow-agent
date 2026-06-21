@@ -6,15 +6,13 @@ import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
+import { getAgentOrNull } from '../services/agents.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import type { Observation } from '@shared/agent';
 import { buildPromptContext } from './prompts-context.js';
 
 const log = logger.child({ mod: 'orchestrator' });
-
-/** Max tool calls the executor can make in a single pass. */
-const EXECUTOR_BUDGET = 30;
 
 /**
  * Shared executor loop logic. Creates a Conversation and drives it to
@@ -37,9 +35,8 @@ async function runExecutorLoop(
   conv.addUserMessage(userMessages);
 
   const newObs: Observation[] = [];
-  let budget = EXECUTOR_BUDGET;
 
-  while (budget-- > 0) {
+  while (true) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
     const response = await llmChat(ctx, 'executor', conv.getMessages(), temperature);
@@ -48,7 +45,6 @@ async function runExecutorLoop(
     conv.addAssistantMessage(response.text, response.toolCalls);
 
     const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
-    budget -= results.length;
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
@@ -68,10 +64,6 @@ async function runExecutorLoop(
       log.info('executor completed task');
       break;
     }
-
-    if (results.some((r) => !r.ok) && budget <= 0) {
-      log.warn('executor exhausted budget on failure');
-    }
   }
 
   return newObs;
@@ -81,18 +73,19 @@ export async function executorNode(
   state: AgentState,
   config?: RunnableConfig,
 ): Promise<Partial<AgentState>> {
-  return runExecutorNode(state, config, EXECUTOR_SYSTEM);
-}
-
-export async function runExecutorNode(
-  state: AgentState,
-  config: RunnableConfig | undefined,
-  systemPrompt: string,
-  temperature?: number,
-): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const sequece = ctx.stepIdx.n++;
-  const { stepId } = emitStepStarted(ctx.taskId, sequece, 'executor');
+  const agent = ctx.agentId ? getAgentOrNull(ctx.agentId) : null;
+
+  let systemPrompt = EXECUTOR_SYSTEM;
+  let temperature: number | undefined;
+
+  if (agent) {
+    systemPrompt = [EXECUTOR_SYSTEM, '---', agent.systemPrompt].join('\n\n');
+    temperature = agent.temperature;
+  }
+
+  const sequence = ctx.stepIdx.n++;
+  const { stepId } = emitStepStarted(ctx.taskId, sequence, 'executor');
   try {
     const newObs = await runExecutorLoop(ctx, systemPrompt, state, temperature);
     emitStepFinished(ctx.taskId, stepId, true, { observations: newObs.length });

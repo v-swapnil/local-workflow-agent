@@ -24,4 +24,4 @@ export {
   deleteSession,
   setSessionKanbanLane,
 } from './sessions.js';
-export { createTask, getTask, listTasks, updateTask } from './tasks.js';
+export { createTask, getTask, listTasks, updateTask, getTaskTimeout } from './tasks.js';

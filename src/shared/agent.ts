@@ -49,7 +49,6 @@ export interface Observation {
 
 export interface TaskResult {
   status: 'succeeded' | 'failed' | 'cancelled';
-  iterations: number;
   plan: string | null;
   reason?: string;
 }

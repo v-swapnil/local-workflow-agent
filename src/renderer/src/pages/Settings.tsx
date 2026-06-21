@@ -55,6 +55,10 @@ export function Settings() {
   const setQueueConcurrency = trpc.settings.setQueueConcurrency.useMutation({
     onSuccess: () => utils.settings.queueConcurrency.invalidate(),
   });
+  const taskTimeout = trpc.settings.taskTimeout.useQuery();
+  const setTaskTimeout = trpc.settings.setTaskTimeout.useMutation({
+    onSuccess: () => utils.settings.taskTimeout.invalidate(),
+  });
   const kanbanAutoClear = trpc.settings.kanbanAutoClear.useQuery();
   const setKanbanAutoClear = trpc.settings.setKanbanAutoClear.useMutation({
     onSuccess: () => utils.settings.kanbanAutoClear.invalidate(),
@@ -69,6 +73,8 @@ export function Settings() {
 
   const [shellDraft, setShellDraft] = useState('');
   const [linearApiKeyDraft, setLinearApiKeyDraft] = useState('');
+  const [concurrencyDraft, setConcurrencyDraft] = useState(1);
+  const [timeoutDraft, setTimeoutDraft] = useState(600);
 
   useEffect(() => {
     setShellDraft(shellPath.data ?? '');
@@ -78,11 +84,18 @@ export function Settings() {
     setLinearApiKeyDraft(linearApiKey.data ?? '');
   }, [linearApiKey.data]);
 
+  useEffect(() => {
+    setConcurrencyDraft(queueConcurrency.data ?? 1);
+  }, [queueConcurrency.data]);
+
+  useEffect(() => {
+    setTimeoutDraft(taskTimeout.data ?? 600);
+  }, [taskTimeout.data]);
+
   const shellConfigured = shellPath.data ?? '';
   const shellChanged = shellDraft.trim() !== shellConfigured;
   const shellInvalid =
     !!resolvedShell.data?.configuredPath && !resolvedShell.data.configuredPathExists;
-  const concurrency = queueConcurrency.data ?? 1;
 
   return (
     <PageShell
@@ -234,19 +247,41 @@ export function Settings() {
             >
               <div className="grid grid-cols-[1fr_42px] items-center gap-4">
                 <Slider
-                  value={[concurrency]}
+                  value={[concurrencyDraft]}
                   min={1}
                   max={8}
                   step={1}
                   disabled={setQueueConcurrency.isPending}
+                  onValueChange={([value]) => value && setConcurrencyDraft(value)}
                   onValueCommit={([value]) => {
-                    if (value && value !== concurrency) {
-                      setQueueConcurrency.mutate({ value });
-                    }
+                    if (value) setQueueConcurrency.mutate({ value });
                   }}
                 />
                 <div className="rounded border border-ink-800/50 bg-ink-950/50 px-2 py-1 text-center font-mono text-ui-xs text-ink-200">
-                  {concurrency}
+                  {concurrencyDraft}
+                </div>
+              </div>
+            </SettingCard>
+          </div>
+          <div className="mt-2">
+            <SettingCard
+              title="task timeout"
+              description="Maximum wall-clock time a task is allowed to run before it is cancelled (seconds)."
+            >
+              <div className="grid grid-cols-[1fr_56px] items-center gap-4">
+                <Slider
+                  value={[timeoutDraft]}
+                  min={60}
+                  max={3600}
+                  step={60}
+                  disabled={setTaskTimeout.isPending}
+                  onValueChange={([value]) => value && setTimeoutDraft(value)}
+                  onValueCommit={([value]) => {
+                    if (value) setTaskTimeout.mutate({ value });
+                  }}
+                />
+                <div className="rounded border border-ink-800/50 bg-ink-950/50 px-2 py-1 text-center font-mono text-ui-xs text-ink-200">
+                  {timeoutDraft / 60}m
                 </div>
               </div>
             </SettingCard>

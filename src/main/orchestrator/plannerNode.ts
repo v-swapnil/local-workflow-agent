@@ -7,12 +7,10 @@ import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
+import { getAgentOrNull } from '../services/agents.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import { buildPromptContext } from './prompts-context.js';
-
-/** Max read-only tool calls the planner can make while exploring. */
-const PLANNER_EXPLORE_BUDGET = 15;
 
 /**
  * Planner exploration loop.
@@ -34,9 +32,7 @@ async function runPlannerLoop(
 
   conv.addUserMessage(userMessages);
 
-  let budget = PLANNER_EXPLORE_BUDGET;
-
-  while (budget-- > 0) {
+  while (true) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
     const messages = conv.getMessages();
@@ -50,7 +46,6 @@ async function runPlannerLoop(
 
     conv.addAssistantMessage(response.text, response.toolCalls);
     const results = await executeToolCalls(ctx, 'planner', response.toolCalls);
-    budget -= results.length;
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
@@ -58,29 +53,27 @@ async function runPlannerLoop(
       conv.addToolResult(tc.id, r.tool, r.ok ? r.output : `ERROR: ${r.error ?? 'unknown error'}`);
     }
   }
-
-  throw new Error('planner exhausted exploration budget without producing a plan');
 }
 
 export async function plannerNode(
   state: AgentState,
   config?: RunnableConfig,
 ): Promise<Partial<AgentState>> {
-  return runPlannerNode(state, config, PLANNER_SYSTEM);
-}
-
-export async function runPlannerNode(
-  state: AgentState,
-  config: RunnableConfig | undefined,
-  systemPrompt: string,
-  temperature?: number,
-): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
+  const agent = ctx.agentId ? getAgentOrNull(ctx.agentId) : null;
+
+  let systemPrompt = PLANNER_SYSTEM;
+  let temperature: number | undefined;
+
+  if (agent) {
+    systemPrompt = [PLANNER_SYSTEM, '---', agent.systemPrompt].join('\n\n');
+    temperature = agent.temperature;
+  }
+
   const sequence = ctx.stepIdx.n++;
   const { stepId } = emitStepStarted(ctx.taskId, sequence, 'planner');
   try {
-    const prompt = state.prompt;
-    const plan = await runPlannerLoop(ctx, systemPrompt, prompt, temperature);
+    const plan = await runPlannerLoop(ctx, systemPrompt, state.prompt, temperature);
     updateTask(ctx.taskId, { plan });
     emitStepFinished(ctx.taskId, stepId, true, { plan });
     return { plan };

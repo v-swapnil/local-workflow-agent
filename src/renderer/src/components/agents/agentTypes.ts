@@ -5,7 +5,6 @@ export interface AgentFormState {
   systemPrompt: string;
   tools: string[];
   temperature: number;
-  maxIterations: number;
   description: string;
 }
 
@@ -15,6 +14,5 @@ export const BLANK: AgentFormState = {
   systemPrompt: '',
   tools: [],
   temperature: 0.2,
-  maxIterations: 10,
   description: '',
 };

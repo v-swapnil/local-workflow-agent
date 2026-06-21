@@ -31,8 +31,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   status TEXT NOT NULL DEFAULT 'queued',
   provider TEXT,
   plan_json TEXT, result_json TEXT,
-  iterations INTEGER NOT NULL DEFAULT 0,
-  max_iterations INTEGER NOT NULL DEFAULT 6,
   model TEXT, agent_id TEXT, workflow_id TEXT,
   created_at INTEGER NOT NULL, started_at INTEGER, finished_at INTEGER
 );
@@ -133,7 +131,6 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   }
   // Additive migration: Phase A — agents v2 columns (graph_mode removed, column kept for compat)
   try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN graph_mode TEXT NOT NULL DEFAULT 'full'`); } catch { /* exists */ }
-  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN max_iterations INTEGER NOT NULL DEFAULT 10`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN description TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama'`); } catch { /* exists */ }
   // Drop migration: remove unused agent columns (model, provider, graph_mode)

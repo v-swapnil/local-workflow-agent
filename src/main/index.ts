@@ -8,8 +8,8 @@ import { appRouter } from './ipc/router.js';
 import { logger } from './services/logger.js';
 import { syncSkills } from './services/skills';
 import { clearStaleApprovals } from './services/approvals.js';
-import { markOrphanedTasksFailed } from './orchestrator/runner.js';
 import { cleanupTruncationFiles } from './services/shell/index.js';
+import { markOrphanedTasksFailed } from './services/workspaces/tasks.js';
 
 let mainWindow: BrowserWindow | null = null;
 

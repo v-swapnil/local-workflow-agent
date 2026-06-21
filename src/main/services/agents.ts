@@ -26,7 +26,6 @@ interface UpsertAgentInput {
   systemPrompt: string;
   tools?: string | null;
   temperature: number;
-  maxIterations?: number;
   description?: string;
 }
 
@@ -41,7 +40,6 @@ export function upsertAgent(input: UpsertAgentInput): AgentRecord {
     systemPrompt: input.systemPrompt,
     tools: input.tools ?? null,
     temperature: input.temperature,
-    maxIterations: input.maxIterations ?? 10,
     description: input.description ?? null,
   };
 

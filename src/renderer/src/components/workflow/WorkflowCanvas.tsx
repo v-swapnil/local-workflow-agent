@@ -55,7 +55,7 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
       target: e.target,
       sourceHandle: e.sourceHandle,
       label: e.label,
-      data: { maxIterations: e.maxIterations },
+      data: {},
     })) ?? [];
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
@@ -77,7 +77,6 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
           target: e.target,
           sourceHandle: e.sourceHandle ?? undefined,
           label: e.label as string | undefined,
-          maxIterations: (e.data as { maxIterations?: number })?.maxIterations,
         })),
       };
       onChange(def);

@@ -49,8 +49,6 @@ export const tasks = sqliteTable(
     provider: text('provider'),
     plan: text('plan'),
     result: text('result'),
-    iterations: integer('iterations').notNull().default(0),
-    maxIterations: integer('max_iterations').notNull().default(6),
     model: text('model'),
     agentId: text('agent_id'),
     workflowId: text('workflow_id'),
@@ -145,7 +143,6 @@ export const agents = sqliteTable('agents', {
   systemPrompt: text('system_prompt').notNull(),
   tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
-  maxIterations: integer('max_iterations').notNull().default(10),
   description: text('description'),
 });
 

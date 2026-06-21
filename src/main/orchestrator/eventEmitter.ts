@@ -125,7 +125,6 @@ export function emitTaskFinished(
     status,
     finishedAt: Date.now(),
     result: result ? JSON.stringify(result) : null,
-    iterations: (result as { iterations?: number })?.iterations,
   });
   taskBus.emit(taskId, {
     type: 'task.finished',

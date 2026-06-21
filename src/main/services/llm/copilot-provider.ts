@@ -34,6 +34,10 @@ export class CopilotProvider extends BaseLLMProvider {
       log.info('starting Copilot CLI client...');
       await client.start();
       log.info('Connected to Copilot CLI server at %s', url);
+
+      this.clientInstance = client;
+      this.lastUrl = url;
+
       return client;
     } catch (err) {
       log.error({ err, url }, 'Failed to connect to Copilot CLI server');
@@ -104,7 +108,6 @@ export class CopilotProvider extends BaseLLMProvider {
         if (event.type === 'assistant.message_delta') {
           const text = event.data.deltaContent;
           chunks.push(text);
-          return;
         } else if (event.type === 'assistant.reasoning_delta') {
           const text = event.data.deltaContent;
           thinkingChunks.push(text);

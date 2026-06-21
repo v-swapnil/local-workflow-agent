@@ -1,19 +1,16 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
-import {
-  getWorkflow,
-  type WorkflowDefinition,
-  type WorkflowNode,
-  type WorkflowEdge,
-} from '../services/workflows.js';
-import { getAgent } from '../services/agents.js';
+import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../services/workflows.js';
 import { requestApproval } from '../services/approvals.js';
 import { buildGraph } from './graph.js';
+import { getSetting, SETTING_KEYS } from '../services/settings.js';
+import { PROVIDERS } from '@shared/constants';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
 import { logger } from '../services/logger.js';
 import type { RunCtx } from './runCtx.js';
 import { emitLog } from './eventEmitter.js';
+import { getTask } from '@main/services/workspaces';
 
 const log = logger.child({ mod: 'workflow-runner' });
 
@@ -90,14 +87,15 @@ export async function runWorkflow(
       graph.addNode(node.id, async (state: WorkflowState) => {
         emitLog(taskId, undefined, true, `[workflow] node "${node.id}" (agent)`);
         try {
-          const agent = getAgent(agentId);
-          const agentCtx: RunCtx = { ...ctx };
-          const agentGraph = buildGraph(agent);
+          const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
+          const agentCtx: RunCtx = { ...ctx, agentId };
+          const agentGraph = buildGraph(provider);
           const initial: Partial<AgentState> = { prompt: state.prompt };
           await agentGraph.invoke(initial, {
             configurable: { runCtx: agentCtx },
             recursionLimit: 10,
             signal: ctx.signal,
+            timeout: ctx.timeoutMs,
           });
           return {
             currentNodeId: node.id,
@@ -175,24 +173,24 @@ export async function runWorkflow(
   }
 
   const compiled = graph.compile();
-  const initialState: Partial<WorkflowState> = { prompt: ctx.taskId };
 
   try {
+    const task = getTask(ctx.taskId);
+    const initialState: Partial<WorkflowState> = { prompt: task.prompt };
     await compiled.invoke(initialState, {
       configurable: { runCtx: ctx },
       recursionLimit: 50,
       signal: ctx.signal,
+      timeout: ctx.timeoutMs,
     });
     return {
       status: 'succeeded',
-      iterations: 1,
       plan: null,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return {
       status: 'failed',
-      iterations: 1,
       plan: null,
       reason: msg,
     };

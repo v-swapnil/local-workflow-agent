@@ -10,6 +10,8 @@ export interface RunCtx {
   model: string;
   signal: AbortSignal;
   stepIdx: { n: number };
+  agentId: string | null;
+  timeoutMs: number;
 }
 
 export function ctxOf(config?: RunnableConfig): RunCtx {

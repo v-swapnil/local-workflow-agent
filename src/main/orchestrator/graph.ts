@@ -1,36 +1,22 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
-import type { RunnableConfig } from '@langchain/core/runnables';
-import { PLANNER_SYSTEM, EXECUTOR_SYSTEM } from './prompts.js';
 import { StateAnnotation } from './state.js';
-import { plannerNode, runPlannerNode } from './plannerNode.js';
-import { executorNode, runExecutorNode } from './executorNode.js';
-import type { AgentState } from './state.js';
-import type { AgentRecord } from '@shared/schema.js';
+import { plannerNode } from './plannerNode.js';
+import { executorNode } from './executorNode.js';
+import { copilotExecutorNode } from './copilotExecutorNode.js';
+import { PROVIDERS } from '@shared/constants';
 
-export function buildGraph(agent?: AgentRecord | null) {
-  if (!agent) {
+export function buildGraph(provider: string) {
+  if (provider === PROVIDERS.COPILOT) {
     return new StateGraph(StateAnnotation)
-      .addNode('planner', plannerNode)
-      .addNode('executor', executorNode)
-      .addEdge(START, 'planner')
-      .addEdge('planner', 'executor')
+      .addNode('executor', copilotExecutorNode)
+      .addEdge(START, 'executor')
       .addEdge('executor', END)
       .compile();
   }
 
-  const plannerSys = [PLANNER_SYSTEM, '---', agent.systemPrompt].join('\n\n');
-  const executorSys = [EXECUTOR_SYSTEM, '---', agent.systemPrompt].join('\n\n');
-  const temp = agent.temperature;
-
-  const plannerNodeWithAgent = (state: AgentState, config?: RunnableConfig) =>
-    runPlannerNode(state, config, plannerSys, temp);
-
-  const executorNodeWithAgent = (state: AgentState, config?: RunnableConfig) =>
-    runExecutorNode(state, config, executorSys, temp);
-
   return new StateGraph(StateAnnotation)
-    .addNode('planner', plannerNodeWithAgent)
-    .addNode('executor', executorNodeWithAgent)
+    .addNode('planner', plannerNode)
+    .addNode('executor', executorNode)
     .addEdge(START, 'planner')
     .addEdge('planner', 'executor')
     .addEdge('executor', END)

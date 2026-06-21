@@ -13,7 +13,6 @@ export const taskRouter = router({
       z.object({
         sessionId: z.string().min(1),
         prompt: z.string().min(1),
-        maxIterations: z.number().int().min(1).max(20).optional(),
         autostart: z.boolean().optional(),
         model: z.string().optional(),
         agentId: z.string().optional(),
@@ -21,7 +20,7 @@ export const taskRouter = router({
       }),
     )
     .mutation(({ input }) => {
-      const task = createTask(input.sessionId, input.prompt, input.maxIterations, {
+      const task = createTask(input.sessionId, input.prompt, {
         model: input.model,
         agentId: input.agentId,
         workflowId: input.workflowId,
@@ -58,7 +57,6 @@ export const taskRouter = router({
     updateTask(orig.id, {
       status: 'queued',
       result: null,
-      iterations: 0,
       startedAt: null,
       finishedAt: null,
     });

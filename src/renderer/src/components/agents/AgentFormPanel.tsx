@@ -93,17 +93,6 @@ export function AgentFormPanel({
             </span>
           </div>
         </FormField>
-        <FormField label="max iterations">
-          <Input
-            type="number"
-            min={1}
-            max={50}
-            value={form.maxIterations}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, maxIterations: parseInt(e.target.value, 10) || 10 }))
-            }
-          />
-        </FormField>
       </div>
 
       <div className="mt-5">

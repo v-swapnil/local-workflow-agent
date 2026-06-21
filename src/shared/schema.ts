@@ -35,8 +35,6 @@ export interface TaskRecord {
   provider: string | null;
   plan: string | null;
   result: string | null;
-  iterations: number;
-  maxIterations: number;
   model: string | null;
   agentId: string | null;
   workflowId: string | null;
@@ -112,7 +110,6 @@ export interface AgentRecord {
   systemPrompt: string;
   tools: string | null;
   temperature: number;
-  maxIterations: number;
   description: string | null;
 }
 

@@ -9,7 +9,6 @@ const agentSchema = z.object({
   systemPrompt: z.string().min(1),
   tools: z.string().nullable().optional(),
   temperature: z.number().min(0).max(2),
-  maxIterations: z.number().int().min(1).max(50).optional(),
   description: z.string().optional(),
 });
 

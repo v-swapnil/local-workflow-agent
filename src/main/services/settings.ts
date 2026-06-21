@@ -39,4 +39,5 @@ export const SETTING_KEYS = {
   USE_WORKTREES: 'use_worktrees',
   SHELL_PATH: 'shell.path',
   LINEAR_API_KEY: 'linear.apiKey',
+  TASK_TIMEOUT: 'task.timeout',
 } as const;

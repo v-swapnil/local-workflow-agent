@@ -21,7 +21,6 @@ const edgeSchema = z.object({
   target: z.string(),
   sourceHandle: z.string().optional(),
   label: z.string().optional(),
-  maxIterations: z.number().optional(),
 });
 
 const workflowSchema = z.object({

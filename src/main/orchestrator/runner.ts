@@ -1,11 +1,14 @@
-import { getTask, getWorkspace, setSessionKanbanLane, updateTask } from '../services/workspaces';
+import {
+  getSession,
+  getTask,
+  getTaskTimeout,
+  getWorkspace,
+  setSessionKanbanLane,
+  updateTask,
+} from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
-import { getAgentOrNull } from '../services/agents.js';
-import { getDb } from '../db/index.js';
-import { sessions, tasks as tasksTable } from '../db/schema.js';
-import { eq, inArray } from 'drizzle-orm';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
 import { createBranch } from '../services/git';
@@ -13,7 +16,6 @@ import { getWorktreeForSession } from '../services/worktrees.js';
 import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
-import { runTaskViaCopilot } from './copilot-runner.js';
 
 import { runWorkflow } from './workflow-runner.js';
 import type { TaskResult } from '@shared/agent';
@@ -21,9 +23,6 @@ import type { TaskRecord } from '@shared/schema';
 import type { RunCtx } from './runCtx';
 
 const log = logger.child({ mod: 'runner' });
-
-/** Maximum wall-clock time for a single task run (default 10 minutes). */
-const TASK_TIMEOUT_MS = 10 * 60 * 1000;
 
 interface RunHandle {
   taskId: string;
@@ -35,22 +34,6 @@ const inflight = new Map<string, RunHandle>();
 
 export function isRunning(taskId: string): boolean {
   return inflight.has(taskId);
-}
-
-/**
- * On startup no task can genuinely be running.  Mark any 'running' or 'queued'
- * tasks as 'failed' so stale approval events are never treated as pending.
- */
-export function markOrphanedTasksFailed(): void {
-  const now = Date.now();
-  const result = getDb()
-    .update(tasksTable)
-    .set({ status: 'failed', finishedAt: now })
-    .where(inArray(tasksTable.status, ['running', 'queued']))
-    .run();
-  if (result.changes > 0) {
-    log.info({ count: result.changes }, 'marked orphaned tasks as failed');
-  }
 }
 
 export function cancelTask(taskId: string): boolean {
@@ -65,92 +48,80 @@ export async function runTask(taskId: string): Promise<TaskResult> {
   if (existing) return existing.promise;
 
   const ctrl = new AbortController();
-  const promise = doRun(taskId, ctrl).finally(() => {
+  const promise = doRunInner(taskId, ctrl).finally(() => {
     inflight.delete(taskId);
   });
   inflight.set(taskId, { taskId, ctrl, promise });
   return promise;
 }
 
-async function doRun(taskId: string, ctrl: AbortController): Promise<TaskResult> {
-  // Wall-clock timeout: abort the task if it runs too long
-  const timer = setTimeout(() => ctrl.abort(), TASK_TIMEOUT_MS);
-  try {
-    return await doRunInner(taskId, ctrl);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskResult> {
   const task = getTask(taskId);
   const session = await loadSessionWorkspace(task);
 
-  const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
-  const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
-  const model = task.model ?? globalModel;
-
-  if (!model) {
-    return finish(task, {
-      status: 'failed',
-      iterations: 0,
-      plan: null,
-      reason: 'no active model configured (Settings → Models)',
-    });
-  }
-
-  emitTaskStarted(taskId);
-
-  // Optional: auto-branch per task before any code is written.
-  // Skip branching if session has an active worktree (it already has its own branch).
-  const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
-  const autoBranch = gitAutoEnabled && !session.hasWorktree;
-
-  if (autoBranch) {
-    try {
-      const branchName = `ase/${taskId}`;
-      await createBranch(session.workspaceId, branchName);
-      emitLog(taskId, undefined, true, `[git] checked out branch ${branchName}`);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      log.warn({ taskId, err: msg }, 'auto-branch failed');
-      emitLog(taskId, undefined, false, `[git] auto-branch failed: ${msg}`);
-    }
-  }
-
-  const ctx: RunCtx = {
-    taskId,
-    sessionId: task.sessionId,
-    workspaceId: session.workspaceId,
-    workspacePath: session.workspacePath,
-    model,
-    signal: ctrl.signal,
-    stepIdx: { n: 0 },
-  };
-
   try {
-    // Dispatch based on active provider and task/agent configuration
+    const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
+    const model = task.model ?? globalModel;
+
+    if (!model) {
+      return finish(task, {
+        status: 'failed',
+        plan: null,
+        reason: 'no active model configured (Settings → Models)',
+      });
+    }
+
+    emitTaskStarted(taskId);
+
+    // Optional: auto-branch per task before any code is written.
+    // Skip branching if session has an active worktree (it already has its own branch).
+    const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
+    const autoBranch = gitAutoEnabled && !session.hasWorktree;
+
+    if (autoBranch) {
+      try {
+        const branchName = `ase/${taskId}`;
+        await createBranch(session.workspaceId, branchName);
+        emitLog(taskId, undefined, true, `[git] checked out branch ${branchName}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.warn({ taskId, err: msg }, 'auto-branch failed');
+        emitLog(taskId, undefined, false, `[git] auto-branch failed: ${msg}`);
+      }
+    }
+
     const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
     updateTask(taskId, { provider });
+
+    const taskTimeout = await getTaskTimeout();
+
+    const ctx: RunCtx = {
+      taskId,
+      sessionId: task.sessionId,
+      workspaceId: session.workspaceId,
+      workspacePath: session.workspacePath,
+      model,
+      signal: ctrl.signal,
+      stepIdx: { n: 0 },
+      agentId: task.agentId ?? null,
+      timeoutMs: taskTimeout,
+    };
 
     let result: TaskResult;
     if (task.workflowId) {
       result = await runWorkflow(taskId, task.workflowId, ctx);
-    } else if (provider === PROVIDERS.COPILOT) {
-      result = await runTaskViaCopilot(taskId, session, ctrl.signal, agent, ctx);
     } else {
-      const graph = buildGraph(agent);
+      const graph = buildGraph(provider);
       const initial: Partial<AgentState> = { prompt: task.prompt };
-      const recursionLimit = 10;
       const final = (await graph.invoke(initial, {
         configurable: { runCtx: ctx },
-        recursionLimit,
+        recursionLimit: 10,
         signal: ctrl.signal,
+        timeout: taskTimeout,
       })) as AgentState;
 
       result = {
         status: 'succeeded',
-        iterations: 1,
         plan: final.plan,
       };
     }
@@ -162,7 +133,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     log.error({ taskId, err: msg }, 'task failed');
     return finish(task, {
       status: aborted ? 'cancelled' : 'failed',
-      iterations: 0,
       plan: null,
       reason: msg,
     });
@@ -186,9 +156,8 @@ function finish(task: TaskRecord, result: TaskResult): TaskResult {
 }
 
 async function loadSessionWorkspace(task: TaskRecord) {
-  const sess = getDb().select().from(sessions).where(eq(sessions.id, task.sessionId)).get();
-  if (!sess) throw new Error(`session not found for task ${task.id}`);
-  const ws = await getWorkspace(sess.workspaceId);
+  const session = getSession(task.sessionId);
+  const ws = await getWorkspace(session.workspaceId);
 
   // Use worktree path if one exists and is valid on disk
   const worktree = getWorktreeForSession(task.sessionId);

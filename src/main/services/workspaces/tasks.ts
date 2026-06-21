@@ -1,13 +1,13 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { getDb } from '@main/db';
 import { tasks } from '@main/db/schema';
 import { TaskRecord } from '@shared/schema';
 import { nanoid } from 'nanoid';
+import { getSetting, SETTING_KEYS } from '../settings';
 
 export function createTask(
   sessionId: string,
   prompt: string,
-  maxIterations = 6,
   opts?: { model?: string; agentId?: string; workflowId?: string },
 ): TaskRecord {
   const t: TaskRecord = {
@@ -18,8 +18,6 @@ export function createTask(
     provider: null,
     plan: null,
     result: null,
-    iterations: 0,
-    maxIterations,
     model: opts?.model ?? null,
     agentId: opts?.agentId ?? null,
     workflowId: opts?.workflowId ?? null,
@@ -48,4 +46,25 @@ export function listTasks(sessionId: string): TaskRecord[] {
 
 export function updateTask(id: string, patch: Partial<TaskRecord>): void {
   getDb().update(tasks).set(patch).where(eq(tasks.id, id)).run();
+}
+
+export async function getTaskTimeout() {
+  const defaultTimeout = 60 * 10; // 10 minutes
+  const timeout = await getSetting(SETTING_KEYS.TASK_TIMEOUT, String(defaultTimeout));
+  const parsedTimeout = Number.parseInt(timeout, 10);
+  return (parsedTimeout || defaultTimeout) * 1000;
+}
+
+/**
+ * On startup no task can genuinely be running.  Mark any 'running' or 'queued'
+ * tasks as 'failed' so stale approval events are never treated as pending.
+ */
+export function markOrphanedTasksFailed(): number {
+  const now = Date.now();
+  const result = getDb()
+    .update(tasks)
+    .set({ status: 'failed', finishedAt: now })
+    .where(inArray(tasks.status, ['running', 'queued']))
+    .run();
+  return result.changes;
 }

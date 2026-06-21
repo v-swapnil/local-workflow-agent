@@ -115,4 +115,17 @@ export const settingsRouter = router({
       await setSetting(SETTING_KEYS.LINEAR_API_KEY, input.value.trim());
       return { ok: true as const };
     }),
+
+  taskTimeout: publicProcedure.query(async () => {
+    const saved = await getSetting(SETTING_KEYS.TASK_TIMEOUT);
+    const n = saved ? parseInt(saved, 10) : 600;
+    return isNaN(n) || n < 30 ? 600 : Math.min(n, 3600);
+  }),
+
+  setTaskTimeout: publicProcedure
+    .input(z.object({ value: z.number().int().min(30).max(3600) }))
+    .mutation(async ({ input }) => {
+      await setSetting(SETTING_KEYS.TASK_TIMEOUT, String(input.value));
+      return { ok: true as const };
+    }),
 });

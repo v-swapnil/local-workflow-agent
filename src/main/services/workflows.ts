@@ -26,7 +26,6 @@ export interface WorkflowEdge {
   target: string;
   sourceHandle?: string;
   label?: string;
-  maxIterations?: number;
 }
 
 export interface WorkflowDefinition {
