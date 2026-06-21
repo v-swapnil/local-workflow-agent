@@ -45,9 +45,9 @@ export function truncateOutput(raw: string): TruncationResult {
 
   const truncated = lines.slice(startLine).join('\n');
   const keptLines = lines.length - startLine;
-  const header = `[Output truncated: showing last ${keptLines} of ${lines.length} lines. Full output: ${fullOutputPath}]\n\n`;
+  const header = `(Output truncated: showing last ${keptLines} of ${lines.length} lines. Full output: ${fullOutputPath})`;
 
-  return { text: header + truncated, truncated: true, fullOutputPath };
+  return { text: [truncated, header].join('\n'), truncated: true, fullOutputPath };
 }
 
 export function cleanupTruncationFiles(maxAgeMs = MAX_FILE_AGE_MS): void {

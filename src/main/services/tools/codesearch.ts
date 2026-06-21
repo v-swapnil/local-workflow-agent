@@ -171,9 +171,9 @@ export const findReferencesTool: Tool<{ symbol: string; path?: string }, Referen
 export const listExportsTool: Tool<{ path: string }, ExportEntry[]> = {
   name: 'list_exports',
   description:
-    'List all exported symbols from a workspace file.\n\n' +
+    'List all exported symbols from a workspace file.\n' +
     "Returns each export's name, kind (function/class/type/interface/variable/enum/default), " +
-    'line number, and whether it is a re-export from another module.\n\n' +
+    'line number, and whether it is a re-export from another module.\n' +
     'Use this to understand what a module provides. Complements list_imports: ' +
     'trace an import to its source module, then use list_exports to see what is available.',
   schema: z.object({

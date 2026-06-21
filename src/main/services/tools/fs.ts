@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { fileTree, readWorkspaceFile, writeWorkspaceFile, getWorkspace, deleteWorkspacePath } from '../workspaces';
+import {
+  fileTree,
+  readWorkspaceFile,
+  writeWorkspaceFile,
+  getWorkspace,
+  deleteWorkspacePath,
+} from '../workspaces';
 import type { ReadFileResult } from '../workspaces';
 import { safeJoin } from '../../util/safePath.js';
 import { planPatch } from '../../util/patch.js';
@@ -13,10 +19,10 @@ export const readFileTool: Tool<{ path: string; offset?: number; limit?: number 
   {
     name: 'read_file',
     description:
-      'Read a UTF-8 text file from the workspace. Returns file content with size and line metadata.\n\n' +
+      'Read a UTF-8 text file from the workspace. Returns file content with size and line metadata.\n' +
       'Parameters:\n' +
       '- offset: 1-based start line (default: 1)\n' +
-      '- limit: number of lines to read (default: 2000, max output: 50 KB)\n\n' +
+      '- limit: number of lines to read (default: 2000, max output: 50 KB)\n' +
       'Tips:\n' +
       '- Use grep to find relevant lines in large files before reading specific ranges\n' +
       '- Call read_file in parallel when reading multiple files\n' +
@@ -40,7 +46,7 @@ export const readFileTool: Tool<{ path: string; offset?: number; limit?: number 
 export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; bytes: number }> = {
   name: 'write_file',
   description:
-    'Create or overwrite a UTF-8 text file in the workspace.\n\n' +
+    'Create or overwrite a UTF-8 text file in the workspace.\n' +
     'WARNING: This completely replaces the file contents. For targeted edits, use edit_file instead.\n' +
     'Parent directories are created automatically if they do not exist.',
   schema: z.object({ path: z.string().min(1), content: z.string() }),
@@ -54,11 +60,11 @@ export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; 
 export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
   name: 'list_dir',
   description:
-    'Return a directory tree of the workspace (or a sub-path).\n\n' +
-    'Directories are listed first, sorted alphabetically. Ignored: .git, node_modules, .DS_Store, .next, dist, out, .turbo.\n\n' +
+    'Return a directory tree of the workspace (or a sub-path).\n' +
+    'Directories are listed first, sorted alphabetically. Ignored: .git, node_modules, .DS_Store, .next, dist, out, .turbo.\n' +
     'Parameters:\n' +
     '- path: subdirectory to list (default: workspace root)\n' +
-    '- depth: recursion depth 1-8 (default: 4)\n\n' +
+    '- depth: recursion depth 1-8 (default: 4)\n' +
     'Tips:\n' +
     '- Use depth=1 for a quick overview of immediate children\n' +
     '- Use depth=2-3 to understand project structure without overwhelming output\n' +
@@ -71,17 +77,20 @@ export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
   run: async ({ path, depth }, ctx) => fileTree(ctx.workspaceId, path ?? '', depth ?? 4),
 };
 
-export const grepTool: Tool<{ pattern: string; path?: string; include?: string; context?: number }, GrepResult> = {
+export const grepTool: Tool<
+  { pattern: string; path?: string; include?: string; context?: number },
+  GrepResult
+> = {
   name: 'grep',
   description:
-    'Search file contents in the workspace for a regex pattern.\n\n' +
+    'Search file contents in the workspace for a regex pattern.\n' +
     'Returns matching lines with file paths and line numbers. Default limit: 500 matches. ' +
-    'Files >512 KB are skipped. Case-insensitive by default.\n\n' +
+    'Files >512 KB are skipped. Case-insensitive by default.\n' +
     'Parameters:\n' +
     '- pattern: regex pattern to search for\n' +
     '- path: subdirectory to search in (default: workspace root)\n' +
     '- include: file glob filter (e.g. "*.ts", "*.{ts,tsx}")\n' +
-    '- context: lines before/after each match to include (default: 0)\n\n' +
+    '- context: lines before/after each match to include (default: 0)\n' +
     'Tips:\n' +
     '- Use include to narrow to specific file types for faster results\n' +
     '- If results are truncated, narrow your pattern or add path/include filters\n' +
@@ -121,12 +130,12 @@ export const globTool: Tool<
 > = {
   name: 'glob',
   description:
-    'Search for files by name pattern in the workspace.\n\n' +
-    'Returns matching file paths sorted by modification time (most recent first). Default limit: 100 results.\n\n' +
+    'Search for files by name pattern in the workspace.\n' +
+    'Returns matching file paths sorted by modification time (most recent first). Default limit: 100 results.\n' +
     'Parameters:\n' +
     '- pattern: glob pattern (e.g. "**/*.ts", "src/**/*.test.*", "**/schema.*")\n' +
     '- path: subdirectory to search in (default: workspace root)\n' +
-    '- limit: max results to return (default: 100, max: 1000)\n\n' +
+    '- limit: max results to return (default: 100, max: 1000)\n' +
     'Tips:\n' +
     '- Use "**/" prefix to search recursively\n' +
     '- For content search within files, use grep instead',
@@ -160,10 +169,10 @@ export const applyPatchTool: Tool<
 > = {
   name: 'apply_patch',
   description:
-    'Apply a unified diff patch to one or more files in the workspace.\n\n' +
+    'Apply a unified diff patch to one or more files in the workspace.\n' +
     'Expects standard unified diff format (as produced by `diff -u` or `git diff`). ' +
     'Supports creating new files (old path = /dev/null), deleting files (new path = /dev/null), ' +
-    'and modifying existing files.\n\n' +
+    'and modifying existing files.\n' +
     'Tips:\n' +
     '- For single-string replacements, prefer edit_file — it is simpler and more reliable\n' +
     '- Use apply_patch for coordinated multi-file changes\n' +
@@ -196,14 +205,14 @@ export const editFileTool: Tool<
 > = {
   name: 'edit_file',
   description:
-    'Replace an exact string in a file with a new string.\n\n' +
+    'Replace an exact string in a file with a new string.\n' +
     'IMPORTANT: oldString must match the file content exactly (minor whitespace differences and smart-quote ' +
-    'variations are tolerated automatically). Include 3-5 lines of surrounding context to ensure a unique match.\n\n' +
+    'variations are tolerated automatically). Include 3-5 lines of surrounding context to ensure a unique match.\n' +
     'Parameters:\n' +
     '- path: file path relative to workspace root\n' +
     '- oldString: text to find (empty string = append to file or create new file)\n' +
     '- newString: replacement text (must differ from oldString)\n' +
-    '- replaceAll: replace all occurrences (default: false)\n\n' +
+    '- replaceAll: replace all occurrences (default: false)\n' +
     'Common mistakes:\n' +
     '- Too little context → "oldString appears multiple times"\n' +
     '- Stale content → "oldString not found" (use read_file to verify current content)\n' +
@@ -285,8 +294,16 @@ export const editFileTool: Tool<
     let idx = findFuzzyMatch(normResult, normOldLines, 0);
     while (idx !== -1) {
       const newLines = newString.split('\n');
-      result = [...result.slice(0, idx + offset), ...newLines, ...result.slice(idx + offset + oldLines.length)];
-      normResult = [...normResult.slice(0, idx + offset), ...newLines.map(normalizeLine), ...normResult.slice(idx + offset + oldLines.length)];
+      result = [
+        ...result.slice(0, idx + offset),
+        ...newLines,
+        ...result.slice(idx + offset + oldLines.length),
+      ];
+      normResult = [
+        ...normResult.slice(0, idx + offset),
+        ...newLines.map(normalizeLine),
+        ...normResult.slice(idx + offset + oldLines.length),
+      ];
       offset += newLines.length - oldLines.length;
       idx = findFuzzyMatch(normResult, normOldLines, idx + newLines.length);
     }

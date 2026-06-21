@@ -104,6 +104,7 @@ export function ChangedFileList({
     <ul className="space-y-px px-2 py-1.5">
       {files.map((file) => (
         <ChangedFileListItem
+          key={file.path}
           file={file}
           activePath={activePath}
           onSelect={onSelect}

@@ -7,7 +7,7 @@ export const gitStatusTool: Tool<Record<string, never>, unknown> = {
   name: 'git_status',
   description:
     'Get git working tree status: current branch, ahead/behind counts, and lists of ' +
-    'staged, modified, untracked, created, renamed, deleted, and conflicted files.\n\n' +
+    'staged, modified, untracked, created, renamed, deleted, and conflicted files.\n' +
     'Returns isRepo=false when the workspace is not a git repository.',
   schema: z.object({}).strict(),
   needsApproval: false,
@@ -37,7 +37,7 @@ export const gitStatusTool: Tool<Record<string, never>, unknown> = {
 export const gitDiffTool: Tool<{ staged?: boolean }, unknown> = {
   name: 'git_diff',
   description:
-    'Return the unified diff of working tree changes (or staged changes when staged=true).\n\n' +
+    'Return the unified diff of working tree changes (or staged changes when staged=true).\n' +
     'Untracked files are automatically included in the working tree diff. ' +
     'Use git_status first to understand what has changed.',
   schema: z.object({ staged: z.boolean().optional() }),
@@ -68,7 +68,7 @@ export const gitDiffTool: Tool<{ staged?: boolean }, unknown> = {
 export const gitBranchTool: Tool<{ name: string }, unknown> = {
   name: 'git_branch',
   description:
-    'Create and check out a new local branch.\n\n' +
+    'Create and check out a new local branch.\n' +
     'Creates an initial empty commit if the repository has no commits yet. ' +
     'Branch names may contain letters, numbers, dots, underscores, hyphens, and forward slashes.',
   schema: z.object({
@@ -93,7 +93,7 @@ export const gitBranchTool: Tool<{ name: string }, unknown> = {
 export const gitCommitTool: Tool<{ message: string }, unknown> = {
   name: 'git_commit',
   description:
-    'Stage all changes (git add -A) and create a commit with the given message.\n\n' +
+    'Stage all changes (git add -A) and create a commit with the given message.\n' +
     'Returns committed=false when there is nothing to commit.',
   schema: z.object({ message: z.string().min(1).max(500) }),
   needsApproval: true,

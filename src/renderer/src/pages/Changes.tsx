@@ -98,7 +98,7 @@ function DiffPanel({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-60">
           <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
             source
           </span>
@@ -109,7 +109,7 @@ function DiffPanel({
               setActive(null);
             }}
           >
-            <SelectTrigger className="font-mono text-ui-xs">
+            <SelectTrigger className="font-mono text-ui-xs text-left">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

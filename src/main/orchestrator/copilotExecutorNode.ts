@@ -21,7 +21,7 @@ export async function copilotExecutorNode(
 
   let systemPrompt = COPILOT_EXECUTOR_SYSTEM;
   if (agent) {
-    systemPrompt = [systemPrompt, '---', agent.systemPrompt].join('\n\n');
+    systemPrompt = [systemPrompt, '---', agent.systemPrompt].join('\n');
   }
 
   const sequence = ctx.stepIdx.n++;
@@ -30,7 +30,7 @@ export async function copilotExecutorNode(
   try {
     const conv = new Conversation({ system: systemPrompt });
     const promptContext = await buildPromptContext(ctx);
-    conv.addUserMessage([promptContext, state.prompt].join('\n\n'));
+    conv.addUserMessage([promptContext, state.prompt].join('\n'));
 
     // CopilotProvider.chat() handles the full agentic session (tools, permissions, events).
     // It returns done:true since toolCalls is always [] (SDK manages tools internally).

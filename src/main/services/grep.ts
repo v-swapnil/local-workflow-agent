@@ -75,17 +75,15 @@ async function grepWithRipgrep(root: string, opts: GrepOptions): Promise<GrepRes
 
   const { maxHits, maxFileBytes, cwd, contextLines } = getOptions(root, opts);
 
-  const args: string[] = ['--json'];
+  const args: string[] = ['--no-config', '--json', '--hidden', '--glob=!.git/*', '--no-messages'];
   if (!opts.caseSensitive) args.push('--ignore-case');
   if (!opts.isRegex) args.push('--fixed-strings');
   args.push('--max-filesize', String(maxFileBytes));
   if (contextLines > 0) args.push('-C', String(contextLines));
   if (opts.include) args.push('--glob', opts.include);
-  // Ignore default dirs
-  for (const ig of DEFAULT_IGNORE) {
-    args.push('--glob', `!${ig}`);
-  }
-  args.push('--', opts.pattern);
+  // Always pass '.' so rg searches the filesystem, not stdin.
+  // Without an explicit path, rg reads stdin when it isn't a TTY (e.g. inside Electron).
+  args.push('--', opts.pattern, '.');
 
   let stdout: string;
   try {
@@ -156,7 +154,8 @@ export async function grep(root: string, opts: GrepOptions): Promise<GrepResult>
   const matcher = opts.isRegex ? new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i') : null;
   const needle = opts.caseSensitive ? opts.pattern : opts.pattern.toLowerCase();
 
-  const globPattern = opts.include ?? '**/*';
+  // Use || (not ??) so empty string also falls back to '**/*'
+  const globPattern = opts.include || '**/*';
   const entries = await fg(globPattern, {
     cwd,
     ignore: DEFAULT_IGNORE,

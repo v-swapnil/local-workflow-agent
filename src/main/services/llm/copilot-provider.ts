@@ -85,11 +85,11 @@ export class CopilotProvider extends BaseLLMProvider {
     const systemMessage = messages
       .filter((item) => item.role === 'system')
       .map((item) => item.content)
-      .join('\n\n');
+      .join('\n');
     const userMessages = messages
       .filter((item) => item.role !== 'system')
-      .map((item) => [item.role, item.content].join(': '))
-      .join('\n\n');
+      .map((item) => `**${item.role}**: ${item.content}`)
+      .join('\n');
 
     const taskId = opts.taskId;
     const signal = opts.signal;

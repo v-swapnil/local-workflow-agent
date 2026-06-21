@@ -28,7 +28,7 @@ async function runPlannerLoop(
   const conv = new Conversation({ system: systemPrompt });
 
   const promptContext = await buildPromptContext(ctx);
-  const userMessages = [promptContext, userPrompt].join('\n\n');
+  const userMessages = [promptContext, userPrompt].join('\n');
 
   conv.addUserMessage(userMessages);
 
@@ -66,7 +66,7 @@ export async function plannerNode(
   let temperature: number | undefined;
 
   if (agent) {
-    systemPrompt = [PLANNER_SYSTEM, '---', agent.systemPrompt].join('\n\n');
+    systemPrompt = [PLANNER_SYSTEM, '---', agent.systemPrompt].join('\n');
     temperature = agent.temperature;
   }
 

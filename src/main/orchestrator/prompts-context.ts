@@ -54,5 +54,5 @@ export async function buildPromptContext(ctx: RunCtx): Promise<string> {
     formatMemoryContext('session', sessionMemories),
   ];
 
-  return parts.filter(Boolean).join('\n\n');
+  return parts.filter(Boolean).join('\n');
 }

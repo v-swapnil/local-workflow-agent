@@ -33,32 +33,28 @@ const DESCRIPTION = `Execute a shell command in the workspace directory.
 
 ## Timeouts
 - Default: 2 minutes. Max: 10 minutes.
-- For long operations, set timeoutMs appropriately.`;
+- For long operations, set timeout appropriately.`;
 
 const shellInputSchema = z.object({
   command: z
     .string()
     .min(1)
-    .describe(
-      'The shell command to execute. Supports pipes, chaining (&&, ||), redirections.',
-    ),
+    .describe('The shell command to execute. Supports pipes, chaining (&&, ||), redirections.'),
   description: z
     .string()
     .min(1)
     .describe('5-10 word description of what this command does and why.'),
-  timeoutMs: z
+  timeout: z
     .number()
     .int()
-    .min(1000)
-    .max(600_000)
+    .min(1)
+    .max(600)
     .optional()
-    .describe('Timeout in milliseconds. Default 120000 (2 min), max 600000 (10 min).'),
+    .describe('Timeout in seconds. Default 120 (2 min), max 600 (10 min).'),
   workdir: z
     .string()
     .optional()
-    .describe(
-      'Working directory relative to workspace root. Must not escape workspace.',
-    ),
+    .describe('Working directory relative to workspace root. Must not escape workspace.'),
 });
 
 type ShellInput = z.infer<typeof shellInputSchema>;
@@ -89,7 +85,10 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
 
     // 3. Denied commands → reject immediately
     if (classification.tier === 'deny') {
-      logger.warn({ command: input.command, reason: classification.denyReason }, 'shell command denied');
+      logger.warn(
+        { command: input.command, reason: classification.denyReason },
+        'shell command denied',
+      );
       return {
         ok: false,
         exitCode: null,
@@ -130,7 +129,7 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
     return runShell({
       command: input.command,
       cwd,
-      timeoutMs: input.timeoutMs,
+      timeoutMs: input.timeout !== undefined ? input.timeout * 1000 : undefined,
       signal: ctx.signal,
       onLog: ctx.onLog,
     });

@@ -15,11 +15,11 @@ export const readMemoriesTool: Tool<
 > = {
   name: 'read_memories',
   description:
-    'Read persisted memories.\n\n' +
+    'Read persisted memories.\n' +
     'Scope:\n' +
     '- session (default): memories for a specific session (requires sessionId)\n' +
-    '- workspace: memories scoped to the current workspace, shared across sessions\n\n' +
-    'Returns memories sorted by creation time. Filter by type to narrow results.\n\n' +
+    '- workspace: memories scoped to the current workspace, shared across sessions\n' +
+    'Returns memories sorted by creation time. Filter by type to narrow results.\n' +
     'Memory types: semantic, episodic, procedural, preference, fact, summary, observation',
   schema: z.object({
     scope: z.enum(SCOPES).optional().default('session'),
@@ -54,11 +54,11 @@ export const addMemoryTool: Tool<
 > = {
   name: 'add_memory',
   description:
-    'Persist a new memory for future reference.\n\n' +
+    'Persist a new memory for future reference.\n' +
     'Scope:\n' +
     '- session (default): tied to a specific session\n' +
     '- workspace: persists across all sessions in this workspace — use for codebase facts, ' +
-    'conventions, architectural decisions, and preferences\n\n' +
+    'conventions, architectural decisions, and preferences\n' +
     'Memory types:\n' +
     '- fact: codebase knowledge ("auth uses JWT RS256", "DB is Postgres 15")\n' +
     '- preference: user preferences ("prefers functional style", "always use pnpm")\n' +

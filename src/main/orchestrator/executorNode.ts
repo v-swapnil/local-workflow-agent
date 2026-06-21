@@ -33,8 +33,8 @@ async function runExecutorLoop(
   const promptContext = await buildPromptContext(ctx);
   const goalLine = `**GOAL**: ${state.prompt}`;
   const userMessages = plan
-    ? [promptContext, goalLine, `**PLAN**: ${plan}`].join('\n\n')
-    : [promptContext, goalLine].join('\n\n');
+    ? [promptContext, goalLine, `**PLAN**: ${plan}`].join('\n')
+    : [promptContext, goalLine].join('\n');
 
   conv.addUserMessage(userMessages);
 
@@ -87,7 +87,7 @@ export async function executorNode(
   let temperature: number | undefined;
 
   if (agent) {
-    systemPrompt = [basePrompt, '---', agent.systemPrompt].join('\n\n');
+    systemPrompt = [basePrompt, '---', agent.systemPrompt].join('\n');
     temperature = agent.temperature;
   }
 

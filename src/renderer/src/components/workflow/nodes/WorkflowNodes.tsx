@@ -154,7 +154,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
       />
       <NodeShell
         nodeId={id}
-        accent='purple'
+        accent="purple"
         icon={<Bot className="size-3.5" />}
         title="agent"
         selected={selected}
@@ -168,7 +168,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
               updateNodeData(id, { agentId: val, agentName: agent?.name ?? '' });
             }}
           >
-            <SelectTrigger className="nodrag h-7 font-mono text-ui-xs">
+            <SelectTrigger className="nodrag h-7 font-mono text-ui-xs text-left">
               <SelectValue placeholder="pick agent" />
             </SelectTrigger>
             <SelectContent>
@@ -213,7 +213,7 @@ export function ApprovalNode({ id, data, selected }: NodeProps) {
       />
       <NodeShell
         nodeId={id}
-        accent='blue'
+        accent="blue"
         icon={<ShieldCheck className="size-3.5" />}
         title="approval"
         selected={selected}

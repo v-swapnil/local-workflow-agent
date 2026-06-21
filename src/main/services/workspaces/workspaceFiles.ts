@@ -19,6 +19,7 @@ export interface FileNode {
 }
 
 export interface ReadFileResult {
+  path: string;
   content: string;
   /** Total bytes of the file on disk. */
   size: number;
@@ -121,6 +122,7 @@ export async function readWorkspaceFile(
   if (offset === undefined && limit === undefined) {
     const { content, size } = await readSourceFile(filePath);
     return {
+      path: filePath,
       content,
       size,
       lines: content.split('\n').length,
@@ -174,30 +176,34 @@ export async function readTextFileFromRoot(
   const last = start + lines.length;
   const truncated = more || cut || start > 0;
 
-  const content = [`<path>${filePath}</path>`, `<type>file</type>`, '<content>\n'];
+  const content = [];
 
   if (lines.length === 0) {
-    content.push('\n\n(file is empty)');
+    content.push('(file is empty)');
   } else {
     content.push(lines.join('\n'));
   }
 
   if (cut) {
-    content.push(`\n\n(output truncated at ${MAX_OUTPUT_BYTES} bytes)`);
+    content.push(`\n(output truncated at ${MAX_OUTPUT_BYTES} bytes)`);
     content.push(
-      `\n\n(Output capped at ${MAX_OUTPUT_BYTES / 1024} KB. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`,
+      `\n(Output capped at ${MAX_OUTPUT_BYTES} bytes. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`,
     );
   } else if (more) {
     content.push(
-      `\n\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`,
+      `\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`,
     );
   } else {
-    content.push(`\n\n(End of file — total ${totalLines} lines)`);
+    content.push(`\n(End of file — total ${totalLines} lines)`);
   }
 
-  content.push('\n</content>');
-
-  return { content: content.join('\n'), size: fileSize, lines: totalLines, truncated };
+  return {
+    path: filePath,
+    content: content.join('\n'),
+    size: fileSize,
+    lines: totalLines,
+    truncated,
+  };
 }
 
 export async function writeWorkspaceFile(

@@ -1,17 +1,6 @@
 import { trpc } from '../../trpc';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '../ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Label } from '../ui/label';
 
 interface AdvancedOptionsProps {
@@ -38,8 +27,7 @@ export function AdvancedOptions({
   const models = modelsData ?? [];
   const workflows = workflowsData as { id: string; name: string }[];
 
-  const selectClass =
-    'font-mono text-ui-xs';
+  const selectClass = 'font-mono text-ui-xs text-left';
 
   return (
     <Accordion type="single" collapsible>
@@ -61,7 +49,9 @@ export function AdvancedOptions({
                 <SelectContent>
                   <SelectItem value="__none__">— default —</SelectItem>
                   {models.map((m) => (
-                    <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
+                    <SelectItem key={m.name} value={m.name}>
+                      {m.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -107,7 +97,9 @@ export function AdvancedOptions({
                 <SelectContent>
                   <SelectItem value="__none__">— none —</SelectItem>
                   {workflows.map((w) => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
