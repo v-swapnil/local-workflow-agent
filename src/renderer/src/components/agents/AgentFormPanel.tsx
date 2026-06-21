@@ -4,6 +4,28 @@ import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { MultiSelect, type MultiSelectOption } from '../ui/multi-select';
+import { AGENT_KIND, type AgentKind } from '@shared/constants';
+
+const KIND_OPTIONS: MultiSelectOption[] = [
+  { value: 'planner', label: 'planner' },
+  { value: 'executor', label: 'executor' },
+];
+
+/** Decompose AgentKind into the two toggle values */
+function kindToSelected(kind: AgentKind): string[] {
+  if (kind === AGENT_KIND.PLANNER_EXECUTOR) return ['planner', 'executor'];
+  return [kind];
+}
+
+/** Compose selected toggle values back into AgentKind */
+function selectedToKind(selected: string[]): AgentKind {
+  const hasPlanner = selected.includes('planner');
+  const hasExecutor = selected.includes('executor');
+  if (hasPlanner && hasExecutor) return AGENT_KIND.PLANNER_EXECUTOR;
+  if (hasExecutor) return AGENT_KIND.EXECUTOR;
+  return AGENT_KIND.PLANNER;
+}
 
 interface ToolDef {
   name: string;
@@ -73,11 +95,8 @@ export function AgentFormPanel({
             />
           </FormField>
         ))}
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
         <FormField label="temperature">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 h-10">
             <Slider
               min={0}
               max={2}
@@ -100,7 +119,7 @@ export function AgentFormPanel({
           <Textarea
             value={form.systemPrompt}
             onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
-            rows={7}
+            rows={12}
             placeholder="You are a skilled backend engineer..."
             className="resize-y leading-relaxed font-mono text-ui-sm"
           />
@@ -108,14 +127,29 @@ export function AgentFormPanel({
       </div>
 
       <div className="mt-4">
-        <FormField label="allowed tools (empty = all)">
-          <Input
-            type="text"
-            value={form.tools.join(', ')}
-            placeholder="Comma separated values"
-            onChange={(e) => setForm((f) => ({ ...f, tools: e.target.value.split(',') }))}
+        <FormField label="agent kind">
+          <MultiSelect
+            options={KIND_OPTIONS}
+            value={kindToSelected(form.kind)}
+            onChange={(selected) => setForm((f) => ({ ...f, kind: selectedToKind(selected) }))}
+            placeholder="select nodes…"
+            minSelected={1}
           />
-          <p className="mb-2 font-mono text-ui-2xs text-ink-500">
+          <p className="mt-1 font-mono text-ui-2xs text-ink-500">
+            planner explores and creates a plan · executor carries it out · copilot ignores this
+          </p>
+        </FormField>
+      </div>
+
+      <div className="mt-4">
+        <FormField label="allowed tools (empty = all)">
+          <MultiSelect
+            options={availableTools.map((t) => ({ value: t.name, label: t.name }))}
+            value={form.tools.filter(Boolean)}
+            onChange={(tools) => setForm((f) => ({ ...f, tools }))}
+            placeholder="all tools enabled"
+          />
+          <p className="mt-1 font-mono text-ui-2xs text-ink-500">
             tool restrictions only apply to local (Ollama) provider — Copilot uses its own tool set
           </p>
         </FormField>

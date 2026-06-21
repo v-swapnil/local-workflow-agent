@@ -37,7 +37,8 @@ export function Agents() {
       systemPrompt: a.systemPrompt,
       tools: a.tools ? a.tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
       temperature: a.temperature,
-      description: (a as { description?: string }).description ?? '',
+      description: a.description ?? '',
+      kind: a.kind,
     });
   }
 
@@ -55,6 +56,7 @@ export function Agents() {
       tools: form.tools.length > 0 ? form.tools.join(',') : null,
       temperature: form.temperature,
       description: form.description || undefined,
+      kind: form.kind,
     });
   }
 

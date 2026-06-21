@@ -7,7 +7,7 @@ import {
   updateTask,
 } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS } from '@shared/constants';
+import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals.js';
@@ -15,6 +15,7 @@ import { createBranch } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
 import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
+import { getAgentOrNull } from '../services/agents.js';
 import type { AgentState } from './state.js';
 
 import { runWorkflow } from './workflow-runner.js';
@@ -111,11 +112,12 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     if (task.workflowId) {
       result = await runWorkflow(taskId, task.workflowId, ctx);
     } else {
-      const graph = buildGraph(provider);
+      const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
+      const kind = agent?.kind ?? AGENT_KIND.PLANNER_EXECUTOR;
+      const graph = buildGraph(provider, kind);
       const initial: Partial<AgentState> = { prompt: task.prompt };
       const final = (await graph.invoke(initial, {
         configurable: { runCtx: ctx },
-        recursionLimit: 10,
         signal: ctrl.signal,
         timeout: taskTimeout,
       })) as AgentState;

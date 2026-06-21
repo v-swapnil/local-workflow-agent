@@ -144,6 +144,7 @@ export const agents = sqliteTable('agents', {
   tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
   description: text('description'),
+  kind: text('kind').notNull().default('planner+executor'),
 });
 
 export const workflows = sqliteTable('workflows', {

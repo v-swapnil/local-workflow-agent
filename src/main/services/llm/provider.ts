@@ -39,9 +39,8 @@ export interface ChatOptions {
   messages: ChatMessage[];
   temperature?: number;
   signal?: AbortSignal;
-  onDelta?: (delta: string) => void;
-  onThinkingDelta?: (delta: string) => void;
   tools?: ChatToolDef[];
+  timeout: number;
 }
 
 export interface ChatResult {

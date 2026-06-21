@@ -1,25 +1,15 @@
 import { useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { ChevronDown, Settings2, X } from 'lucide-react';
+import { Bot, ShieldCheck, Play, Square, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
 import { cn } from '@renderer/lib/utils';
 import { useWorkflowEditor } from '../WorkflowEditorContext';
 
-const OPERATORS = ['eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'contains', 'exists'] as const;
-
 export interface AgentNodeData {
   agentId?: string;
   agentName?: string;
-  label?: string;
-  [key: string]: unknown;
-}
-
-export interface ConditionNodeData {
-  field?: string;
-  operator?: string;
-  value?: unknown;
   label?: string;
   [key: string]: unknown;
 }
@@ -30,89 +20,125 @@ export interface ApprovalNodeData {
   [key: string]: unknown;
 }
 
-/** Visual accent per node type so the header + handles read consistently. */
-type Accent = 'amber' | 'purple' | 'warn';
+type Accent = 'amber' | 'blue' | 'purple' | 'green' | 'red' | 'warn';
 
-const ACCENT: Record<Accent, { selected: string; label: string; handle: string }> = {
+const ACCENT: Record<
+  Accent,
+  { bar: string; icon: string; badge: string; ring: string; handle: string }
+> = {
+  // amber — warm gold (primary brand color)
   amber: {
-    selected: 'border-amber-500 bg-amber-950/30',
-    label: 'text-amber-400',
-    handle: '!bg-amber-400',
+    bar: 'bg-amber-500',
+    icon: 'text-amber-400',
+    badge: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    ring: 'ring-amber-500/40',
+    handle: '!bg-amber-400 !border-amber-600',
   },
+  // blue — cool accent-blue
+  blue: {
+    bar: 'bg-accent-blue',
+    icon: 'text-accent-blue',
+    badge: 'bg-accent-blue/10 text-accent-blue border-accent-blue/20',
+    ring: 'ring-accent-blue/40',
+    handle: '!bg-accent-blue !border-accent-blue/60',
+  },
+  // purple — accent-purple
   purple: {
-    selected: 'border-purple-500 bg-purple-950/30',
-    label: 'text-purple-400',
-    handle: '!bg-purple-400',
+    bar: 'bg-accent-purple',
+    icon: 'text-accent-purple',
+    badge: 'bg-accent-purple/10 text-accent-purple border-accent-purple/20',
+    ring: 'ring-accent-purple/40',
+    handle: '!bg-accent-purple !border-accent-purple/60',
   },
+  // green — signal-ok
+  green: {
+    bar: 'bg-signal-ok',
+    icon: 'text-signal-ok',
+    badge: 'bg-signal-ok/10 text-signal-ok border-signal-ok/20',
+    ring: 'ring-signal-ok/40',
+    handle: '!bg-signal-ok !border-signal-ok/60',
+  },
+  // red — signal-err
+  red: {
+    bar: 'bg-signal-err',
+    icon: 'text-signal-err',
+    badge: 'bg-signal-err/10 text-signal-err border-signal-err/20',
+    ring: 'ring-signal-err/40',
+    handle: '!bg-signal-err !border-signal-err/60',
+  },
+  // warn — signal-warn (orange, similar to amber but slightly different)
   warn: {
-    selected: 'border-signal-warn/70 bg-signal-warn/10',
-    label: 'text-signal-warn',
-    handle: '!bg-signal-warn',
+    bar: 'bg-signal-warn',
+    icon: 'text-signal-warn',
+    badge: 'bg-signal-warn/10 text-signal-warn border-signal-warn/20',
+    ring: 'ring-signal-warn/40',
+    handle: '!bg-signal-warn !border-signal-warn/60',
   },
 };
 
-/** Shared chrome: header (type label, expand toggle, delete) + selection styling. */
+/** Shared node chrome with left accent bar and always-visible edit fields. */
 function NodeShell({
   nodeId,
   accent,
+  icon,
   title,
   selected,
-  summary,
   children,
 }: {
   nodeId: string;
   accent: Accent;
+  icon: React.ReactNode;
   title: string;
   selected: boolean;
-  summary: React.ReactNode;
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const { deleteNode } = useWorkflowEditor();
   const a = ACCENT[accent];
 
   return (
     <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={cn(
-        'relative min-w-[170px] max-w-[240px] rounded-md border font-mono text-ui-xs shadow-sm transition-colors',
-        selected ? a.selected : 'border-ink-600 bg-ink-900 hover:border-ink-500',
+        'relative w-[220px] overflow-hidden rounded-lg border bg-ink-900 font-mono text-ui-xs shadow-lifted transition-all duration-150',
+        selected
+          ? `border-transparent ring-2 ${a.ring} shadow-float`
+          : 'border-ink-700 hover:border-ink-500',
       )}
     >
-      <div className="flex items-center justify-between gap-2 px-3 pt-2">
-        <span className={cn('text-ui-2xs uppercase tracking-widest2', a.label)}>{title}</span>
-        <div className="flex items-center gap-0.5">
-          {children && (
-            <button
-              type="button"
-              onClick={() => setOpen((v) => !v)}
-              className="nodrag rounded p-0.5 text-ink-500 hover:bg-ink-800 hover:text-ink-200"
-              title={open ? 'Collapse' : 'Edit'}
-            >
-              {open ? <ChevronDown className="size-3" /> : <Settings2 className="size-3" />}
-            </button>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 pl-4">
+        <span className={cn('shrink-0', a.icon)}>{icon}</span>
+        <span className={cn('py-0.5 text-ui-2xs tracking-widest2')}>{title}</span>
+        <button
+          type="button"
+          onClick={() => deleteNode(nodeId)}
+          className={cn(
+            'nodrag ml-auto rounded p-0.5 text-ink-600 transition-colors hover:bg-signal-err/15 hover:text-signal-err',
+            !hovered && 'opacity-0',
           )}
-          <button
-            type="button"
-            onClick={() => deleteNode(nodeId)}
-            className="nodrag rounded p-0.5 text-ink-500 hover:bg-signal-err/15 hover:text-signal-err"
-            title="Delete node"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
+          title="Delete"
+        >
+          <X className="size-3" />
+        </button>
       </div>
 
-      <div className="px-3 pb-2 pt-1">{summary}</div>
-
-      {open && children && (
-        <div className="nodrag nowheel space-y-2 border-t border-ink-800 px-3 py-2">{children}</div>
-      )}
+      {/* Body */}
+      <div className="nodrag nowheel space-y-2.5 border-t border-ink-800 bg-ink-950/40 px-3 py-2.5 pl-4">
+        {children}
+      </div>
     </div>
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-ui-2xs text-ink-400">{children}</span>;
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-ui-2xs text-ink-500">{label}</span>
+      {children}
+    </label>
+  );
 }
 
 export function AgentNode({ id, data, selected }: NodeProps) {
@@ -121,20 +147,19 @@ export function AgentNode({ id, data, selected }: NodeProps) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className={ACCENT.amber.handle} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className={cn('!h-2 !w-2 !rounded-full !border-2', ACCENT.purple.handle)}
+      />
       <NodeShell
         nodeId={id}
-        accent="amber"
+        accent='purple'
+        icon={<Bot className="size-3.5" />}
         title="agent"
         selected={selected}
-        summary={
-          <div className="truncate font-medium text-ink-100">
-            {d.label || d.agentName || d.agentId || 'unassigned'}
-          </div>
-        }
       >
-        <label className="flex flex-col gap-1">
-          <FieldLabel>agent</FieldLabel>
+        <Field label="agent">
           <Select
             value={d.agentId || '__none__'}
             onValueChange={(v) => {
@@ -144,107 +169,32 @@ export function AgentNode({ id, data, selected }: NodeProps) {
             }}
           >
             <SelectTrigger className="nodrag h-7 font-mono text-ui-xs">
-              <SelectValue />
+              <SelectValue placeholder="pick agent" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">— pick agent —</SelectItem>
               {agents.map((agent) => (
                 <SelectItem key={agent.id} value={agent.id}>
-                  {agent.name} ({agent.role})
+                  {agent.name}
+                  <span className="ml-1 text-ink-500">({agent.role})</span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>label</FieldLabel>
+        </Field>
+        <Field label="label">
           <Input
             value={d.label ?? ''}
             onChange={(e) => updateNodeData(id, { label: e.target.value })}
             placeholder="optional label"
             className="nodrag h-7 font-mono text-ui-xs"
           />
-        </label>
-      </NodeShell>
-      <Handle type="source" position={Position.Bottom} className={ACCENT.amber.handle} />
-    </>
-  );
-}
-
-export function ConditionNode({ id, data, selected }: NodeProps) {
-  const d = data as ConditionNodeData;
-  const { updateNodeData } = useWorkflowEditor();
-
-  return (
-    <>
-      <Handle type="target" position={Position.Top} className={ACCENT.purple.handle} />
-      <NodeShell
-        nodeId={id}
-        accent="purple"
-        title="condition"
-        selected={selected}
-        summary={
-          <>
-            <div className="truncate text-ink-200">
-              {d.field || '—'} {d.operator || 'eq'} {String(d.value ?? '—')}
-            </div>
-            <div className="mt-1 flex justify-between text-[9px] text-ink-500">
-              <span className="text-signal-ok">true</span>
-              <span className="text-signal-err">false</span>
-            </div>
-          </>
-        }
-      >
-        <label className="flex flex-col gap-1">
-          <FieldLabel>field</FieldLabel>
-          <Input
-            value={d.field ?? ''}
-            onChange={(e) => updateNodeData(id, { field: e.target.value })}
-            placeholder="agentOutputs.nodeId.ok"
-            className="nodrag h-7 font-mono text-ui-xs"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>operator</FieldLabel>
-          <Select
-            value={d.operator ?? 'eq'}
-            onValueChange={(v) => updateNodeData(id, { operator: v })}
-          >
-            <SelectTrigger className="nodrag h-7 font-mono text-ui-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {OPERATORS.map((op) => (
-                <SelectItem key={op} value={op}>
-                  {op}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <FieldLabel>value</FieldLabel>
-          <Input
-            value={String((d.value as unknown) ?? '')}
-            onChange={(e) => updateNodeData(id, { value: e.target.value })}
-            placeholder="true"
-            className="nodrag h-7 font-mono text-ui-xs"
-          />
-        </label>
+        </Field>
       </NodeShell>
       <Handle
         type="source"
         position={Position.Bottom}
-        id="true"
-        className="!bg-signal-ok"
-        style={{ left: '30%' }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="false"
-        className="!bg-signal-err"
-        style={{ left: '70%' }}
+        className={cn('!h-2 !w-2 !rounded-full !border-2', ACCENT.purple.handle)}
       />
     </>
   );
@@ -256,16 +206,19 @@ export function ApprovalNode({ id, data, selected }: NodeProps) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className={ACCENT.warn.handle} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className={cn('!h-2 !w-2 !rounded-full !border-2', ACCENT.blue.handle)}
+      />
       <NodeShell
         nodeId={id}
-        accent="warn"
+        accent='blue'
+        icon={<ShieldCheck className="size-3.5" />}
         title="approval"
         selected={selected}
-        summary={<div className="truncate text-ink-200">{d.question || 'awaiting approval'}</div>}
       >
-        <label className="flex flex-col gap-1">
-          <FieldLabel>question</FieldLabel>
+        <Field label="question">
           <Textarea
             value={d.question ?? ''}
             onChange={(e) => updateNodeData(id, { question: e.target.value })}
@@ -273,9 +226,13 @@ export function ApprovalNode({ id, data, selected }: NodeProps) {
             placeholder="Approve continuing?"
             className="nodrag resize-none font-mono text-ui-xs"
           />
-        </label>
+        </Field>
       </NodeShell>
-      <Handle type="source" position={Position.Bottom} className={ACCENT.warn.handle} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className={cn('!h-2 !w-2 !rounded-full !border-2', ACCENT.blue.handle)}
+      />
     </>
   );
 }
@@ -284,14 +241,19 @@ export function StartNode({ selected }: NodeProps) {
   return (
     <div
       className={cn(
-        'relative flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-ui-xs font-bold',
+        'relative flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-ui-2xs font-medium uppercase tracking-widest2 shadow-sm transition-all',
         selected
-          ? 'border-signal-ok bg-signal-ok/20 text-signal-ok'
-          : 'border-ink-500 bg-ink-900 text-ink-400',
+          ? 'border-signal-ok/50 bg-signal-ok/10 text-signal-ok ring-2 ring-signal-ok/20'
+          : 'border-ink-600 bg-ink-900 text-ink-400 hover:border-ink-500',
       )}
     >
-      S
-      <Handle type="source" position={Position.Bottom} className="!bg-signal-ok" />
+      <Play className="size-2.5 fill-current" />
+      start
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!h-2 !w-2 !rounded-full !border-2 !bg-signal-ok !border-signal-ok/50"
+      />
     </div>
   );
 }
@@ -300,14 +262,19 @@ export function EndNode({ selected }: NodeProps) {
   return (
     <div
       className={cn(
-        'relative flex h-10 w-10 items-center justify-center rounded-full border-2 font-mono text-ui-xs font-bold',
+        'relative flex items-center gap-2 rounded-full border px-3 py-1.5 font-mono text-ui-2xs font-medium uppercase tracking-widest2 shadow-sm transition-all',
         selected
-          ? 'border-signal-err bg-signal-err/20 text-signal-err'
-          : 'border-ink-500 bg-ink-900 text-ink-400',
+          ? 'border-signal-err/50 bg-signal-err/10 text-signal-err ring-2 ring-signal-err/20'
+          : 'border-ink-600 bg-ink-900 text-ink-400 hover:border-ink-500',
       )}
     >
-      <Handle type="target" position={Position.Top} className="!bg-signal-err" />
-      E
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-2 !w-2 !rounded-full !border-2 !bg-signal-err !border-signal-err/50"
+      />
+      <Square className="size-2.5 fill-current" />
+      end
     </div>
   );
 }

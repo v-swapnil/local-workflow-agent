@@ -5,6 +5,7 @@ import { logger } from '../logger.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
 import { BaseLLMProvider } from './provider.js';
 import type { ChatMessage, ChatOptions, ChatResult, ModelInfo, ToolCall } from './provider.js';
+import { emitMessageDelta, emitThinkingDelta } from '@main/orchestrator/eventEmitter.js';
 
 const log = logger.child({ mod: 'ollama' });
 
@@ -66,27 +67,28 @@ export class OllamaProvider extends BaseLLMProvider {
     let content = '';
     let thinking = '';
     let model = opts.model;
+    let toolCalls: ToolCall[] = [];
+
     let totalDurationMs: number | undefined;
     let promptTokens: number | undefined;
     let completionTokens: number | undefined;
-    let toolCalls: ToolCall[] | undefined;
 
     for await (const chunk of response) {
       if (opts.signal?.aborted) client.abort();
 
       if (chunk.message?.thinking) {
-        const t = chunk.message.thinking;
-        thinking += t;
-        opts.onThinkingDelta?.(t);
+        const text = chunk.message.content;
+        thinking += text;
+        emitThinkingDelta(opts.taskId, 'ollama', text);
       }
 
       if (chunk.message?.content) {
-        content += chunk.message.content;
-        opts.onDelta?.(chunk.message.content);
+        const text = chunk.message.content;
+        content += text;
+        emitMessageDelta(opts.taskId, 'ollama', text);
       }
 
       if (chunk.message?.tool_calls?.length) {
-        toolCalls ??= [];
         for (const tc of chunk.message.tool_calls) {
           toolCalls.push({
             id: `call_${nanoid(8)}`,

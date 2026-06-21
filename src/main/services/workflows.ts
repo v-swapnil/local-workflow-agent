@@ -15,7 +15,7 @@ export interface WorkflowRecord {
 
 export interface WorkflowNode {
   id: string;
-  type: 'start' | 'end' | 'agent' | 'condition' | 'approval';
+  type: 'start' | 'end' | 'agent' | 'approval';
   position: { x: number; y: number };
   data: Record<string, unknown>;
 }

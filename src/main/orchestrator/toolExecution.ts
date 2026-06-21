@@ -26,7 +26,7 @@ export async function executeToolCalls(
     const tool = tc.name as ToolName;
     const args = tc.arguments;
 
-    const { stepId } = emitToolCallStarted(ctx.taskId, agent, tool, args);
+    const { stepId } = emitToolCallStarted(ctx.taskId, agent, tool, args, tc.id);
 
     const result = await invokeTool(tool, args, {
       workspaceId: ctx.workspaceId,

@@ -118,7 +118,7 @@ export class CopilotProvider extends BaseLLMProvider {
     });
 
     try {
-      await session.sendAndWait({ prompt: userMessages }, 10 * 60 * 1000);
+      await session.sendAndWait({ prompt: userMessages }, opts.timeout);
       const content = chunks.join('');
       const thinking = thinkingChunks.join('');
       return {

@@ -52,7 +52,7 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
       return `Finding files ${pat}`;
     }
     case 'run_shell': {
-      const cmd = str(a.cmd);
+      const cmd = str(a.command);
       const argv = Array.isArray(a.args) ? ' ' + (a.args as string[]).join(' ') : '';
       return `Running \`${truncStr(cmd + argv, 50)}\``;
     }

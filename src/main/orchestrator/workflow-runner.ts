@@ -3,7 +3,8 @@ import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../serv
 import { requestApproval } from '../services/approvals.js';
 import { buildGraph } from './graph.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS } from '@shared/constants';
+import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
+import { getAgentOrNull } from '../services/agents.js';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
@@ -13,44 +14,6 @@ import { emitLog } from './eventEmitter.js';
 import { getTask } from '@main/services/workspaces';
 
 const log = logger.child({ mod: 'workflow-runner' });
-
-function evaluateCondition(data: Record<string, unknown>, state: WorkflowState): 'true' | 'false' {
-  const field = data.field as string;
-  const operator = data.operator as string;
-  const value = data.value;
-
-  // Resolve dot-notation path in agentOutputs
-  const parts = field.split('.');
-  let current: unknown = state.agentOutputs;
-  for (const part of parts) {
-    if (current == null || typeof current !== 'object') {
-      current = undefined;
-      break;
-    }
-    current = (current as Record<string, unknown>)[part];
-  }
-
-  switch (operator) {
-    case 'eq':
-      return current === value ? 'true' : 'false';
-    case 'neq':
-      return current !== value ? 'true' : 'false';
-    case 'gt':
-      return (current as number) > (value as number) ? 'true' : 'false';
-    case 'lt':
-      return (current as number) < (value as number) ? 'true' : 'false';
-    case 'gte':
-      return (current as number) >= (value as number) ? 'true' : 'false';
-    case 'lte':
-      return (current as number) <= (value as number) ? 'true' : 'false';
-    case 'contains':
-      return String(current).includes(String(value)) ? 'true' : 'false';
-    case 'exists':
-      return current !== undefined && current !== null ? 'true' : 'false';
-    default:
-      return 'false';
-  }
-}
 
 export async function runWorkflow(
   taskId: string,
@@ -88,12 +51,13 @@ export async function runWorkflow(
         emitLog(taskId, undefined, true, `[workflow] node "${node.id}" (agent)`);
         try {
           const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
+          const agentRecord = getAgentOrNull(agentId);
+          const kind = agentRecord?.kind ?? AGENT_KIND.PLANNER_EXECUTOR;
           const agentCtx: RunCtx = { ...ctx, agentId };
-          const agentGraph = buildGraph(provider);
+          const agentGraph = buildGraph(provider, kind);
           const initial: Partial<AgentState> = { prompt: state.prompt };
           await agentGraph.invoke(initial, {
             configurable: { runCtx: agentCtx },
-            recursionLimit: 10,
             signal: ctx.signal,
             timeout: ctx.timeoutMs,
           });
@@ -106,12 +70,6 @@ export async function runWorkflow(
           log.warn({ nodeId: node.id, err }, 'workflow agent node failed');
           return { currentNodeId: node.id };
         }
-      });
-    } else if (node.type === 'condition') {
-      graph.addNode(node.id, (state: WorkflowState) => {
-        const result = evaluateCondition(node.data, state);
-        emitLog(taskId, undefined, true, `[workflow] condition "${node.id}" → ${result}`);
-        return { currentNodeId: node.id };
       });
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
@@ -126,7 +84,6 @@ export async function runWorkflow(
   }
 
   // Add edges
-  const processedConditions = new Set<string>();
   for (const edge of definition.edges) {
     const sourceNode = definition.nodes.find((n) => n.id === edge.source);
     const targetIsEnd = edge.target === endNode.id;
@@ -142,28 +99,7 @@ export async function runWorkflow(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const targetNodeId: any = targetIsEnd ? END : edge.target;
 
-    if (sourceNode.type === 'condition') {
-      if (processedConditions.has(sourceNode.id)) continue;
-      processedConditions.add(sourceNode.id);
-      // Conditional edges: find both true/false outgoing edges
-      const outEdges: WorkflowEdge[] = edgeMap.get(sourceNode.id) ?? [];
-      if (outEdges.length >= 2) {
-        const trueTarget = outEdges.find((e) => e.sourceHandle === 'true')?.target;
-        const falseTarget = outEdges.find((e) => e.sourceHandle === 'false')?.target;
-        if (trueTarget && falseTarget) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const trueNodeId: any = trueTarget === endNode.id ? END : trueTarget;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const falseNodeId: any = falseTarget === endNode.id ? END : falseTarget;
-          graph.addConditionalEdges(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            sourceNode.id as any,
-            (state: WorkflowState) => evaluateCondition(sourceNode.data, state),
-            { true: trueNodeId, false: falseNodeId },
-          );
-        }
-      }
-    } else if (sourceNode.type !== 'end') {
+    if (sourceNode.type !== 'end') {
       const outEdges: WorkflowEdge[] = edgeMap.get(edge.source) ?? [];
       if (outEdges.length === 1) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,20 +115,12 @@ export async function runWorkflow(
     const initialState: Partial<WorkflowState> = { prompt: task.prompt };
     await compiled.invoke(initialState, {
       configurable: { runCtx: ctx },
-      recursionLimit: 50,
       signal: ctx.signal,
       timeout: ctx.timeoutMs,
     });
-    return {
-      status: 'succeeded',
-      plan: null,
-    };
+    return { status: 'succeeded', plan: null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return {
-      status: 'failed',
-      plan: null,
-      reason: msg,
-    };
+    return { status: 'failed', plan: null, reason: msg };
   }
 }

@@ -10,7 +10,7 @@ import {
 
 const nodeSchema = z.object({
   id: z.string(),
-  type: z.enum(['start', 'end', 'agent', 'condition', 'approval']),
+  type: z.enum(['start', 'end', 'agent', 'approval']),
   position: z.object({ x: z.number(), y: z.number() }),
   data: z.record(z.unknown()),
 });

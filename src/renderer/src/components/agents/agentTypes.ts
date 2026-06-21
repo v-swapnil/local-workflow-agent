@@ -1,3 +1,5 @@
+import { AGENT_KIND, type AgentKind } from '@shared/constants';
+
 export interface AgentFormState {
   id?: string;
   name: string;
@@ -6,6 +8,7 @@ export interface AgentFormState {
   tools: string[];
   temperature: number;
   description: string;
+  kind: AgentKind;
 }
 
 export const BLANK: AgentFormState = {
@@ -15,4 +18,5 @@ export const BLANK: AgentFormState = {
   tools: [],
   temperature: 0.2,
   description: '',
+  kind: AGENT_KIND.PLANNER_EXECUTOR,
 };

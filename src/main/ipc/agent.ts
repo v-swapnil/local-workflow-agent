@@ -10,6 +10,7 @@ const agentSchema = z.object({
   tools: z.string().nullable().optional(),
   temperature: z.number().min(0).max(2),
   description: z.string().optional(),
+  kind: z.enum(['planner+executor', 'executor', 'planner']).optional(),
 });
 
 export const agentRouter = router({

@@ -1,4 +1,4 @@
-import { Bot, GitBranch, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Bot, ShieldCheck, type LucideIcon } from 'lucide-react';
 
 const PALETTE_NODES: {
   type: string;
@@ -7,12 +7,6 @@ const PALETTE_NODES: {
   color: string;
 }[] = [
   { type: 'agent', label: 'Agent', icon: Bot, color: 'text-amber-400 border-amber-700/50' },
-  {
-    type: 'condition',
-    label: 'Condition',
-    icon: GitBranch,
-    color: 'text-purple-400 border-purple-700/50',
-  },
   {
     type: 'approval',
     label: 'Approval',

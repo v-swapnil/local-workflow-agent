@@ -11,7 +11,6 @@ import { Input } from '../components/ui/input';
 import { Slider } from '../components/ui/slider';
 
 export function Settings() {
-  const health = trpc.health.useQuery();
   const utils = trpc.useUtils();
   const theme = useUI((s) => s.theme);
   const setThemeLocal = useUI((s) => s.setTheme);
@@ -23,7 +22,6 @@ export function Settings() {
   const setTextSize = trpc.settings.setTextSize.useMutation({
     onSuccess: () => utils.settings.textSize.invalidate(),
   });
-  const openLogs = trpc.settings.openLogsFolder.useMutation();
   const autoApprove = trpc.approval.autoApprove.useQuery();
   const setAuto = trpc.approval.setAutoApprove.useMutation({
     onSuccess: () => utils.approval.autoApprove.invalidate(),
@@ -36,16 +34,9 @@ export function Settings() {
   const setUseWorktrees = trpc.settings.setUseWorktrees.useMutation({
     onSuccess: () => utils.settings.useWorktrees.invalidate(),
   });
-  const activeProvider = trpc.llm.activeProvider.useQuery();
   const shellPath = trpc.settings.shellPath.useQuery();
   const resolvedShell = trpc.settings.resolvedShell.useQuery();
   const setShellPath = trpc.settings.setShellPath.useMutation({
-    onSuccess: () => {
-      utils.settings.shellPath.invalidate();
-      utils.settings.resolvedShell.invalidate();
-    },
-  });
-  const resetShellPath = trpc.settings.resetShellPath.useMutation({
     onSuccess: () => {
       utils.settings.shellPath.invalidate();
       utils.settings.resolvedShell.invalidate();
@@ -218,15 +209,6 @@ export function Settings() {
                   >
                     save
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!shellConfigured || resetShellPath.isPending}
-                    onClick={() => resetShellPath.mutate()}
-                  >
-                    reset
-                  </Button>
                 </div>
               </div>
               <div className="font-mono text-ui-xs leading-relaxed text-ink-500">
@@ -372,18 +354,6 @@ export function Settings() {
               </SettingCard>
             </div>
           </div>
-
-          <div className="mt-8">
-            <SectionTitle index="07" title="System" />
-            <Rows
-              rows={[
-                ['app.version', health.data?.app.version ?? '...'],
-                ['provider', activeProvider.data ?? '...'],
-                ['db.path', health.data?.db.path ?? '...'],
-                ['logs.path', openLogs.data?.path ?? '...'],
-              ]}
-            />
-          </div>
         </section>
       </div>
     </PageShell>
@@ -446,22 +416,6 @@ function SectionTitle({ index, title }: { index: string; title: string }) {
       <h2 className="font-mono text-ui-base font-medium uppercase tracking-widest2 text-ink-100">
         {title}
       </h2>
-    </div>
-  );
-}
-
-function Rows({ rows }: { rows: [string, string][] }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-ink-800/40 bg-ink-900/15">
-      {rows.map(([k, v], i) => (
-        <div
-          key={k}
-          className={`grid grid-cols-[140px_1fr] gap-4 px-4 py-2.5 ${i ? 'border-t border-ink-800/30' : ''}`}
-        >
-          <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">{k}</div>
-          <div className="truncate font-mono text-ui-xs text-ink-200">{v}</div>
-        </div>
-      ))}
     </div>
   );
 }

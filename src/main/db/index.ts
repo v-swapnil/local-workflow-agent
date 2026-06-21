@@ -188,6 +188,8 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   } catch { /* no rows to convert */ }
   // Cleanup: remove dead event types
   try { _sqlite.exec(`DELETE FROM task_events WHERE type IN ('task.iteration', 'task.retry', 'llm.call')`); } catch { /* ignore */ }
+  // Additive migration: agent kind (planner+executor | executor | planner)
+  try { _sqlite.exec(`ALTER TABLE agents ADD COLUMN kind TEXT NOT NULL DEFAULT 'planner+executor'`); } catch { /* exists */ }
   // Additive migration: rename plan_json → plan on tasks
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN plan_json TO plan`); } catch { /* already renamed or doesn't exist */ }
   try { _sqlite.exec(`ALTER TABLE tasks RENAME COLUMN result_json TO result`); } catch { /* ignore */ }

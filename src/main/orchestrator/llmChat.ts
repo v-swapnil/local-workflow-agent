@@ -1,24 +1,25 @@
 import { getProvider } from '../services/llm/index.js';
 import { PROVIDERS } from '@shared/constants';
 import { listToolsForLLM } from '../services/tools/registry.js';
-import { emitMessageDelta, emitThinkingDelta } from './eventEmitter.js';
 import type { ChatMessage, ChatToolDef, ToolCall } from '../services/llm/provider.js';
 import type { RunCtx } from './runCtx.js';
 import { getSetting, SETTING_KEYS } from '@main/services/settings.js';
 import { ProviderId } from '@shared/types.js';
 
 export interface ToolCallResponse {
+  done: false;
   toolCalls: ToolCall[];
   /** Text content of the assistant message (may be empty string). */
   text: string;
-  done: false;
+  thinking?: string;
 }
 
 export interface DoneResponse {
-  toolCalls?: undefined;
   done: true;
+  toolCalls?: undefined;
   /** Text content from the final LLM response (used by planner to extract the plan). */
   text: string;
+  thinking?: string;
 }
 
 /**
@@ -44,13 +45,17 @@ export async function llmChat(
     signal: ctx.signal,
     messages,
     tools,
-    onDelta: (d) => emitMessageDelta(ctx.taskId, agent, d),
-    onThinkingDelta: (d) => emitThinkingDelta(ctx.taskId, agent, d),
+    timeout: ctx.timeoutMs,
   });
 
   if (result.toolCalls?.length) {
-    return { toolCalls: result.toolCalls, text: result.content, done: false };
+    return {
+      done: false,
+      toolCalls: result.toolCalls,
+      text: result.content,
+      thinking: result.thinking,
+    };
   }
 
-  return { done: true, text: result.content };
+  return { done: true, text: result.content, thinking: result.thinking };
 }

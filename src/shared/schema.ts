@@ -1,4 +1,5 @@
 import { ToolName } from './agent';
+import type { AgentKind } from './constants';
 
 export interface WorkspaceRecord {
   id: string;
@@ -111,6 +112,7 @@ export interface AgentRecord {
   tools: string | null;
   temperature: number;
   description: string | null;
+  kind: AgentKind;
 }
 
 export type TaskEventRecord =

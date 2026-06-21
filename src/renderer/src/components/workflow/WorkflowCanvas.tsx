@@ -12,7 +12,7 @@ import {
   type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { AgentNode, ConditionNode, ApprovalNode, StartNode, EndNode } from './nodes/WorkflowNodes';
+import { AgentNode, ApprovalNode, StartNode, EndNode } from './nodes/WorkflowNodes';
 import { NodePalette } from './NodePalette';
 import { WorkflowEditorProvider } from './WorkflowEditorContext';
 import { trpc } from '@renderer/trpc';
@@ -20,7 +20,6 @@ import { type WorkflowDefinition } from '@main/services/workflows';
 
 const nodeTypes = {
   agent: AgentNode,
-  condition: ConditionNode,
   approval: ApprovalNode,
   start: StartNode,
   end: EndNode,
