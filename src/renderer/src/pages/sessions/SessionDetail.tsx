@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { trpc } from '../../trpc';
 import { cn } from '../../lib/utils';
 import { TaskView } from './TaskView';
+import { SessionChanges } from './SessionChanges';
 import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
 import { Button } from '../../components/ui/button';
 import { Separator } from '../../components/ui/separator';
@@ -90,6 +91,16 @@ export function SessionDetail({
 
       {/* Divider */}
       <Separator className="mb-4 shrink-0 bg-ink-800/60" />
+
+      {/* Session-level file changes */}
+      {session.data?.workspaceId && (
+        <div className="mb-4 shrink-0">
+          <SessionChanges
+            workspaceId={session.data.workspaceId}
+            worktreeId={worktree.data?.id}
+          />
+        </div>
+      )}
 
       {/* Task view */}
       <div className="min-h-0 flex-1 overflow-hidden">

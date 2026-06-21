@@ -1,4 +1,4 @@
-import { cn } from '../../lib/utils';
+import { cn, relativeTime } from '../../lib/utils';
 import { trpc } from '../../trpc';
 import { Button } from '../../components/ui/button';
 import { ChevronRight, X } from 'lucide-react';
@@ -78,13 +78,15 @@ export function SessionTreeNode({
             )}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 font-mono text-ui-2xs text-ink-500">
-            <span>
-              {new Date(session.updatedAt).toLocaleString([], {
+            <span
+              title={new Date(session.updatedAt).toLocaleString([], {
                 month: 'short',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
               })}
+            >
+              {relativeTime(session.updatedAt)}
             </span>
             {taskCount > 0 && (
               <>

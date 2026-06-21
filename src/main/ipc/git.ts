@@ -3,6 +3,7 @@ import { router, publicProcedure } from './trpc.js';
 import {
   workspaceStatusAtPath,
   workspaceDiffAtPath,
+  workspaceChangeStatsAtPath,
   showFileAtHeadAtPath,
   fileDiffAtPath,
   currentBranch,
@@ -45,6 +46,11 @@ export const gitRouter = router({
         await resolveGitPath(input.workspaceId, input.worktreeId),
         !!input.staged,
       ),
+    ),
+  changeStats: publicProcedure
+    .input(workspaceIn)
+    .query(async ({ input }) =>
+      workspaceChangeStatsAtPath(await resolveGitPath(input.workspaceId, input.worktreeId)),
     ),
   showFileAtHead: publicProcedure
     .input(workspaceIn.extend({ path: z.string().min(1) }))

@@ -10,7 +10,9 @@ export {
   showFileAtHeadAtPath,
   fileDiff,
   fileDiffAtPath,
+  workspaceChangeStatsAtPath,
 } from './gitDiff.js';
+export type { GitFileStat } from './gitDiff.js';
 export {
   createBranch,
   commitAll,

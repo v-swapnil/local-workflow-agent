@@ -1,7 +1,24 @@
-const PALETTE_NODES = [
-  { type: 'agent', label: 'Agent', color: 'text-amber-400 border-amber-700/50' },
-  { type: 'condition', label: 'Condition', color: 'text-purple-400 border-purple-700/50' },
-  { type: 'approval', label: 'Approval', color: 'text-signal-warn border-signal-warn/50' },
+import { Bot, GitBranch, ShieldCheck, type LucideIcon } from 'lucide-react';
+
+const PALETTE_NODES: {
+  type: string;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}[] = [
+  { type: 'agent', label: 'Agent', icon: Bot, color: 'text-amber-400 border-amber-700/50' },
+  {
+    type: 'condition',
+    label: 'Condition',
+    icon: GitBranch,
+    color: 'text-purple-400 border-purple-700/50',
+  },
+  {
+    type: 'approval',
+    label: 'Approval',
+    icon: ShieldCheck,
+    color: 'text-signal-warn border-signal-warn/50',
+  },
 ];
 
 export function NodePalette() {
@@ -11,25 +28,24 @@ export function NodePalette() {
   }
 
   return (
-    <aside className="flex w-36 shrink-0 flex-col border-r border-ink-800 bg-ink-950 p-3">
-      <div className="mb-3 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+    <div className="w-40 rounded-md border border-ink-800 bg-ink-950/90 p-2 shadow-lg backdrop-blur-sm">
+      <div className="mb-2 px-1 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
         palette
       </div>
-      <div className="flex flex-col gap-2">
-        {PALETTE_NODES.map(({ type, label, color }) => (
+      <div className="flex flex-col gap-1.5">
+        {PALETTE_NODES.map(({ type, label, icon: Icon, color }) => (
           <div
             key={type}
             draggable
             onDragStart={(e) => onDragStart(e, type)}
-            className={`cursor-grab rounded border px-3 py-2 font-mono text-ui-xs font-medium select-none ${color} bg-ink-900 hover:bg-ink-800 active:cursor-grabbing`}
+            className={`flex cursor-grab items-center gap-2 rounded border px-2.5 py-1.5 font-mono text-ui-xs font-medium select-none ${color} bg-ink-900 transition-colors hover:bg-ink-800 active:cursor-grabbing`}
           >
+            <Icon className="size-3.5 shrink-0" />
             {label}
           </div>
         ))}
       </div>
-      <div className="mt-4 font-mono text-ui-xs text-ink-600">
-        drag onto canvas
-      </div>
-    </aside>
+      <div className="mt-2 px-1 font-mono text-ui-2xs text-ink-600">drag onto canvas</div>
+    </div>
   );
 }

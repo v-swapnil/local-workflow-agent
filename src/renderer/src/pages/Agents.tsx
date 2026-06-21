@@ -67,6 +67,10 @@ export function Agents() {
         selected={selected}
         onSelect={selectAgent}
         onNew={newAgent}
+        onDelete={(id) => {
+          const a = agents.find((x) => x.id === id);
+          if (confirm(`Delete agent "${a?.name ?? id}"?`)) del.mutate({ id });
+        }}
       />
       <AgentFormPanel
         form={form}

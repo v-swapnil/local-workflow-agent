@@ -1,20 +1,20 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import {
   ReactFlow,
   addEdge,
   Background,
   Controls,
+  Panel,
   useNodesState,
   useEdgesState,
   type Node,
   type Edge,
   type Connection,
-  type OnSelectionChangeParams,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AgentNode, ConditionNode, ApprovalNode, StartNode, EndNode } from './nodes/WorkflowNodes';
 import { NodePalette } from './NodePalette';
-import { PropertiesPanel } from './PropertiesPanel';
+import { WorkflowEditorProvider } from './WorkflowEditorContext';
 import { trpc } from '@renderer/trpc';
 import { type WorkflowDefinition } from '@main/services/workflows';
 
@@ -60,8 +60,6 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
   const notifyChange = useCallback(
     (ns: Node[], es: Edge[]) => {
@@ -98,10 +96,33 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
     [setEdges, notifyChange, nodes],
   );
 
-  const onSelectionChange = useCallback(({ nodes: ns, edges: es }: OnSelectionChangeParams) => {
-    setSelectedNode(ns[0] ?? null);
-    setSelectedEdge(es[0] ?? null);
-  }, []);
+  const updateNodeData = useCallback(
+    (nodeId: string, patch: Record<string, unknown>) => {
+      setNodes((ns) => {
+        const next = ns.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...patch } } : n));
+        notifyChange(next, edges);
+        return next;
+      });
+    },
+    [setNodes, edges, notifyChange],
+  );
+
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      const target = nodes.find((n) => n.id === nodeId);
+      if (target && (target.type === 'start' || target.type === 'end')) return;
+      setNodes((ns) => {
+        const next = ns.filter((n) => n.id !== nodeId);
+        setEdges((es) => {
+          const filteredEdges = es.filter((e) => e.source !== nodeId && e.target !== nodeId);
+          notifyChange(next, filteredEdges);
+          return filteredEdges;
+        });
+        return next;
+      });
+    },
+    [nodes, setNodes, setEdges, notifyChange],
+  );
 
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -126,47 +147,9 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  function updateSelectedNodeData(patch: Record<string, unknown>) {
-    if (!selectedNode) return;
-    setNodes((ns) => {
-      const next = ns.map((n) =>
-        n.id === selectedNode.id ? { ...n, data: { ...n.data, ...patch } } : n,
-      );
-      notifyChange(next, edges);
-      return next;
-    });
-    setSelectedNode((n) => (n ? { ...n, data: { ...n.data, ...patch } } : n));
-  }
-
-  function deleteSelected() {
-    if (selectedNode) {
-      if (selectedNode.type === 'start' || selectedNode.type === 'end') return;
-      setNodes((ns) => {
-        const next = ns.filter((n) => n.id !== selectedNode.id);
-        setEdges((es) => {
-          const filteredEdges = es.filter(
-            (e) => e.source !== selectedNode.id && e.target !== selectedNode.id,
-          );
-          notifyChange(next, filteredEdges);
-          return filteredEdges;
-        });
-        return next;
-      });
-      setSelectedNode(null);
-    } else if (selectedEdge) {
-      setEdges((es) => {
-        const next = es.filter((e) => e.id !== selectedEdge.id);
-        notifyChange(nodes, next);
-        return next;
-      });
-      setSelectedEdge(null);
-    }
-  }
-
   return (
-    <div className="flex h-full min-h-0">
-      <NodePalette />
-      <div className="relative flex-1" onDrop={onDrop} onDragOver={onDragOver}>
+    <WorkflowEditorProvider value={{ agents, updateNodeData, deleteNode }}>
+      <div className="relative h-full min-h-0" onDrop={onDrop} onDragOver={onDragOver}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -178,22 +161,17 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
           }}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onSelectionChange={onSelectionChange}
           fitView
           className="bg-ink-950"
           colorMode={savedTheme.data === 'light' ? 'light' : 'dark'}
         >
+          <Panel position="top-left">
+            <NodePalette />
+          </Panel>
           <Background color="#27272a" gap={20} />
           <Controls className="border-ink-700 bg-ink-900 text-ink-300" />
         </ReactFlow>
       </div>
-      <PropertiesPanel
-        selectedNode={selectedNode}
-        selectedEdge={selectedEdge}
-        agents={agents}
-        onUpdateNode={updateSelectedNodeData}
-        onDelete={deleteSelected}
-      />
-    </div>
+    </WorkflowEditorProvider>
   );
 }

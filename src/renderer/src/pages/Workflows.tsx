@@ -2,7 +2,8 @@ import { lazy, Suspense, useState } from 'react';
 import { trpc } from '../trpc';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Plus, Network } from 'lucide-react';
+import { SidebarListItem } from '../components/ui/sidebar-list-item';
+import { Plus, Network, X } from 'lucide-react';
 import type { WorkflowDefinition } from '@main/services/workflows';
 
 // Lazy-load the heavy React Flow canvas
@@ -15,11 +16,13 @@ function WorkflowList({
   selectedId,
   onSelect,
   onNew,
+  onDelete,
 }: {
   workflows: { id: string; name: string; description?: string | null }[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onDelete: (id: string) => void;
 }) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-ink-800/60">
@@ -46,28 +49,29 @@ function WorkflowList({
             <span className="font-mono text-ui-xs text-ink-500">no workflows yet</span>
           </div>
         ) : (
-          <ul className="space-y-0.5 px-2 py-2">
+          <ul className="space-y-px px-2 py-2">
             {workflows.map((w) => (
               <li key={w.id}>
-                <Button
-                  variant="ghost"
-                  onClick={() => onSelect(w.id)}
-                  className={`relative h-auto w-full flex-col gap-0.5 rounded-md border px-3 py-2.5 text-left justify-start font-normal ${
-                    selectedId === w.id
-                      ? 'border-amber/20 bg-ink-800/60 text-ink-100 shadow-sm shadow-amber/5 hover:bg-ink-800/60'
-                      : 'border-transparent text-ink-300 hover:border-ink-700/60 hover:bg-ink-800/30 hover:text-ink-100'
-                  }`}
-                >
-                  {selectedId === w.id && (
-                    <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-amber" />
-                  )}
-                  <span className="truncate font-mono text-ui-sm font-medium">{w.name}</span>
-                  {w.description && (
-                    <span className="truncate font-mono text-ui-xs text-ink-500">
-                      {w.description}
-                    </span>
-                  )}
-                </Button>
+                <SidebarListItem
+                  title={w.name}
+                  isActive={selectedId === w.id}
+                  onSelect={() => onSelect(w.id)}
+                  subtitle={w.description ?? undefined}
+                  actions={
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="shrink-0 rounded p-1 text-ink-600 hover:bg-rose-950/40 hover:text-rose-400"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(w.id);
+                      }}
+                      title="Delete workflow"
+                    >
+                      <X className="h-3 w-3" strokeWidth={1.2} />
+                    </Button>
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -165,6 +169,10 @@ export function Workflows() {
         selectedId={selectedId}
         onSelect={selectWorkflow}
         onNew={newWorkflow}
+        onDelete={(id) => {
+          const w = workflows.find((x) => x.id === id);
+          if (confirm(`Delete workflow "${w?.name ?? id}"?`)) del.mutate({ id });
+        }}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
