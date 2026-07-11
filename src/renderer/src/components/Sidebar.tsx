@@ -32,16 +32,16 @@ const ICONS: Record<string, JSX.Element> = {
 };
 
 const BASE_NAV: { to: string; label: string; icon: string; hint: string }[] = [
-  { to: '/sessions', label: 'sessions', icon: 'sessions', hint: '⌘1' },
-  { to: '/board', label: 'board', icon: 'board', hint: '⌘2' },
+  { to: '/board', label: 'board', icon: 'board', hint: '⌘1' },
+  { to: '/sessions', label: 'sessions', icon: 'sessions', hint: '⌘2' },
   { to: '/changes', label: 'changes', icon: 'changes', hint: '⌘3' },
-  { to: '/worktrees', label: 'worktrees', icon: 'worktrees', hint: '' },
-  { to: '/files', label: 'files', icon: 'files', hint: '⌘4' },
-  { to: '/skills', label: 'skills', icon: 'skills', hint: '⌘5' },
-  { to: '/agents', label: 'agents', icon: 'agents', hint: '⌘6' },
-  { to: '/workflows', label: 'workflows', icon: 'workflows', hint: '' },
-  { to: '/schedules', label: 'schedules', icon: 'schedules', hint: '⌘7' },
-  { to: '/tools', label: 'tools', icon: 'tools', hint: '⌘8' },
+  { to: '/worktrees', label: 'worktrees', icon: 'worktrees', hint: '⌘4' },
+  { to: '/files', label: 'files', icon: 'files', hint: '⌘5' },
+  { to: '/skills', label: 'skills', icon: 'skills', hint: '⌘6' },
+  { to: '/agents', label: 'agents', icon: 'agents', hint: '⌘7' },
+  { to: '/workflows', label: 'workflows', icon: 'workflows', hint: '⌘8' },
+  { to: '/schedules', label: 'schedules', icon: 'schedules', hint: '' },
+  { to: '/tools', label: 'tools', icon: 'tools', hint: '⌘9' },
   { to: '/settings', label: 'settings', icon: 'settings', hint: '⌘,' },
 ];
 
@@ -52,7 +52,7 @@ export function Sidebar() {
   const nav = BASE_NAV.filter((item) => item.to !== '/worktrees' || useWorktrees.data === true);
 
   return (
-    <aside className="relative flex w-56 shrink-0 flex-col border-r border-ink-800/50 bg-ink-900/20">
+    <aside className="relative flex w-48 shrink-0 flex-col border-r border-ink-800/50 bg-ink-900/20">
       <nav className="flex flex-col gap-0.5 px-2 py-2">
         {nav.map((item, i) => (
           <NavLink

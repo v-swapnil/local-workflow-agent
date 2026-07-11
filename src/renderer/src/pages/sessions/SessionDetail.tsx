@@ -4,7 +4,6 @@ import { cn } from '../../lib/utils';
 import { TaskView } from './TaskView';
 import { SessionChanges } from './SessionChanges';
 import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
-import { Button } from '../../components/ui/button';
 import { Separator } from '../../components/ui/separator';
 import { GitBranch, BarChart3 } from 'lucide-react';
 import {
@@ -95,10 +94,7 @@ export function SessionDetail({
       {/* Session-level file changes */}
       {session.data?.workspaceId && (
         <div className="mb-4 shrink-0">
-          <SessionChanges
-            workspaceId={session.data.workspaceId}
-            worktreeId={worktree.data?.id}
-          />
+          <SessionChanges workspaceId={session.data.workspaceId} worktreeId={worktree.data?.id} />
         </div>
       )}
 

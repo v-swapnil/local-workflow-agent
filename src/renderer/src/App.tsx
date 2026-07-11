@@ -17,13 +17,14 @@ import { Worktrees } from './pages/Worktrees';
 import { Workflows } from './pages/Workflows';
 
 const NAV_ROUTES = [
-  '/sessions',
   '/board',
+  '/sessions',
   '/changes',
+  '/worktrees',
   '/files',
   '/skills',
   '/agents',
-  '/schedules',
+  '/workflows',
   '/tools',
   '/settings',
 ];
@@ -71,7 +72,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
 
-      if (e.key >= '1' && e.key <= '8') {
+      if (e.key >= '1' && e.key <= '9') {
         const idx = Number(e.key) - 1;
         const route = NAV_ROUTES[idx];
         if (!route) return;
