@@ -14,9 +14,8 @@ import {
   editFileTool,
 } from './fs.js';
 import { runShellTool } from './shell.js';
-import { gitStatusTool, gitDiffTool, gitBranchTool, gitCommitTool } from './git.js';
-import { askUserTool } from './user.js';
-import { readMemoriesTool, addMemoryTool } from './memory.js';
+import { askQuestionTool } from './user.js';
+import { createMemoryTool } from './memory.js';
 import { createTaskTool, taskCompleteTool } from './task.js';
 import {
   listSymbolsTool,
@@ -38,13 +37,8 @@ const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   grep: grepTool as Tool<unknown, unknown>,
   glob: globTool as Tool<unknown, unknown>,
   run_shell: runShellTool as Tool<unknown, unknown>,
-  git_status: gitStatusTool as Tool<unknown, unknown>,
-  git_diff: gitDiffTool as Tool<unknown, unknown>,
-  git_branch: gitBranchTool as Tool<unknown, unknown>,
-  git_commit: gitCommitTool as Tool<unknown, unknown>,
-  ask_user: askUserTool as Tool<unknown, unknown>,
-  read_memories: readMemoriesTool as Tool<unknown, unknown>,
-  add_memory: addMemoryTool as Tool<unknown, unknown>,
+  ask_question: askQuestionTool as Tool<unknown, unknown>,
+  create_memory: createMemoryTool as Tool<unknown, unknown>,
   create_task: createTaskTool as Tool<unknown, unknown>,
   task_complete: taskCompleteTool as Tool<unknown, unknown>,
   // ── codebase search ──
@@ -96,10 +90,7 @@ const READ_ONLY_TOOLS: ToolName[] = [
   'list_dir',
   'grep',
   'glob',
-  'git_status',
-  'git_diff',
-  'read_memories',
-  'ask_user',
+  'ask_question',
   // ── codebase search ──
   'list_symbols',
   'list_imports',

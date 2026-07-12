@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { requestUserInput } from '../approvals.js';
 import type { Tool } from './types.js';
 
-export const askUserTool: Tool<
+export const askQuestionTool: Tool<
   { question: string; description?: string; choices?: string[]; allowMultiple?: boolean },
   { answer: string }
 > = {
-  name: 'ask_user',
+  name: 'ask_question',
   description:
     'Ask the user a question and wait for their response.\n' +
     'Use this when you need clarification, confirmation, or additional information to proceed. ' +

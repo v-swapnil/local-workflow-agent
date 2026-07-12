@@ -56,19 +56,9 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
       const argv = Array.isArray(a.args) ? ' ' + (a.args as string[]).join(' ') : '';
       return `Running \`${truncStr(cmd + argv, 50)}\``;
     }
-    case 'git_status':
-      return 'Checking git status';
-    case 'git_diff':
-      return a.staged ? 'Getting staged diff' : 'Getting working diff';
-    case 'git_branch':
-      return `Creating branch ${truncStr(str(a.name), 40)}`;
-    case 'git_commit':
-      return `Committing: ${truncStr(str(a.message), 50)}`;
-    case 'ask_user':
+    case 'ask_question':
       return `Asking: ${truncStr(str(a.question), 50)}`;
-    case 'read_memories':
-      return 'Reading memories';
-    case 'add_memory':
+    case 'create_memory':
       return `Adding ${a.type ?? 'memory'}`;
     case 'task_complete':
       return 'Marking task complete';
@@ -114,21 +104,8 @@ export function summarizeToolResult(
       return files != null ? `${files} file(s)` : 'done';
     }
     case 'run_shell':
-    case 'git_status': {
-      const branch = o.branch ? `on ${str(o.branch)}` : '';
-      return branch || 'done';
-    }
-    case 'git_diff':
-      return typeof output === 'string'
-        ? output.length > 0
-          ? `${output.split('\n').length} lines`
-          : 'clean'
-        : 'done';
-    case 'git_branch':
-      return 'checked out';
-    case 'git_commit':
-      return o.committed === false ? 'nothing to commit' : 'committed';
-    case 'ask_user':
+      return 'done';
+    case 'ask_question':
       return 'answered';
     case 'task_complete':
       return 'complete';
