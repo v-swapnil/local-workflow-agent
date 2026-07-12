@@ -15,6 +15,7 @@ import { useUI } from './store/ui';
 import { Changes } from './pages/Changes';
 import { Worktrees } from './pages/Worktrees';
 import { Workflows } from './pages/Workflows';
+import { Notes } from './pages/notes';
 
 const NAV_ROUTES = [
   '/board',
@@ -26,6 +27,7 @@ const NAV_ROUTES = [
   '/agents',
   '/workflows',
   '/tools',
+  '/notes',
   '/settings',
 ];
 
@@ -116,6 +118,7 @@ export function App() {
             <Route path="/agents" element={<Agents />} />
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/schedules" element={<Schedules />} />
+            <Route path="/notes" element={<Notes />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>

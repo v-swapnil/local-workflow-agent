@@ -13,6 +13,7 @@ import {
   Network,
   Clock,
   Wrench,
+  NotebookPen,
   Settings,
 } from 'lucide-react';
 
@@ -28,6 +29,7 @@ const ICONS: Record<string, JSX.Element> = {
   workflows: <Network className={ICON_CLASS} strokeWidth={1.3} />,
   schedules: <Clock className={ICON_CLASS} strokeWidth={1.3} />,
   tools: <Wrench className={ICON_CLASS} strokeWidth={1.3} />,
+  notes: <NotebookPen className={ICON_CLASS} strokeWidth={1.3} />,
   settings: <Settings className={ICON_CLASS} strokeWidth={1.3} />,
 };
 
@@ -42,6 +44,7 @@ const BASE_NAV: { to: string; label: string; icon: string; hint: string }[] = [
   { to: '/workflows', label: 'workflows', icon: 'workflows', hint: '⌘8' },
   { to: '/schedules', label: 'schedules', icon: 'schedules', hint: '' },
   { to: '/tools', label: 'tools', icon: 'tools', hint: '⌘9' },
+  { to: '/notes', label: 'notes', icon: 'notes', hint: '' },
   { to: '/settings', label: 'settings', icon: 'settings', hint: '⌘,' },
 ];
 

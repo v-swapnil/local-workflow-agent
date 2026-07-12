@@ -14,6 +14,7 @@ import { worktreeRouter } from './worktree.js';
 import { agentRouter } from './agent.js';
 import { workflowRouter } from './workflow.js';
 import { kanbanRouter } from './kanban.js';
+import { notesRouter } from './notes.js';
 
 export const appRouter = router({
   ping: publicProcedure
@@ -37,6 +38,7 @@ export const appRouter = router({
   agent: agentRouter,
   workflow: workflowRouter,
   kanban: kanbanRouter,
+  notes: notesRouter,
 });
 
 export type AppRouter = typeof appRouter;

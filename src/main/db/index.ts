@@ -108,6 +108,23 @@ CREATE TABLE IF NOT EXISTS worktrees (
 );
 CREATE INDEX IF NOT EXISTS idx_worktrees_ws ON worktrees(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_worktrees_session ON worktrees(session_id);
+CREATE TABLE IF NOT EXISTS note_collections (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'user',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY,
+  collection_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notes_collection ON notes(collection_id);
 `;
 
 export function initDb(): BetterSQLite3Database<typeof schema> {
@@ -274,6 +291,20 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE steps ADD COLUMN prompt TEXT`); } catch { /* exists */ }
   // Additive migration: rename output_json → result on steps if still present
   try { _sqlite.exec(`ALTER TABLE steps RENAME COLUMN output_json TO result`); } catch { /* already renamed */ }
+  // Seed default note collections (idempotent)
+  try {
+    const now = Date.now();
+    _sqlite.prepare(`
+      INSERT INTO note_collections (id, name, kind, created_at, updated_at)
+      SELECT 'col_user', 'User', 'default', ?, ?
+      WHERE NOT EXISTS (SELECT 1 FROM note_collections WHERE id = 'col_user')
+    `).run(now, now);
+    _sqlite.prepare(`
+      INSERT INTO note_collections (id, name, kind, created_at, updated_at)
+      SELECT 'col_system', 'System', 'default', ?, ?
+      WHERE NOT EXISTS (SELECT 1 FROM note_collections WHERE id = 'col_system')
+    `).run(now, now);
+  } catch { /* ignore */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

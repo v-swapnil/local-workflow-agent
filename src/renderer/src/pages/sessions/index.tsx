@@ -65,28 +65,11 @@ export function Sessions() {
   return (
     <div className="grid h-full grid-cols-[320px_1fr] gap-0 animate-fade-in">
       {/* Sidebar */}
-      <aside className="flex flex-col border-r border-ink-800/60 bg-ink-900/20">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800/40">
-          <h2 className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">Sessions</h2>
-          <Button
-            variant="outline"
-            size="xs"
-            className="flex items-center gap-1.5 font-mono hover:border-amber/30 hover:bg-amber/8 hover:text-amber"
-            disabled={!workspaceId || create.isPending}
-            onClick={() =>
-              create.mutate({
-                workspaceId: workspaceId!,
-                title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-              })
-            }
-          >
-            <Plus className="h-3 w-3" strokeWidth={1.5} />
-            new
-          </Button>
-        </div>
-
+      <aside className="flex flex-col border-r border-ink-800/60 bg-ink-900/20 group/sidebar">
         {!workspaceId && (
-          <div className="px-4 py-6 text-center font-mono text-ui-sm text-ink-500">no active workspace</div>
+          <div className="px-4 py-6 text-center font-mono text-ui-sm text-ink-500">
+            no active workspace
+          </div>
         )}
 
         <div className="flex-1 space-y-px overflow-y-auto px-2 py-2">
@@ -111,6 +94,7 @@ export function Sessions() {
               }}
             />
           ))}
+
           {sessionsQ.data?.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
               <SquarePlus className="h-8 w-8 text-ink-700" strokeWidth={1} />
@@ -118,6 +102,22 @@ export function Sessions() {
               <div className="font-mono text-ui-2xs text-ink-600">click "new" to start</div>
             </div>
           )}
+
+          <Button
+            variant="outline"
+            size="xs"
+            className="flex invisible !mt-2 group-hover/sidebar:visible items-center w-full border-dashed gap-1.5 py-4 font-mono hover:border-amber/30 hover:bg-amber/8 hover:text-amber"
+            disabled={!workspaceId || create.isPending}
+            onClick={() =>
+              create.mutate({
+                workspaceId: workspaceId!,
+                title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              })
+            }
+          >
+            <Plus className="h-3 w-3" strokeWidth={1.5} />
+            new session
+          </Button>
         </div>
       </aside>
 
