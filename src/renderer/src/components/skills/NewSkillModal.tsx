@@ -3,7 +3,6 @@ import { trpc } from '../../trpc';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type NewSkillModalProps = {
@@ -55,13 +54,11 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
   });
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="w-[520px] max-w-[90vw] border-amber/20 bg-ink-900 p-0 text-ink-50">
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="w-[520px] max-w-[90vw] border-transparent bg-ink-900 p-0 text-ink-50">
         <DialogHeader className="border-b border-ink-800/60 px-5 py-3">
-          <DialogTitle asChild>
-            <Badge variant="outline" className="w-fit border-amber/20 bg-amber/10 font-mono text-ui-2xs uppercase tracking-widest2 text-amber">
-              new skill
-            </Badge>
+          <DialogTitle className="font-mono text-ui-sm uppercase tracking-widest2 text-ink-200">
+            new skill
           </DialogTitle>
         </DialogHeader>
         <form
@@ -81,7 +78,13 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
             });
           }}
         >
-          <LabeledInput label="id (folder name)" value={id} onChange={setId} placeholder="my-skill" mono />
+          <LabeledInput
+            label="id (folder name)"
+            value={id}
+            onChange={setId}
+            placeholder="my-skill"
+            mono
+          />
           <LabeledInput label="name" value={name} onChange={setName} placeholder="My Skill" />
           <LabeledInput
             label="description"

@@ -25,13 +25,8 @@ export function NewCollectionModal({ onCreate, onClose }: NewCollectionModalProp
   }
 
   return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent className="w-[420px] max-w-[90vw] border-amber/20 bg-ink-900 text-ink-50">
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="w-[420px] max-w-[90vw] border-transparent bg-ink-900 text-ink-50">
         <DialogHeader>
           <DialogTitle className="font-mono text-ui-sm uppercase tracking-widest2 text-ink-200">
             new collection

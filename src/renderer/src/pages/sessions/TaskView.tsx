@@ -139,7 +139,6 @@ export function TaskView({ taskId }: { taskId: string }) {
       {pendingApprovals.length > 0 && pendingApprovals[0] && (
         <ApprovalModal
           req={pendingApprovals[0]}
-          remaining={pendingApprovals.length - 1}
           onDecide={(d) => {
             const aid = pendingApprovals[0]!.id;
             decide.mutate(

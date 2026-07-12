@@ -9,15 +9,13 @@ import { Dialog, DialogContent } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';
 
-export function UserInputModal({
-  req,
-  onSubmit,
-  onDismiss,
-}: {
+interface UserInputModalProps {
   req: UserInputReq;
   onSubmit: (answer: string) => void;
   onDismiss: () => void;
-}) {
+}
+
+export function UserInputModal({ req, onSubmit, onDismiss }: UserInputModalProps) {
   const hasChoices = req.choices && req.choices.length > 0;
   const isAllowMultiple = hasChoices && req.allowMultiple === true;
   const [answer, setAnswer] = useState('');
@@ -33,9 +31,12 @@ export function UserInputModal({
     });
   };
 
-  const canSubmit = mode === 'choices'
-    ? isAllowMultiple ? selected.size > 0 : answer.trim().length > 0
-    : answer.trim().length > 0;
+  const canSubmit =
+    mode === 'choices'
+      ? isAllowMultiple
+        ? selected.size > 0
+        : answer.trim().length > 0
+      : answer.trim().length > 0;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -47,22 +48,30 @@ export function UserInputModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onDismiss(); }}>
-      <DialogContent className="w-[560px] max-w-[90vw] border-sky-500/20 bg-ink-900 p-0 text-ink-50">
+    <Dialog open onOpenChange={() => onDismiss()}>
+      <DialogContent className="w-[560px] max-w-[90vw] border-transparent bg-ink-900 p-0 text-ink-50">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink-800/60 px-5 py-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-sky-500/20 bg-sky-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400">
+              <Badge
+                variant="outline"
+                className="border-sky-500/20 bg-sky-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-sky-400"
+              >
                 input requested
               </Badge>
               {isAllowMultiple && (
-                <Badge variant="outline" className="border-violet-500/20 bg-violet-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-violet-400">
+                <Badge
+                  variant="outline"
+                  className="border-violet-500/20 bg-violet-500/10 font-mono text-ui-2xs uppercase tracking-widest2 text-violet-400"
+                >
                   multi-select
                 </Badge>
               )}
             </div>
-            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">{req.question}</div>
+            <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">
+              {req.question}
+            </div>
           </div>
           <div className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-600">
             {new Date(req.ts).toLocaleTimeString([], { hour12: false })}
