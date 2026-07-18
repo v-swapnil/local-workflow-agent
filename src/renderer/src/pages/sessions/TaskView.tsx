@@ -94,11 +94,11 @@ export function TaskView({ taskId }: { taskId: string }) {
       <div className="flex min-h-0 min-w-0 flex-col flex-1">
         {/* Header bar */}
         <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <StatusPill status={status} />
+          <div className="flex items-center gap-2 justify-between w-full">
             <span className="font-mono text-ui-2xs text-ink-600 uppercase tracking-widest2">
               event stream
             </span>
+            <StatusPill status={status} />
           </div>
           <div className="flex items-center gap-1.5">
             {running && (

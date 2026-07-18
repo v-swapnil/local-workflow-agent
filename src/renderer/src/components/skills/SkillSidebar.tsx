@@ -4,7 +4,7 @@ type Skill = {
   name: string;
   description: string;
   enabled: boolean;
-  builtin: boolean;
+  source: 'user' | 'workspace';
 };
 
 type SkillSidebarProps = {
@@ -16,9 +16,6 @@ type SkillSidebarProps = {
 export function SkillSidebar({ skills, focusedName, onSelect }: SkillSidebarProps) {
   return (
     <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-      <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-        registry · {skills.length}
-      </div>
       <div className="flex-1 space-y-px overflow-y-auto pr-1">
         {skills.map((skill) => (
           <SidebarListItem
@@ -28,12 +25,13 @@ export function SkillSidebar({ skills, focusedName, onSelect }: SkillSidebarProp
             onSelect={() => onSelect(skill.name)}
             status={{ active: skill.enabled }}
             subtitle={skill.description?.trim() || undefined}
-            tags={skill.builtin ? [{ label: 'builtin' }] : undefined}
+            tags={[{ label: skill.source }]}
           />
         ))}
         {skills.length === 0 && (
           <div className="font-mono text-ui-sm text-ink-500">
-            no skills found — create one or add a folder under userData/skills
+            no skills found — add a skill folder under skills/, .claude/skills, .github/skills, or
+            userData/skills
           </div>
         )}
       </div>

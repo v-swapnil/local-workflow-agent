@@ -40,8 +40,8 @@ export function Notes() {
   const selectedNote = notesQuery.data?.find((note) => note.id === selectedNoteId) ?? null;
 
   return (
-    <PageShell path="notes" title="Notes" subtitle="Markdown notes & prompts">
-      <div className="grid h-[calc(100vh-220px)] grid-cols-[280px_1fr] gap-6">
+    <>
+      <div className="grid h-full grid-cols-[280px_1fr] gap-6">
         <NotesSidebar
           collections={collections.data ?? []}
           notes={notesQuery.data ?? []}
@@ -59,7 +59,7 @@ export function Notes() {
           }}
         />
 
-        <main className="min-h-0 min-w-0 overflow-y-auto rounded-lg border border-ink-800/60 bg-ink-900/20 p-5">
+        <section className="min-h-0 min-w-0 overflow-y-auto rounded-lg border border-ink-800/60 bg-ink-900/20 p-5">
           {selectedNote ? (
             <NoteEditor key={selectedNote.id} note={selectedNote} />
           ) : (
@@ -67,7 +67,7 @@ export function Notes() {
               select or create a note
             </div>
           )}
-        </main>
+        </section>
       </div>
 
       {showNewCollection && (
@@ -76,6 +76,6 @@ export function Notes() {
           onClose={() => setShowNewCollection(false)}
         />
       )}
-    </PageShell>
+    </>
   );
 }

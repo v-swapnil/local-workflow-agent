@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronRight, Plus, Trash2, X } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '../../components/ui/collapsible';
-import { SidebarListItem } from '../../components/ui/sidebar-list-item';
-import { cn } from '../../lib/utils';
+import { Plus, Trash2, X } from 'lucide-react';
+import { TreeNode, TreeLeaf } from '../../components/ui/tree-node';
 import type { Note, NoteCollection } from '@shared/types';
 import { Button } from '@renderer/components/ui/button';
 
@@ -44,85 +38,98 @@ export function NotesSidebar({
     return map;
   }, [notes]);
 
-  return (
-    <aside className="flex min-h-0 flex-col overflow-y-auto rounded-lg border border-ink-800/60 bg-ink-900/20 p-3">
-      <button
-        type="button"
-        onClick={onCreateCollection}
-        className="mb-3 flex items-center gap-1.5 rounded-md border border-dashed border-ink-700/60 px-2.5 py-1.5 font-mono text-ui-xs text-ink-400 transition-colors hover:border-ink-600 hover:text-ink-200"
-      >
-        <Plus className="h-3 w-3" /> new collection
-      </button>
+  const toggle = (id: string) => setCollapsedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
-      <div className="flex flex-col gap-2">
+  return (
+    <aside className="flex min-h-0 flex-col overflow-y-auto rounded-lg bg-ink-900/20 p-3 group/sidebar">
+      <div className="flex flex-col gap-1">
         {collections.map((collection) => {
           const collectionNotes = notesByCollection.get(collection.id) ?? [];
           const isOpen = !collapsedIds[collection.id];
           return (
-            <Collapsible
-              key={collection.id}
-              open={isOpen}
-              onOpenChange={(open) =>
-                setCollapsedIds((prev) => ({ ...prev, [collection.id]: !open }))
-              }
-            >
-              <div className="group/header flex items-center justify-between px-1">
-                <CollapsibleTrigger className="flex flex-1 items-center gap-1.5 py-1 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500 hover:text-ink-300">
-                  <ChevronRight
-                    className={cn('h-3 w-3 shrink-0 transition-transform', isOpen && 'rotate-90')}
-                  />
-                  <span className="truncate">{collection.name}</span>
-                  <span className="text-ink-700">({collectionNotes.length})</span>
-                </CollapsibleTrigger>
-                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => onCreateNote(collection.id)}
-                    title="new note"
-                    className="rounded p-1 text-ink-500 hover:text-ink-200"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                  {collection.kind !== 'default' && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteCollection(collection.id)}
-                      title="delete collection"
-                      className="rounded p-1 text-ink-500 hover:text-signal-err"
+            <div key={collection.id}>
+              <TreeNode
+                isActive={collectionNotes.some((note) => note.id === selectedNoteId)}
+                isExpanded={isOpen}
+                onExpandedChange={() => toggle(collection.id)}
+                onSelect={() => toggle(collection.id)}
+                content={
+                  <>
+                    <span className="truncate text-ui-sm font-medium tracking-tight text-ink-200">
+                      {collection.name}
+                    </span>
+                    <div className="mt-0.5 font-mono text-ui-2xs text-ink-500">
+                      {collectionNotes.length} note{collectionNotes.length !== 1 ? 's' : ''}
+                    </div>
+                  </>
+                }
+                actions={
+                  <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="rounded p-1 text-ink-500 hover:bg-ink-800 hover:text-ink-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCreateNote(collection.id);
+                      }}
+                      title="new note"
                     >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <CollapsibleContent className="flex flex-col gap-1 py-1 pl-4">
-                {collectionNotes.map((note) => (
-                  <SidebarListItem
-                    key={note.id}
-                    title={note.title || 'Untitled'}
-                    isActive={note.id === selectedNoteId}
-                    onSelect={() => onSelectNote(note.id)}
-                    actions={
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        className="shrink-0 rounded p-1 text-ink-600 hover:bg-rose-950/40 hover:text-rose-400"
-                        onClick={() => onDeleteNote(note.id)}
-                        title="Delete agent"
-                      >
-                        <X className="h-3 w-3" strokeWidth={1.2} />
-                      </Button>
-                    }
-                  />
-                ))}
-                {collectionNotes.length === 0 && (
-                  <div className="px-2 py-1 font-mono text-ui-2xs text-ink-600">no notes</div>
+                      <Plus className="h-3 w-3" strokeWidth={1.5} />
+                    </Button>
+                  </div>
+                }
+              >
+                {collectionNotes.length > 0 ? (
+                  collectionNotes.map((note, i) => (
+                    <TreeLeaf
+                      key={note.id}
+                      isActive={note.id === selectedNoteId}
+                      isLast={i === collectionNotes.length - 1}
+                      onSelect={() => onSelectNote(note.id)}
+                      content={
+                        <span className="min-w-0 flex-1 truncate font-mono text-ui-xs">
+                          {note.title || 'Untitled'}
+                        </span>
+                      }
+                      actions={
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="shrink-0 rounded p-1 text-ink-600 hover:bg-rose-950/40 hover:text-rose-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteNote(note.id);
+                          }}
+                          title="Delete note"
+                        >
+                          <X className="h-3 w-3" strokeWidth={1.2} />
+                        </Button>
+                      }
+                    />
+                  ))
+                ) : (
+                  <div className="relative">
+                    <div className="absolute left-0 top-[12px] h-px w-3 bg-ink-800" />
+                    <div className="absolute left-0 top-[12px] bottom-0 w-px bg-ink-950" />
+                    <div className="ml-4 py-2 font-mono text-ui-2xs text-ink-600">no notes</div>
+                  </div>
                 )}
-              </CollapsibleContent>
-            </Collapsible>
+              </TreeNode>
+            </div>
           );
         })}
       </div>
+
+      <Button
+        variant="outline"
+        size="xs"
+        className="flex invisible !mt-2 group-hover/sidebar:visible items-center w-full border-dashed gap-1.5 py-4 font-mono hover:border-amber/30 hover:bg-amber/8 hover:text-amber"
+        onClick={onCreateCollection}
+      >
+        <Plus className="h-3 w-3" strokeWidth={1.5} />
+        new collection
+      </Button>
     </aside>
   );
 }

@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { Input } from '../../components/ui/input';
-import { Badge } from '../../components/ui/badge';
 import { LexicalNoteEditor, type NoteEditorMode } from './editor/LexicalNoteEditor';
 import { useNoteAutosave } from './useNoteAutosave';
 import type { Note } from '@shared/types';
@@ -20,56 +18,9 @@ export function NoteEditor({ note }: { note: Note }) {
 
   const { isSaving } = useNoteAutosave(note.id, { title, content, tags });
 
-  const addTag = () => {
-    const value = tagInput.trim();
-    if (!value || tags.includes(value)) {
-      setTagInput('');
-      return;
-    }
-    setTags([...tags, value]);
-    setTagInput('');
-  };
-
   const toggleMode = () => {
     setMode((prevMode) => (prevMode === 'wysiwyg' ? 'markdown' : 'wysiwyg'));
   };
-
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
-  };
-
-  const noteTags = (
-    <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800/60 py-2">
-      {tags.map((tag) => (
-        <Badge
-          key={tag}
-          variant="outline"
-          className="gap-1 border-ink-700/60 font-mono text-ui-2xs text-ink-300"
-        >
-          {tag}
-          <button
-            type="button"
-            onClick={() => removeTag(tag)}
-            className="text-ink-500 hover:text-ink-200"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      ))}
-      <input
-        value={tagInput}
-        onChange={(e) => setTagInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            addTag();
-          }
-        }}
-        placeholder="+ tag"
-        className="w-20 bg-transparent font-mono text-ui-2xs text-ink-400 outline-none placeholder:text-ink-600"
-      />
-    </div>
-  );
 
   return (
     <div className="flex h-full flex-col">
@@ -89,13 +40,15 @@ export function NoteEditor({ note }: { note: Note }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          <Switch
-            checked={mode === 'markdown'}
-            onCheckedChange={toggleMode}
-            className="mt-0.5 shrink-0"
-          />
-          <Label className="flex items-center gap-1.5">
-            <div className="font-mono text-ui-sm font-medium text-ink-50">Markdown</div>
+          <Label className="flex cursor-pointer items-center gap-2 rounded-md border border-ink-700/50 px-3 py-1.5 transition-colors hover:border-ink-600">
+            <Switch
+              checked={mode === 'markdown'}
+              onCheckedChange={toggleMode}
+              aria-label="enabled"
+            />
+            <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-200">
+              markdown
+            </span>
           </Label>
         </div>
       </div>

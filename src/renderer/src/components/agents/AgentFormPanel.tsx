@@ -67,24 +67,6 @@ export function AgentFormPanel({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-y-auto px-8 py-5">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <h2 className="text-ui-lg font-medium tracking-tight text-ink-50">
-            {form.id ? 'Edit Agent' : 'New Agent'}
-          </h2>
-          {form.id && (
-            <span className="mt-0.5 block font-mono text-ui-2xs text-ink-600">{form.id}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {form.id && (
-            <Button variant="danger" size="sm" onClick={onDelete} disabled={isDeleting}>
-              delete
-            </Button>
-          )}
-        </div>
-      </div>
-
       <div className="grid grid-cols-2 gap-x-5 gap-y-4">
         {TEXT_FIELDS.map(({ key, label, placeholder }) => (
           <FormField key={key} label={label}>
@@ -126,7 +108,7 @@ export function AgentFormPanel({
         </FormField>
       </div>
 
-      <div className="mt-4">
+      <div className="grid grid-cols-2 gap-x-5 gap-y-4 mt-5">
         <FormField label="agent kind">
           <MultiSelect
             options={KIND_OPTIONS}
@@ -135,23 +117,14 @@ export function AgentFormPanel({
             placeholder="select nodes…"
             minSelected={1}
           />
-          <p className="mt-1 font-mono text-ui-2xs text-ink-500">
-            planner explores and creates a plan · executor carries it out · copilot ignores this
-          </p>
         </FormField>
-      </div>
-
-      <div className="mt-4">
-        <FormField label="allowed tools (empty = all)">
+        <FormField label="allowed tools">
           <MultiSelect
             options={availableTools.map((t) => ({ value: t.name, label: t.name }))}
             value={form.tools.filter(Boolean)}
             onChange={(tools) => setForm((f) => ({ ...f, tools }))}
             placeholder="all tools enabled"
           />
-          <p className="mt-1 font-mono text-ui-2xs text-ink-500">
-            tool restrictions only apply to local (Ollama) provider — Copilot uses its own tool set
-          </p>
         </FormField>
       </div>
 

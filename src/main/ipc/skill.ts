@@ -4,8 +4,6 @@ import {
   listSkills,
   getSkillByName,
   setSkillEnabled,
-  createSkill,
-  deleteSkill,
   revealSkillInOS,
   syncSkills,
 } from '../services/skills';
@@ -25,25 +23,6 @@ export const skillRouter = router({
     }),
 
   refresh: publicProcedure.mutation(() => syncSkills()),
-
-  create: publicProcedure
-    .input(
-      z.object({
-        name: z.string().min(1),
-        description: z.string().min(1),
-        whenToUse: z.string().optional(),
-        tags: z.array(z.string()).optional(),
-        body: z.string().optional(),
-      }),
-    )
-    .mutation(({ input }) => createSkill(input)),
-
-  delete: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      await deleteSkill(input.name);
-      return { ok: true as const };
-    }),
 
   reveal: publicProcedure
     .input(z.object({ name: z.string().min(1) }))

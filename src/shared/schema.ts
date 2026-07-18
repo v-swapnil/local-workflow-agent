@@ -97,10 +97,10 @@ export interface SkillRecord {
   path: string; // absolute path to the skill folder
   description: string;
   whenToUse: string;
-  tags: string[];
+  allowedTools: string[];
   body: string; // markdown body (without frontmatter)
   enabled: boolean;
-  builtin: boolean;
+  source: 'user' | 'workspace'; // where the skill was discovered
   updatedAt: number;
 }
 

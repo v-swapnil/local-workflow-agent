@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Bot, ShieldCheck, Play, Square, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Input } from '../../ui/input';
 import { Textarea } from '../../ui/textarea';
 import { cn } from '@renderer/lib/utils';
 import { useWorkflowEditor } from '../WorkflowEditorContext';
@@ -182,14 +181,6 @@ export function AgentNode({ id, data, selected }: NodeProps) {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="label">
-          <Input
-            value={d.label ?? ''}
-            onChange={(e) => updateNodeData(id, { label: e.target.value })}
-            placeholder="optional label"
-            className="nodrag h-7 font-mono text-ui-xs"
-          />
-        </Field>
       </NodeShell>
       <Handle
         type="source"
@@ -218,7 +209,7 @@ export function ApprovalNode({ id, data, selected }: NodeProps) {
         title="approval"
         selected={selected}
       >
-        <Field label="question">
+        <Field label="message">
           <Textarea
             value={d.question ?? ''}
             onChange={(e) => updateNodeData(id, { question: e.target.value })}

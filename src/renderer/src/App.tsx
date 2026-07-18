@@ -13,7 +13,6 @@ import { Settings } from './pages/Settings';
 import { trpc } from './trpc';
 import { useUI } from './store/ui';
 import { Changes } from './pages/Changes';
-import { Worktrees } from './pages/Worktrees';
 import { Workflows } from './pages/Workflows';
 import { Notes } from './pages/notes';
 import { Workspace } from './pages/Workspace';
@@ -22,7 +21,6 @@ const NAV_ROUTES = [
   '/board',
   '/sessions',
   '/changes',
-  '/worktrees',
   '/files',
   '/workspace',
   '/skills',
@@ -114,7 +112,6 @@ export function App() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/board" element={<KanbanBoard />} />
             <Route path="/changes" element={<Changes />} />
-            <Route path="/worktrees" element={<Worktrees />} />
             <Route path="/files" element={<Files />} />
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/skills" element={<Skills />} />

@@ -4,13 +4,28 @@ export interface SkillFrontmatter {
   name: string;
   description: string;
   when_to_use?: string;
-  tags?: string[];
+  allowedTools?: string[];
+}
+
+function parseAllowedTools(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    const list = value.map((v) => String(v).trim()).filter(Boolean);
+    return list.length ? list : undefined;
+  }
+  if (typeof value === 'string') {
+    const list = value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return list.length ? list : undefined;
+  }
+  return undefined;
 }
 
 export function parseSkill(raw: string): { meta: SkillFrontmatter; body: string } {
   const fm = matter(raw);
-  const data = fm.data as Partial<SkillFrontmatter>;
-  if (!data || !data.name) {
+  const data = (fm.data ?? {}) as Record<string, unknown>;
+  if (!data.name) {
     throw new Error('SKILL.md frontmatter requires `name`');
   }
   if (!data.description) {
@@ -20,26 +35,10 @@ export function parseSkill(raw: string): { meta: SkillFrontmatter; body: string 
     name: String(data.name),
     description: String(data.description),
     when_to_use: data.when_to_use ? String(data.when_to_use) : undefined,
-    tags: Array.isArray(data.tags) ? data.tags.map(String) : undefined,
+    allowedTools:
+      parseAllowedTools(data['allowed-tools']) ??
+      parseAllowedTools(data.allowedTools) ??
+      parseAllowedTools(data.allowed_tools),
   };
   return { meta, body: fm.content.trim() };
-}
-
-export function renderSkillMd(input: {
-  name: string;
-  description: string;
-  whenToUse?: string;
-  tags?: string[];
-  body?: string;
-}): string {
-  const tagList = input.tags?.length ? `[${input.tags.join(', ')}]` : '[]';
-  return `---
-name: ${input.name}
-description: ${input.description}
-when_to_use: ${input.whenToUse ?? ''}
-tags: ${tagList}
----
-
-${input.body ?? `# ${input.name}\n\nWrite your skill instructions here.`}
-`;
 }

@@ -1,12 +1,13 @@
-import { app } from 'electron';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { join, basename } from 'node:path';
-import { readdir, readFile, stat, mkdir, cp } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { getDb } from '../../db/index.js';
 import { skills as skillsTable } from '../../db/schema.js';
 import { userDataDir } from '../../util/paths.js';
+import { getSetting, SETTING_KEYS } from '../settings.js';
+import { getWorkspace } from '../workspaces/index.js';
 import { logger } from '../logger.js';
 import { parseSkill } from './skillParser.js';
 import type { SkillRecord } from '@shared/schema.js';
@@ -15,49 +16,37 @@ const log = logger.child({ mod: 'skills' });
 
 export const ID_RE = /^[a-z0-9][a-z0-9-_]*$/i;
 
+type SkillSource = SkillRecord['source'];
+
 export function userSkillsDir(): string {
   return join(userDataDir(), 'skills');
 }
 
-/** Bundled skills folder. In dev: repo root /skills. In prod: resources/skills. */
-export function bundledSkillsDir(): string {
-  const candidates = [
-    join(app.getAppPath(), 'skills'),
-    join(process.resourcesPath ?? '', 'skills'),
-    join(process.cwd(), 'skills'),
+/**
+ * Directories to scan for skills, in precedence order (earlier wins on name clash).
+ * Userspace first, then the active workspace's conventional skill folders.
+ */
+async function skillSourceDirs(): Promise<{ dir: string; source: SkillSource }[]> {
+  const dirs: { dir: string; source: SkillSource }[] = [
+    { dir: userSkillsDir(), source: 'user' },
   ];
-  for (const candidate of candidates) {
-    if (candidate && existsSync(candidate)) return candidate;
+  const workspaceId = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
+  if (workspaceId) {
+    try {
+      const ws = await getWorkspace(workspaceId);
+      dirs.push(
+        { dir: join(ws.path, 'skills'), source: 'workspace' },
+        { dir: join(ws.path, '.claude', 'skills'), source: 'workspace' },
+        { dir: join(ws.path, '.github', 'skills'), source: 'workspace' },
+      );
+    } catch (err) {
+      log.warn({ err: (err as Error).message }, 'failed to resolve active workspace for skills');
+    }
   }
-  return candidates[0]!;
+  return dirs;
 }
 
-/** Copy a folder (recursive) only if dest doesn't already exist. */
-async function copyDirIfMissing(src: string, dest: string): Promise<void> {
-  if (existsSync(dest)) return;
-  await cp(src, dest, { recursive: true });
-}
-
-/** On first run, mirror bundled skills into userData so they're editable. */
-export async function ensureBundledSkills(): Promise<void> {
-  const userDir = userSkillsDir();
-  await mkdir(userDir, { recursive: true });
-  const bundled = bundledSkillsDir();
-  if (!existsSync(bundled)) {
-    log.warn({ bundled }, 'no bundled skills directory found');
-    return;
-  }
-  for (const entry of await readdir(bundled, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    if (!ID_RE.test(entry.name)) continue;
-    await copyDirIfMissing(join(bundled, entry.name), join(userDir, entry.name));
-  }
-}
-
-async function readSkillFolder(
-  absDir: string,
-  builtinIds: Set<string>,
-): Promise<SkillRecord | null> {
+async function readSkillFolder(absDir: string, source: SkillSource): Promise<SkillRecord | null> {
   const id = basename(absDir);
   if (!ID_RE.test(id)) return null;
   const skillFile = join(absDir, 'SKILL.md');
@@ -82,44 +71,45 @@ async function readSkillFolder(
     path: absDir,
     description: parsed.meta.description,
     whenToUse: parsed.meta.when_to_use ?? '',
-    tags: parsed.meta.tags ?? [],
+    allowedTools: parsed.meta.allowedTools ?? [],
     body: parsed.body,
     enabled: true,
-    builtin: builtinIds.has(id),
+    source,
     updatedAt: fileStat.mtimeMs,
   };
 }
 
 /**
- * Read all skills from disk and reconcile with the DB.
- * Preserves the user's `enabled` toggle for skills that already had a row.
+ * Discover skills from disk (userspace + active workspace) and reconcile with the DB.
+ * Skills are read-only on disk; the DB only persists the user's `enabled` toggle.
  */
 export async function syncSkills(): Promise<SkillRecord[]> {
-  await ensureBundledSkills();
-
-  const userDir = userSkillsDir();
-  const builtinIds = new Set<string>();
-  const bundled = bundledSkillsDir();
-  if (existsSync(bundled)) {
-    for (const entry of await readdir(bundled, { withFileTypes: true })) {
-      if (entry.isDirectory()) builtinIds.add(entry.name);
-    }
-  }
-
   const found: SkillRecord[] = [];
-  for (const entry of await readdir(userDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const skill = await readSkillFolder(join(userDir, entry.name), builtinIds);
-    if (skill) found.push(skill);
+  const seenNames = new Set<string>();
+  for (const { dir, source } of await skillSourceDirs()) {
+    if (!existsSync(dir)) continue;
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const skill = await readSkillFolder(join(dir, entry.name), source);
+      if (!skill) continue;
+      if (seenNames.has(skill.name)) continue; // earlier source wins
+      seenNames.add(skill.name);
+      found.push(skill);
+    }
   }
 
   const db = getDb();
   const existing = db.select().from(skillsTable).all();
   const existingByName = new Map(existing.map((row) => [row.name, row]));
-  const seenNames = new Set<string>();
+  const foundNames = new Set(found.map((skill) => skill.name));
 
   for (const skill of found) {
-    seenNames.add(skill.name);
     const prior = existingByName.get(skill.name);
     if (prior) {
       skill.enabled = prior.enabled;
@@ -127,7 +117,6 @@ export async function syncSkills(): Promise<SkillRecord[]> {
         .set({
           path: skill.path,
           description: skill.description,
-          builtin: skill.builtin,
           updatedAt: skill.updatedAt,
         })
         .where(eq(skillsTable.id, prior.id))
@@ -140,7 +129,6 @@ export async function syncSkills(): Promise<SkillRecord[]> {
           path: skill.path,
           description: skill.description,
           enabled: true,
-          builtin: skill.builtin,
           updatedAt: skill.updatedAt,
         })
         .run();
@@ -149,7 +137,7 @@ export async function syncSkills(): Promise<SkillRecord[]> {
 
   // Drop DB rows whose folders disappeared
   for (const row of existing) {
-    if (!seenNames.has(row.name)) {
+    if (!foundNames.has(row.name)) {
       db.delete(skillsTable).where(eq(skillsTable.id, row.id)).run();
     }
   }
