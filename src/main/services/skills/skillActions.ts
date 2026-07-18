@@ -14,18 +14,14 @@ export async function setSkillEnabled(name: string, enabled: boolean): Promise<v
 }
 
 export async function createSkill(input: {
-  id: string;
   name: string;
   description: string;
   whenToUse?: string;
   tags?: string[];
   body?: string;
 }): Promise<SkillRecord> {
-  if (!ID_RE.test(input.id)) {
-    throw new Error('skill id must match /^[a-z0-9][a-z0-9-_]*$/i');
-  }
-  const dir = join(userSkillsDir(), input.id);
-  if (existsSync(dir)) throw new Error(`skill folder already exists: ${input.id}`);
+  const dir = join(userSkillsDir(), input.name);
+  if (existsSync(dir)) throw new Error(`skill folder already exists: ${input.name}`);
   await mkdir(dir, { recursive: true });
   const md = renderSkillMd(input);
   await writeFile(join(dir, 'SKILL.md'), md, 'utf8');

@@ -15,6 +15,9 @@ import {
 } from '../services/workspaces';
 import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import { listWorkspaceFiles } from '@main/services/workspaces/workspaceFiles.js';
+import { listWorkspaceMemories, deleteMemory } from '../services/memories.js';
+import { grep } from '../services/grep.js';
+import { glob } from '../services/glob.js';
 
 export const workspaceRouter = router({
   list: publicProcedure.query(() => listWorkspaces()),
@@ -49,6 +52,45 @@ export const workspaceRouter = router({
     await setSetting(SETTING_KEYS.ACTIVE_WORKSPACE, input.id);
     return { ok: true };
   }),
+  memories: publicProcedure
+    .input(z.object({ workspaceId: z.string() }))
+    .query(({ input }) => listWorkspaceMemories(input.workspaceId)),
+  deleteMemory: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(({ input }) => {
+      deleteMemory(input.id);
+      return { ok: true };
+    }),
+  searchFiles: publicProcedure
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        query: z.string().min(1),
+        limit: z.number().int().min(1).max(200).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const ws = await getWorkspace(input.workspaceId);
+      return glob(ws.path, { pattern: `**/*${input.query}*`, limit: input.limit ?? 50 });
+    }),
+  searchContent: publicProcedure
+    .input(
+      z.object({
+        workspaceId: z.string(),
+        query: z.string().min(1),
+        limit: z.number().int().min(1).max(500).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const ws = await getWorkspace(input.workspaceId);
+      return grep(ws.path, {
+        pattern: input.query,
+        isRegex: false,
+        caseSensitive: false,
+        maxHits: input.limit ?? 100,
+        context: 0,
+      });
+    }),
 });
 
 export const fileRouter = router({

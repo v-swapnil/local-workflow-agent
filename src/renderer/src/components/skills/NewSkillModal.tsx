@@ -3,7 +3,7 @@ import { trpc } from '../../trpc';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type NewSkillModalProps = {
   onClose: () => void;
@@ -40,7 +40,7 @@ function LabeledInput({
 
 export function NewSkillModal({ onClose }: NewSkillModalProps) {
   const utils = trpc.useUtils();
-  const [id, setId] = useState('');
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [whenToUse, setWhenToUse] = useState('');
@@ -65,9 +65,8 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
           className="space-y-3 px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!id || !name || !description) return;
+            if (!name || !description) return;
             create.mutate({
-              id: id.trim(),
               name: name.trim(),
               description: description.trim(),
               whenToUse: whenToUse.trim() || undefined,
@@ -78,13 +77,6 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
             });
           }}
         >
-          <LabeledInput
-            label="id (folder name)"
-            value={id}
-            onChange={setId}
-            placeholder="my-skill"
-            mono
-          />
           <LabeledInput label="name" value={name} onChange={setName} placeholder="My Skill" />
           <LabeledInput
             label="description"
@@ -108,20 +100,20 @@ export function NewSkillModal({ onClose }: NewSkillModalProps) {
           {create.error && (
             <div className="font-mono text-ui-xs text-signal-err">{create.error.message}</div>
           )}
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="default"
-              size="sm"
-              disabled={!id || !name || !description || create.isPending}
-            >
-              {create.isPending ? 'creating…' : 'create'}
-            </Button>
-          </div>
         </form>
+        <DialogFooter className="flex items-center justify-end gap-2 px-5 py-4">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="default"
+            size="sm"
+            disabled={!name || !description || create.isPending}
+          >
+            {create.isPending ? 'creating…' : 'create'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

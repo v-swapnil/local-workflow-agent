@@ -16,6 +16,7 @@ import { Changes } from './pages/Changes';
 import { Worktrees } from './pages/Worktrees';
 import { Workflows } from './pages/Workflows';
 import { Notes } from './pages/notes';
+import { Workspace } from './pages/Workspace';
 
 const NAV_ROUTES = [
   '/board',
@@ -23,6 +24,7 @@ const NAV_ROUTES = [
   '/changes',
   '/worktrees',
   '/files',
+  '/workspace',
   '/skills',
   '/agents',
   '/workflows',
@@ -114,6 +116,7 @@ export function App() {
             <Route path="/changes" element={<Changes />} />
             <Route path="/worktrees" element={<Worktrees />} />
             <Route path="/files" element={<Files />} />
+            <Route path="/workspace" element={<Workspace />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/workflows" element={<Workflows />} />

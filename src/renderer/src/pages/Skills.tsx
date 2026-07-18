@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PageShell } from '../components/PageShell';
 import { trpc } from '../trpc';
 import { SkillSidebar } from '../components/skills/SkillSidebar';
@@ -15,10 +15,15 @@ export function Skills() {
   const refresh = trpc.skill.refresh.useMutation({
     onSuccess: () => utils.skill.list.invalidate(),
   });
+
+  // Auto refresh skills when the app starts, so that any new skills added on disk are picked up.
+  useEffect(() => {
+    refresh.mutate();
+  }, []);
+
   const toggle = trpc.skill.toggle.useMutation({
     onSuccess: () => utils.skill.list.invalidate(),
   });
-  const reveal = trpc.skill.reveal.useMutation();
   const remove = trpc.skill.delete.useMutation({
     onSuccess: () => {
       setSelected(null);
@@ -37,24 +42,9 @@ export function Skills() {
       title="Skills"
       subtitle="Markdown-defined capabilities the planner can attach to a task. Edit on disk; ASE re-reads on refresh."
       actions={
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refresh.mutate()}
-            disabled={refresh.isPending}
-            className="font-mono uppercase tracking-widest2"
-          >
-            {refresh.isPending ? 'syncing...' : 'refresh'}
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowNew(true)}
-          >
-            + new skill
-          </Button>
-        </div>
+        <Button variant="default" size="sm" onClick={() => setShowNew(true)}>
+          + new skill
+        </Button>
       }
     >
       <div className="grid h-[calc(100vh-220px)] grid-cols-[280px_1fr] gap-6">
@@ -69,7 +59,6 @@ export function Skills() {
             <SkillDetail
               skill={focused}
               onToggle={(enabled) => toggle.mutate({ name: focused.name, enabled })}
-              onReveal={() => reveal.mutate({ name: focused.name })}
               onDelete={() => {
                 if (confirm(`Delete skill "${focused.name}"? This removes the folder.`)) {
                   remove.mutate({ name: focused.name });

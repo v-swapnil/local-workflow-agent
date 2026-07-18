@@ -29,7 +29,6 @@ export const skillRouter = router({
   create: publicProcedure
     .input(
       z.object({
-        id: z.string().min(1),
         name: z.string().min(1),
         description: z.string().min(1),
         whenToUse: z.string().optional(),

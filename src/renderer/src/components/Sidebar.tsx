@@ -15,6 +15,7 @@ import {
   Wrench,
   NotebookPen,
   Settings,
+  LayoutPanelLeft,
 } from 'lucide-react';
 
 const ICON_CLASS = 'h-3.5 w-3.5';
@@ -24,6 +25,7 @@ const ICONS: Record<string, JSX.Element> = {
   changes: <GitCompareArrows className={ICON_CLASS} strokeWidth={1.3} />,
   worktrees: <GitFork className={ICON_CLASS} strokeWidth={1.3} />,
   files: <Code className={ICON_CLASS} strokeWidth={1.3} />,
+  workspace: <LayoutPanelLeft className={ICON_CLASS} strokeWidth={1.3} />,
   skills: <Star className={ICON_CLASS} strokeWidth={1.3} />,
   agents: <Bot className={ICON_CLASS} strokeWidth={1.3} />,
   workflows: <Network className={ICON_CLASS} strokeWidth={1.3} />,
@@ -39,6 +41,7 @@ const BASE_NAV: { to: string; label: string; icon: string; hint: string }[] = [
   { to: '/changes', label: 'changes', icon: 'changes', hint: '⌘3' },
   { to: '/worktrees', label: 'worktrees', icon: 'worktrees', hint: '⌘4' },
   { to: '/files', label: 'files', icon: 'files', hint: '⌘5' },
+  { to: '/workspace', label: 'workspace', icon: 'workspace', hint: '' },
   { to: '/skills', label: 'skills', icon: 'skills', hint: '⌘6' },
   { to: '/agents', label: 'agents', icon: 'agents', hint: '⌘7' },
   { to: '/workflows', label: 'workflows', icon: 'workflows', hint: '⌘8' },
