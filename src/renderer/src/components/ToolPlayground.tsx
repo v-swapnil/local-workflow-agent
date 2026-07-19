@@ -178,7 +178,7 @@ export function ToolPlayground() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-              args (json)
+              arguments
             </div>
             <div className="font-mono text-ui-xs text-ink-500">
               workspace · <span className="text-amber">{workspaceId ?? 'none'}</span>

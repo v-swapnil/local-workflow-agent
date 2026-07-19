@@ -122,7 +122,7 @@ export function Sessions() {
       </aside>
 
       {/* Main content */}
-      <main className="flex min-h-0 min-w-0 flex-col overflow-hidden p-5">
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden p-4">
         {sessionId ? (
           <SessionDetail
             sessionId={sessionId}
@@ -136,7 +136,7 @@ export function Sessions() {
             <div className="font-mono text-ui-xs text-ink-500">select or create a session</div>
           </div>
         )}
-      </main>
+      </section>
     </div>
   );
 }

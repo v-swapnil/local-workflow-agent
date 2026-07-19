@@ -89,11 +89,7 @@ export function Settings() {
     !!resolvedShell.data?.configuredPath && !resolvedShell.data.configuredPathExists;
 
   return (
-    <PageShell
-      path="settings"
-      title="Settings"
-      subtitle="Local configuration. All data stays on your machine."
-    >
+    <div className="mx-auto flex min-h-full flex-col p-4 animate-fade-in">
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_1fr]">
         <section>
           <SectionTitle index="01" title="LLM" />
@@ -356,7 +352,7 @@ export function Settings() {
           </div>
         </section>
       </div>
-    </PageShell>
+    </div>
   );
 }
 

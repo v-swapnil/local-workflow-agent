@@ -66,7 +66,7 @@ export function AgentFormPanel({
   const canSave = !isSaving && !!form.name && !!form.role && !!form.systemPrompt;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto px-8 py-5">
+    <div className="flex min-w-0 flex-1 flex-col overflow-y-auto p-4">
       <div className="grid grid-cols-2 gap-x-5 gap-y-4">
         {TEXT_FIELDS.map(({ key, label, placeholder }) => (
           <FormField key={key} label={label}>

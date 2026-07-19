@@ -55,10 +55,10 @@ function ChipField({ label, values }: { label: string; values: string[] }) {
 
 export function SkillDetail({ skill, onToggle }: SkillDetailProps) {
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
+    <div className="flex h-full flex-col overflow-y-auto animate-fade-in p-4">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-ui-lg font-medium tracking-tight text-ink-50">{skill.name}</span>
             <span className="rounded border border-ink-700/50 px-1.5 py-0.5 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-400">
               {skill.source}

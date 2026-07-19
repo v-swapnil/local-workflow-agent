@@ -3,12 +3,8 @@ import { ToolPlayground } from '../components/ToolPlayground';
 
 export function Tools() {
   return (
-    <PageShell
-      path="tools"
-      title="Tools"
-      subtitle="Invoke any tool the agents have access to. Useful for sanity-checking the sandbox and patch applier."
-    >
+    <div className="mx-auto flex min-h-full flex-col p-4 animate-fade-in">
       <ToolPlayground />
-    </PageShell>
+    </div>
   );
 }

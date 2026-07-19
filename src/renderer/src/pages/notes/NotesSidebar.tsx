@@ -109,11 +109,7 @@ export function NotesSidebar({
                     />
                   ))
                 ) : (
-                  <div className="relative">
-                    <div className="absolute left-0 top-[12px] h-px w-3 bg-ink-800" />
-                    <div className="absolute left-0 top-[12px] bottom-0 w-px bg-ink-950" />
-                    <div className="ml-4 py-2 font-mono text-ui-2xs text-ink-600">no notes</div>
-                  </div>
+                  <div className="ml-4 py-2 font-mono text-ui-2xs text-ink-600">no notes</div>
                 )}
               </TreeNode>
             </div>

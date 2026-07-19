@@ -15,7 +15,7 @@ export function Workspace() {
   const { workspaceId, isLoading } = useActiveWorkspace();
 
   return (
-    <section className="mx-auto flex min-h-full flex-col px-6 py-6 animate-fade-in">
+    <section className="mx-auto flex min-h-full flex-col p-4 animate-fade-in">
       {isLoading && <div className="font-mono text-ui-sm text-ink-500">loading workspace...</div>}
 
       {!isLoading && !workspaceId && (

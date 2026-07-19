@@ -119,10 +119,10 @@ export function KanbanBoard() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col p-4 animate-fade-in">
       {/* Board */}
       {view === 'list' ? (
-        <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="min-h-0 flex-1 overflow-auto">
           <div className="overflow-hidden rounded-lg border border-ink-800/50 bg-ink-900/20">
             <div className="grid grid-cols-[minmax(220px,1fr)_120px_110px_110px] gap-4 border-b border-ink-800/50 px-4 py-2.5 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
               <div>session</div>
@@ -166,7 +166,7 @@ export function KanbanBoard() {
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-x-auto p-4">
+        <div className="min-h-0 flex-1 overflow-x-auto">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}

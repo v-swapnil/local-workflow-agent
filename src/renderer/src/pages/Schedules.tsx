@@ -1,12 +1,8 @@
-import { PageShell, EmptyHint } from '../components/PageShell';
+import { EmptyHint } from '../components/PageShell';
 export function Schedules() {
   return (
-    <PageShell
-      path="schedules"
-      title="Schedules"
-      subtitle="Cron-triggered task templates that run in the background. Phase 8."
-    >
+    <div className="mx-auto flex min-h-full flex-col p-4 animate-fade-in">
       <EmptyHint>cron schedules</EmptyHint>
-    </PageShell>
+    </div>
   );
 }
