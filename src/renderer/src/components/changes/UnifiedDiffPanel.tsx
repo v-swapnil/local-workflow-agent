@@ -1,5 +1,6 @@
 import { CodeViewItem, CodeViewOptions, parsePatchFiles } from '@pierre/diffs';
 import { CodeView, CodeViewHandle } from '@pierre/diffs/react';
+import { useUI } from '@renderer/store/ui';
 import { trpc } from '@renderer/trpc';
 import { ChevronDown, Square, SquareCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -68,6 +69,7 @@ export function UnifiedDiffPanel({
   staged,
   activePath,
 }: UnifiedDiffPanelProps) {
+  const theme = useUI((s) => s.theme);
   const diff = trpc.git.diff.useQuery({ workspaceId, worktreeId, staged });
 
   const [collapsedItems, setCollapsedItems] = useState<Set<string>>(new Set());
@@ -124,12 +126,12 @@ export function UnifiedDiffPanel({
 
   const options = useMemo<CodeViewOptions<unknown>>(
     () => ({
-      theme: { dark: 'pierre-dark', light: 'pierre-light' },
+      themeType: theme === 'dark' ? 'dark' : 'light',
       stickyHeaders: true,
       diffStyle: 'split',
       overflow: 'wrap',
     }),
-    [],
+    [theme],
   );
 
   useEffect(() => {

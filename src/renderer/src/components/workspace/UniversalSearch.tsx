@@ -27,7 +27,7 @@ export function UniversalSearch({ workspaceId }: { workspaceId: string }) {
   const isLoading = mode === 'files' ? fileResults.isFetching : contentResults.isFetching;
 
   return (
-    <section className="rounded-lg border border-ink-800/60 bg-ink-900/20 p-5">
+    <section className="rounded-lg border border-ink-800/60 bg-ink-900/20 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">search</h2>
         <div className="flex items-center gap-1 rounded-md border border-ink-800/60 p-0.5">

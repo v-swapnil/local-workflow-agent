@@ -4,7 +4,6 @@ import { Sidebar } from './components/Sidebar';
 import { TitleBar } from './components/TitleBar';
 import { Sessions } from './pages/sessions';
 import { KanbanBoard } from './pages/KanbanBoard';
-import { Files } from './pages/Files';
 import { Skills } from './pages/Skills';
 import { Agents } from './pages/Agents';
 import { Schedules } from './pages/Schedules';
@@ -21,13 +20,12 @@ const NAV_ROUTES = [
   '/board',
   '/sessions',
   '/changes',
-  '/files',
   '/workspace',
+  '/notes',
   '/skills',
   '/agents',
   '/workflows',
   '/tools',
-  '/notes',
   '/settings',
 ];
 
@@ -43,9 +41,6 @@ export function App() {
     onSuccess: () => utils.settings.theme.invalidate(),
   });
   const savedTextSize = trpc.settings.textSize.useQuery();
-  const setTextSize = trpc.settings.setTextSize.useMutation({
-    onSuccess: () => utils.settings.textSize.invalidate(),
-  });
 
   useEffect(() => {
     if (!savedTheme.data) return;
@@ -112,13 +107,12 @@ export function App() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/board" element={<KanbanBoard />} />
             <Route path="/changes" element={<Changes />} />
-            <Route path="/files" element={<Files />} />
             <Route path="/workspace" element={<Workspace />} />
+            <Route path="/notes" element={<Notes />} />
             <Route path="/skills" element={<Skills />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/workflows" element={<Workflows />} />
             <Route path="/schedules" element={<Schedules />} />
-            <Route path="/notes" element={<Notes />} />
             <Route path="/tools" element={<Tools />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
