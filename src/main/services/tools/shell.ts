@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { isAbsolute, resolve } from 'node:path';
 import { runShell } from '../shell/exec.js';
 import { classifyCommand } from '../shell/safety.js';
 import { requestApproval } from '../approvals/index.js';
@@ -51,10 +50,6 @@ const shellInputSchema = z.object({
     .max(600)
     .optional()
     .describe('Timeout in seconds. Default 120 (2 min), max 600 (10 min).'),
-  workdir: z
-    .string()
-    .optional()
-    .describe('Working directory relative to workspace root. Must not escape workspace.'),
 });
 
 type ShellInput = z.infer<typeof shellInputSchema>;
@@ -66,21 +61,7 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
   needsApproval: false,
 
   run: async (input, ctx) => {
-    // 1. Resolve and validate working directory
-    let cwd = ctx.workspacePath;
-    if (input.workdir) {
-      if (isAbsolute(input.workdir) || input.workdir.includes('..')) {
-        throw new Error(
-          'workdir must be a relative path within the workspace (no ".." or absolute paths)',
-        );
-      }
-      cwd = resolve(ctx.workspacePath, input.workdir);
-      if (!cwd.startsWith(ctx.workspacePath)) {
-        throw new Error('workdir must not escape the workspace root');
-      }
-    }
-
-    // 2. Classify command safety
+    // 1. Classify command safety
     const classification = classifyCommand(input.command);
 
     // 3. Denied commands → reject immediately
@@ -107,7 +88,7 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
       const decision = await requestApproval(
         ctx.taskId,
         'run_shell',
-        { command: input.command, description: input.description, workdir: input.workdir ?? '.' },
+        { command: input.command, description: input.description },
         ctx.signal,
       );
       if (decision === 'deny') {
@@ -128,7 +109,7 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
     // 5. Execute
     return runShell({
       command: input.command,
-      cwd,
+      cwd: ctx.workspacePath,
       timeoutMs: input.timeout !== undefined ? input.timeout * 1000 : undefined,
       signal: ctx.signal,
       onLog: ctx.onLog,

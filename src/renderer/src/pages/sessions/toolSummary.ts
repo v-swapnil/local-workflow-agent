@@ -44,7 +44,7 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
     case 'grep': {
       const pat = truncStr(str(a.pattern), 30);
       const scope = a.path ? ` in ${truncPath(str(a.path))}` : '';
-      const inc = a.include ? ` (${a.include})` : '';
+      const inc = a.glob ? ` (${a.glob})` : '';
       return `Searching /${pat}/${scope}${inc}`;
     }
     case 'glob': {

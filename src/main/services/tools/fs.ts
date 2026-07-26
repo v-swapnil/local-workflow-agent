@@ -57,7 +57,7 @@ export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; 
   },
 };
 
-export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
+export const listDirTool: Tool<{ path?: string; depth?: number; limit?: number }, unknown> = {
   name: 'list_dir',
   description:
     'Return a directory tree of the workspace (or a sub-path).\n' +
@@ -65,6 +65,7 @@ export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
     'Parameters:\n' +
     '- path: subdirectory to list (default: workspace root)\n' +
     '- depth: recursion depth 1-8 (default: 4)\n' +
+    '- limit: max number of entries to return (default: 1000)\n' +
     'Tips:\n' +
     '- Use depth=1 for a quick overview of immediate children\n' +
     '- Use depth=2-3 to understand project structure without overwhelming output\n' +
@@ -72,13 +73,21 @@ export const listDirTool: Tool<{ path?: string; depth?: number }, unknown> = {
   schema: z.object({
     path: z.string().optional(),
     depth: z.number().int().min(1).max(8).optional(),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(10000)
+      .optional()
+      .describe('Max number of entries to return (default 1000).'),
   }),
   needsApproval: false,
-  run: async ({ path, depth }, ctx) => fileTree(ctx.workspaceId, path ?? '', depth ?? 4),
+  run: async ({ path, depth, limit }, ctx) =>
+    fileTree(ctx.workspaceId, path ?? '', depth ?? 4, limit ?? 1000),
 };
 
 export const grepTool: Tool<
-  { pattern: string; path?: string; include?: string; context?: number },
+  { pattern: string; path?: string; glob?: string; context?: number; limit?: number },
   GrepResult
 > = {
   name: 'grep',
@@ -89,11 +98,12 @@ export const grepTool: Tool<
     'Parameters:\n' +
     '- pattern: regex pattern to search for\n' +
     '- path: subdirectory to search in (default: workspace root)\n' +
-    '- include: file glob filter (e.g. "*.ts", "*.{ts,tsx}")\n' +
+    '- glob: file glob filter (e.g. "*.ts", "*.{ts,tsx}")\n' +
     '- context: lines before/after each match to include (default: 0)\n' +
+    '- limit: max number of matches to return (default: 500)\n' +
     'Tips:\n' +
-    '- Use include to narrow to specific file types for faster results\n' +
-    '- If results are truncated, narrow your pattern or add path/include filters\n' +
+    '- Use glob to narrow to specific file types for faster results\n' +
+    '- If results are truncated, narrow your pattern or add path/glob filters\n' +
     '- For file name search, use glob instead',
   schema: z.object({
     pattern: z.string().min(1).describe('The regex pattern to search for in file contents.'),
@@ -101,7 +111,7 @@ export const grepTool: Tool<
       .string()
       .optional()
       .describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
-    include: z.string().optional().describe('File glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
+    glob: z.string().optional().describe('File glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
     context: z
       .number()
       .int()
@@ -109,6 +119,13 @@ export const grepTool: Tool<
       .max(10)
       .optional()
       .describe('Number of context lines before and after each match (default 0).'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(5000)
+      .optional()
+      .describe('Max number of matches to return (default 500).'),
   }),
   needsApproval: false,
   run: async (args, ctx) => {
@@ -118,8 +135,9 @@ export const grepTool: Tool<
       isRegex: true,
       caseSensitive: false,
       rel: args.path,
-      include: args.include,
+      include: args.glob,
       context: args.context,
+      maxHits: args.limit,
     });
   },
 };

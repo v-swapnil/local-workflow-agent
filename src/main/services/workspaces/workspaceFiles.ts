@@ -29,13 +29,23 @@ export interface ReadFileResult {
   truncated: boolean;
 }
 
-export async function fileTree(workspaceId: string, relPath = '', depth = 4): Promise<FileNode> {
+export async function fileTree(
+  workspaceId: string,
+  relPath = '',
+  depth = 4,
+  limit = 1000,
+): Promise<FileNode> {
   const ws = await getWorkspace(workspaceId);
   const abs = relPath ? safeJoin(ws.path, relPath) : ws.path;
-  return walk(ws.path, abs, depth);
+  return walk(ws.path, abs, depth, { count: 0, limit });
 }
 
-async function walk(root: string, abs: string, depth: number): Promise<FileNode> {
+async function walk(
+  root: string,
+  abs: string,
+  depth: number,
+  budget: { count: number; limit: number },
+): Promise<FileNode> {
   const fileStat = await stat(abs);
   const rel =
     abs === root
@@ -60,9 +70,11 @@ async function walk(root: string, abs: string, depth: number): Promise<FileNode>
   const children: FileNode[] = [];
   for (const entry of entries) {
     if (IGNORED.has(entry)) continue;
+    if (budget.count >= budget.limit) break;
+    budget.count++;
     const childAbs = join(abs, entry);
     try {
-      const child = await walk(root, childAbs, depth - 1);
+      const child = await walk(root, childAbs, depth - 1, budget);
       children.push(child);
     } catch {
       /* skip unreadable */
