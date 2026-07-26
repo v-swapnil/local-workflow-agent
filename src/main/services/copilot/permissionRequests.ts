@@ -16,7 +16,7 @@ export async function resolvePermissionRequest({
   const toolName = (toolCall?.tool ?? request.kind) as ToolName;
   const decision = await requestApproval(taskId, toolName, toolCall?.arguments, signal);
 
-  if (decision === 'approve' || decision === 'approve_session') {
+  if (decision === 'approve') {
     return { kind: 'approve-once' };
   }
 

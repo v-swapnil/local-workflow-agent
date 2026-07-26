@@ -1,5 +1,4 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
-import { PROVIDERS } from '@shared/constants';
 
 export const workspaces = sqliteTable('workspaces', {
   id: text('id').primaryKey(),

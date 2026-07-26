@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { isAbsolute, resolve } from 'node:path';
 import { runShell } from '../shell/exec.js';
 import { classifyCommand } from '../shell/safety.js';
-import { requestApproval } from '../approvals.js';
+import { requestApproval } from '../approvals/index.js';
 import { logger } from '../logger.js';
 import type { Tool } from './types.js';
 import type { ShellResult } from '../shell/exec.js';

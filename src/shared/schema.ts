@@ -86,8 +86,6 @@ export interface ApprovalRequestRecord {
   taskId: string;
   tool: ToolName;
   args: unknown;
-  /** Unified diff preview for write_file / edit_file operations. */
-  diff?: string;
   createdAt: number;
 }
 
@@ -183,7 +181,7 @@ export type TaskEventRecord =
       taskId: string;
       ts: number;
       approvalId: string;
-      decision: 'approve' | 'approve_session' | 'deny';
+      decision: 'approve' | 'deny';
     }
   | {
       type: 'user_input.requested';
@@ -193,7 +191,6 @@ export type TaskEventRecord =
       question: string;
       description?: string;
       choices?: string[];
-      allowMultiple?: boolean;
     }
   | {
       type: 'user_input.responded';

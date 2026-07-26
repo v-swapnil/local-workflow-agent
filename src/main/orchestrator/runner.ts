@@ -10,7 +10,7 @@ import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
-import { clearTaskApprovals } from '../services/approvals.js';
+import { clearTaskApprovals } from '../services/approvals/index.js';
 import { createBranch } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
 import { existsSync } from 'node:fs';

@@ -13,18 +13,18 @@ import {
 import { buttonVariants } from '../../components/ui/button';
 
 interface ApprovalModalProps {
-  req: ApprovalReq;
-  onDecide: (d: 'approve' | 'approve_session' | 'deny') => void;
+  request: ApprovalReq;
+  onDecide: (d: 'approve' | 'deny') => void;
 }
 
-export function ApprovalModal({ req, onDecide }: ApprovalModalProps) {
+export function ApprovalModal({ request, onDecide }: ApprovalModalProps) {
   const argsPretty = useMemo(() => {
     try {
-      return JSON.stringify(req.args, null, 2);
+      return JSON.stringify(request.args, null, 2);
     } catch {
-      return String(req.args);
+      return String(request.args);
     }
-  }, [req.args]);
+  }, [request.args]);
 
   return (
     <AlertDialog open>

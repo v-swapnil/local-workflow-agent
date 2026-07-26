@@ -3,11 +3,11 @@ import { router, publicProcedure } from './trpc.js';
 import {
   decideApproval,
   isAutoApprove,
-  setAutoApprove,
   listPending,
   listPendingForTask,
   respondUserInput,
-} from '../services/approvals.js';
+} from '../services/approvals/index.js';
+import { setSetting, SETTING_KEYS } from '@main/services/settings.js';
 
 export const approvalRouter = router({
   pending: publicProcedure
@@ -18,7 +18,7 @@ export const approvalRouter = router({
     .input(
       z.object({
         id: z.string().min(1),
-        decision: z.enum(['approve', 'approve_session', 'deny']),
+        decision: z.enum(['approve', 'deny']),
       }),
     )
     .mutation(({ input }) => ({ ok: decideApproval(input.id, input.decision) })),
@@ -28,7 +28,7 @@ export const approvalRouter = router({
   setAutoApprove: publicProcedure
     .input(z.object({ value: z.boolean() }))
     .mutation(async ({ input }) => {
-      await setAutoApprove(input.value);
+      await setSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS, input.value ? 'true' : 'false');
       return { ok: true as const };
     }),
 

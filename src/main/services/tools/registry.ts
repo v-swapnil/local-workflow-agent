@@ -24,7 +24,7 @@ import {
   findReferencesTool,
   listExportsTool,
 } from './codesearch.js';
-import { requestApproval } from '../approvals.js';
+import { requestApproval } from '../approvals/index.js';
 import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
 
@@ -154,8 +154,12 @@ export async function invokeTool(
     const ws = await getWorkspace(opts.workspaceId);
 
     if (tool.needsApproval && opts.taskId) {
-      const diff = buildDiffPreview(name, parsed, opts.workspacePath ?? ws.path);
-      const decision = await requestApproval(opts.taskId, name, parsed, opts.signal, diff);
+      const decision = await requestApproval(
+        opts.taskId,
+        name,
+        parsed as Record<string, unknown>,
+        opts.signal,
+      );
       if (decision === 'deny') {
         return { ok: false, error: 'denied by user', durationMs: Date.now() - t0 };
       }

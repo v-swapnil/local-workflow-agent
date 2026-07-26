@@ -1,10 +1,5 @@
 import { requestUserInput } from '../approvals';
-
-interface UserInputRequest {
-  question: string;
-  choices?: string[];
-  allowFreeform?: boolean;
-}
+import { UserInputRequest } from '../approvals/types';
 
 interface UserInputResponse {
   answer: string;
@@ -20,12 +15,7 @@ export async function resolveUserInputRequest({
   request: UserInputRequest;
   signal?: AbortSignal;
 }): Promise<UserInputResponse> {
-  const answer = await requestUserInput(
-    taskId,
-    request.question,
-    { choices: request.choices },
-    signal,
-  );
+  const answer = await requestUserInput(taskId, request, signal);
 
   return { answer, wasFreeform: !request.choices?.includes(answer) };
 }

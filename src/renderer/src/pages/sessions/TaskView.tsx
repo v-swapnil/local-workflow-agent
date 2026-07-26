@@ -60,7 +60,6 @@ export function TaskView({ taskId }: { taskId: string }) {
               question: e.question,
               description: e.description,
               choices: e.choices,
-              allowMultiple: e.allowMultiple,
               ts: e.ts,
             },
           ]);
@@ -138,7 +137,7 @@ export function TaskView({ taskId }: { taskId: string }) {
 
       {pendingApprovals.length > 0 && pendingApprovals[0] && (
         <ApprovalModal
-          req={pendingApprovals[0]}
+          request={pendingApprovals[0]}
           onDecide={(d) => {
             const aid = pendingApprovals[0]!.id;
             decide.mutate(
@@ -157,7 +156,7 @@ export function TaskView({ taskId }: { taskId: string }) {
 
       {pendingUserInputs.length > 0 && pendingUserInputs[0] && (
         <UserInputModal
-          req={pendingUserInputs[0]}
+          request={pendingUserInputs[0]}
           onSubmit={(answer) => {
             const rid = pendingUserInputs[0]!.id;
             respondInput.mutate(

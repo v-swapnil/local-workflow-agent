@@ -1,11 +1,9 @@
 import { z } from 'zod';
-import { requestUserInput } from '../approvals.js';
+import { requestUserInput } from '../approvals/index.js';
 import type { Tool } from './types.js';
+import { UserInputRequest, UserInputResponse } from '../approvals/types.js';
 
-export const askQuestionTool: Tool<
-  { question: string; description?: string; choices?: string[]; allowMultiple?: boolean },
-  { answer: string }
-> = {
+export const askQuestionTool: Tool<UserInputRequest, UserInputResponse> = {
   name: 'ask_question',
   description:
     'Ask the user a question and wait for their response.\n' +
@@ -14,8 +12,7 @@ export const askQuestionTool: Tool<
     'Parameters:\n' +
     '- question: the question to ask\n' +
     '- description: additional context to help the user understand\n' +
-    '- choices: optional predefined answers to pick from\n' +
-    '- allowMultiple: allow selecting multiple choices (answer is comma-separated)',
+    '- choices: optional predefined answers to pick from\n',
   schema: z.object({
     question: z.string().min(1).describe('The question to ask the user'),
     description: z
@@ -26,24 +23,13 @@ export const askQuestionTool: Tool<
       .array(z.string())
       .optional()
       .describe('Optional list of choices for the user to pick from'),
-    allowMultiple: z
-      .boolean()
-      .optional()
-      .describe(
-        'When true and choices are provided, the user can select multiple options. The answer will be a comma-separated list of selected choices.',
-      ),
   }),
   needsApproval: false,
-  run: async ({ question, description, choices, allowMultiple }, ctx) => {
+  run: async (request, ctx) => {
     if (!ctx.taskId) {
       return { answer: '' };
     }
-    const answer = await requestUserInput(
-      ctx.taskId,
-      question,
-      { description, choices, allowMultiple },
-      ctx.signal,
-    );
+    const answer = await requestUserInput(ctx.taskId, request, ctx.signal);
     return { answer };
   },
 };

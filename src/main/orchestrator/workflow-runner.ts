@@ -1,6 +1,6 @@
 import { StateGraph, START, END } from '@langchain/langgraph';
 import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../services/workflows.js';
-import { requestApproval } from '../services/approvals.js';
+import { requestApproval } from '../services/approvals/index.js';
 import { buildGraph } from './graph.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
