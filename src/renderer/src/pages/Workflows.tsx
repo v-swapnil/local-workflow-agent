@@ -3,6 +3,7 @@ import { trpc } from '../trpc';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { SidebarListItem } from '../components/ui/sidebar-list-item';
+import { NewWorkflowModal } from '../components/workflow/NewWorkflowModal';
 import { Plus, Network, X } from 'lucide-react';
 import type { WorkflowDefinition } from '@main/services/workflows';
 
@@ -85,6 +86,7 @@ export function Workflows() {
   const [description, setDescription] = useState('');
   const [currentDef, setCurrentDef] = useState<WorkflowDefinition | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showNewModal, setShowNewModal] = useState(false);
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
     errors: string[];
@@ -97,6 +99,20 @@ export function Workflows() {
       await utils.workflow.list.invalidate();
       setSelectedId(saved.id);
       setSaveError(null);
+    },
+    onError: (err) => setSaveError(err.message),
+  });
+
+  const createWorkflow = trpc.workflow.upsert.useMutation({
+    onSuccess: async (saved) => {
+      await utils.workflow.list.invalidate();
+      setSelectedId(saved.id);
+      setName(saved.name);
+      setDescription(saved.description ?? '');
+      setCurrentDef({ nodes: saved.nodes, edges: saved.edges });
+      setSaveError(null);
+      setValidationResult(null);
+      setShowNewModal(false);
     },
     onError: (err) => setSaveError(err.message),
   });
@@ -128,12 +144,7 @@ export function Workflows() {
   }
 
   function newWorkflow() {
-    setSelectedId(null);
-    setName('new-workflow');
-    setDescription('');
-    setCurrentDef(null);
-    setSaveError(null);
-    setValidationResult(null);
+    setShowNewModal(true);
   }
 
   function save() {
@@ -224,6 +235,21 @@ export function Workflows() {
           )}
         </div>
       </div>
+
+      {showNewModal && (
+        <NewWorkflowModal
+          isPending={createWorkflow.isPending}
+          onClose={() => setShowNewModal(false)}
+          onCreate={({ name: wfName, description: wfDesc }) =>
+            createWorkflow.mutate({
+              name: wfName,
+              description: wfDesc,
+              nodes: [],
+              edges: [],
+            })
+          }
+        />
+      )}
     </div>
   );
 }

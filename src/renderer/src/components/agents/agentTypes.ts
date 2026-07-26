@@ -1,4 +1,5 @@
 import { AGENT_KIND, type AgentKind } from '@shared/constants';
+import type { AgentRecord } from '@shared/schema';
 
 export interface AgentFormState {
   id?: string;

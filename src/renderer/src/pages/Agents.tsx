@@ -2,13 +2,34 @@ import { useState } from 'react';
 import { trpc } from '../trpc';
 import { AgentList } from '../components/agents/AgentList';
 import { AgentFormPanel } from '../components/agents/AgentFormPanel';
+import { NewAgentModal } from '../components/agents/NewAgentModal';
 import { BLANK } from '../components/agents/agentTypes';
 import type { AgentFormState } from '../components/agents/agentTypes';
+import { AgentRecord } from '@shared/schema';
+
+function createAgentFormState(agent: AgentRecord): AgentFormState {
+  return {
+    id: agent.id,
+    name: agent.name,
+    role: agent.role,
+    systemPrompt: agent.systemPrompt,
+    tools: agent.tools
+      ? agent.tools
+          .split(',')
+          .map((tool) => tool.trim())
+          .filter(Boolean)
+      : [],
+    temperature: agent.temperature,
+    description: agent.description ?? '',
+    kind: agent.kind,
+  };
+}
 
 export function Agents() {
   const utils = trpc.useUtils();
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState<AgentFormState>(BLANK);
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const { data: agents = [] } = trpc.agent.list.useQuery();
   const { data: toolsList = [] } = trpc.tool.list.useQuery();
@@ -16,6 +37,14 @@ export function Agents() {
   const upsert = trpc.agent.upsert.useMutation({
     onSuccess: async () => {
       await utils.agent.list.invalidate();
+    },
+  });
+  const createAgent = trpc.agent.upsert.useMutation({
+    onSuccess: async (agent) => {
+      await utils.agent.list.invalidate();
+      setShowNewModal(false);
+      setSelected(agent.id);
+      setForm(createAgentFormState(agent));
     },
   });
   const del = trpc.agent.delete.useMutation({
@@ -27,24 +56,14 @@ export function Agents() {
   });
 
   function selectAgent(id: string) {
-    const a = agents.find((x) => x.id === id);
-    if (!a) return;
+    const agent = agents.find((candidate) => candidate.id === id);
+    if (!agent) return;
     setSelected(id);
-    setForm({
-      id: a.id,
-      name: a.name,
-      role: a.role,
-      systemPrompt: a.systemPrompt,
-      tools: a.tools ? a.tools.split(',').map((t) => t.trim()).filter(Boolean) : [],
-      temperature: a.temperature,
-      description: a.description ?? '',
-      kind: a.kind,
-    });
+    setForm(createAgentFormState(agent));
   }
 
   function newAgent() {
-    setSelected(null);
-    setForm(BLANK);
+    setShowNewModal(true);
   }
 
   function save() {
@@ -68,8 +87,8 @@ export function Agents() {
         onSelect={selectAgent}
         onNew={newAgent}
         onDelete={(id) => {
-          const a = agents.find((x) => x.id === id);
-          if (confirm(`Delete agent "${a?.name ?? id}"?`)) del.mutate({ id });
+          const agent = agents.find((candidate) => candidate.id === id);
+          if (confirm(`Delete agent "${agent?.name ?? id}"?`)) del.mutate({ id });
         }}
       />
       <AgentFormPanel
@@ -82,6 +101,22 @@ export function Agents() {
         isDeleting={del.isPending}
         saveError={upsert.error?.message}
       />
+
+      {showNewModal && (
+        <NewAgentModal
+          isPending={createAgent.isPending}
+          onClose={() => setShowNewModal(false)}
+          onCreate={({ name, role, systemPrompt }) =>
+            createAgent.mutate({
+              name,
+              role,
+              systemPrompt: systemPrompt ?? '',
+              temperature: BLANK.temperature,
+              kind: BLANK.kind,
+            })
+          }
+        />
+      )}
     </div>
   );
 }

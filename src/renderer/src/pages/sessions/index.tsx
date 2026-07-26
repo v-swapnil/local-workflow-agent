@@ -4,6 +4,7 @@ import { trpc } from '../../trpc';
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { SessionTreeNode } from './SessionTreeNode';
 import { SessionDetail } from './SessionDetail';
+import { NewSessionModal } from './NewSessionModal';
 import { Button } from '../../components/ui/button';
 import { Plus, SquarePlus, MessageCircle } from 'lucide-react';
 
@@ -18,11 +19,13 @@ export function Sessions() {
   const [sessionId, setSessionId] = useState<string | null>(searchParams.get('id'));
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const [showNewModal, setShowNewModal] = useState(false);
   const create = trpc.session.create.useMutation({
     onSuccess: async (s) => {
       await utils.session.list.invalidate();
       setSessionId(s.id);
       setExpandedSessions((prev) => new Set(prev).add(s.id));
+      setShowNewModal(false);
     },
   });
   const del = trpc.session.delete.useMutation({
@@ -108,12 +111,7 @@ export function Sessions() {
             size="xs"
             className="flex invisible !mt-2 group-hover/sidebar:visible items-center w-full border-dashed gap-1.5 py-4 font-mono hover:border-amber/30 hover:bg-amber/8 hover:text-amber"
             disabled={!workspaceId || create.isPending}
-            onClick={() =>
-              create.mutate({
-                workspaceId: workspaceId!,
-                title: `session ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-              })
-            }
+            onClick={() => setShowNewModal(true)}
           >
             <Plus className="h-3 w-3" strokeWidth={1.5} />
             new session
@@ -137,6 +135,16 @@ export function Sessions() {
           </div>
         )}
       </section>
+
+      {showNewModal && workspaceId && (
+        <NewSessionModal
+          isPending={create.isPending}
+          onClose={() => setShowNewModal(false)}
+          onCreate={({ title, context }) =>
+            create.mutate({ workspaceId, title, context })
+          }
+        />
+      )}
     </div>
   );
 }

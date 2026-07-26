@@ -7,14 +7,32 @@ import {
   renameSession,
   deleteSession,
 } from '@main/services/workspaces';
-import { listSessionMemories } from '@main/services/memories.js';
+import { addMemory, listSessionMemories } from '@main/services/memories.js';
 import { getWorktreeForSession } from '@main/services/worktrees.js';
 import { addMessage, listMessages } from '@main/services/store.js';
 
 export const sessionRouter = router({
   create: publicProcedure
-    .input(z.object({ workspaceId: z.string().min(1), title: z.string().min(1) }))
-    .mutation(async ({ input }) => createSession(input.workspaceId, input.title)),
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        title: z.string().min(1),
+        context: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const session = await createSession(input.workspaceId, input.title);
+      const context = input.context?.trim();
+      if (context) {
+        addMemory({
+          sessionId: session.id,
+          workspaceId: input.workspaceId,
+          type: 'fact',
+          content: context,
+        });
+      }
+      return session;
+    }),
 
   list: publicProcedure
     .input(z.object({ workspaceId: z.string().optional() }).optional())
