@@ -5,7 +5,7 @@ import { TaskView } from './TaskView';
 import { SessionChanges } from './SessionChanges';
 import { AdvancedOptions } from '../../components/sessions/AdvancedOptions';
 import { Separator } from '../../components/ui/separator';
-import { GitBranch, BarChart3 } from 'lucide-react';
+import { GitBranch, BarChart3, Loader2, CornerDownLeft } from 'lucide-react';
 import {
   InputGroup,
   InputGroupAddon,
@@ -123,7 +123,7 @@ export function SessionDetail({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="describe the task… (⌘↩ to submit)"
-            rows={3}
+            className="min-h-[40px] max-h-[120px]"
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                 e.preventDefault();
@@ -142,12 +142,17 @@ export function SessionDetail({
             />
             <InputGroupButton
               type="submit"
-              size="sm"
-              variant="default"
-              className="ml-auto"
+              size="icon-sm"
+              variant="ghost"
+              className="ml-auto rounded-full"
               disabled={!prompt.trim() || create.isPending}
+              aria-label="Submit task"
             >
-              {create.isPending ? 'submitting…' : 'submit'}
+              {create.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CornerDownLeft className="h-4 w-4" />
+              )}
             </InputGroupButton>
           </InputGroupAddon>
         </InputGroup>
