@@ -5,7 +5,6 @@ import {
   emitToolCallFinished,
   emitToolCallStarted,
 } from '@main/orchestrator/eventEmitter';
-import { RunCtx } from '@main/orchestrator/runCtx';
 import { ToolName } from '@shared/agent';
 import { listToolCalls } from '../store';
 

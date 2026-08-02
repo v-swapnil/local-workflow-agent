@@ -4,9 +4,8 @@ import { tmpdir } from 'node:os';
 import { nanoid } from 'nanoid';
 
 export interface TruncationResult {
-  text: string;
+  content: string;
   truncated: boolean;
-  fullOutputPath: string | null;
 }
 
 const MAX_INLINE_BYTES = 50 * 1024;
@@ -27,7 +26,7 @@ export function truncateOutput(raw: string): TruncationResult {
   const lines = raw.split('\n');
 
   if (byteSize <= MAX_INLINE_BYTES && lines.length <= MAX_INLINE_LINES) {
-    return { text: raw, truncated: false, fullOutputPath: null };
+    return { content: raw, truncated: false };
   }
 
   const fullOutputPath = saveTempOutput(raw);
@@ -45,9 +44,12 @@ export function truncateOutput(raw: string): TruncationResult {
 
   const truncated = lines.slice(startLine).join('\n');
   const keptLines = lines.length - startLine;
-  const header = `(Output truncated: showing last ${keptLines} of ${lines.length} lines. Full output: ${fullOutputPath})`;
+  const content = [
+    truncated,
+    `Output truncated: showing last ${keptLines} of ${lines.length} lines. Full output: ${fullOutputPath}`,
+  ].join('\n');
 
-  return { text: [truncated, header].join('\n'), truncated: true, fullOutputPath };
+  return { content, truncated: true };
 }
 
 export function cleanupTruncationFiles(maxAgeMs = MAX_FILE_AGE_MS): void {
@@ -61,11 +63,7 @@ export function cleanupTruncationFiles(maxAgeMs = MAX_FILE_AGE_MS): void {
         if (now - stat.mtimeMs > maxAgeMs) {
           unlinkSync(filePath);
         }
-      } catch {
-        // ignore per-file errors
-      }
+      } catch {}
     }
-  } catch {
-    // Directory may not exist yet — ignore
-  }
+  } catch {}
 }

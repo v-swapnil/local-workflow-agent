@@ -11,10 +11,12 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { buttonVariants } from '../../components/ui/button';
+import { ApprovalDecision } from '@shared/types';
+import { APPROVAL_DECISION } from '@shared/constants';
 
 interface ApprovalModalProps {
   request: ApprovalReq;
-  onDecide: (d: 'approve' | 'deny') => void;
+  onDecide: (decision: ApprovalDecision) => void;
 }
 
 export function ApprovalModal({ request, onDecide }: ApprovalModalProps) {
@@ -39,13 +41,13 @@ export function ApprovalModal({ request, onDecide }: ApprovalModalProps) {
         <AlertDialogFooter className="border-t border-ink-800/60 px-5 py-3">
           <AlertDialogCancel
             className={buttonVariants({ variant: 'danger', size: 'sm' })}
-            onClick={() => onDecide('deny')}
+            onClick={() => onDecide(APPROVAL_DECISION.DENY)}
           >
             deny
           </AlertDialogCancel>
           <AlertDialogAction
             className={buttonVariants({ size: 'sm' })}
-            onClick={() => onDecide('approve')}
+            onClick={() => onDecide(APPROVAL_DECISION.APPROVE)}
           >
             approve
           </AlertDialogAction>

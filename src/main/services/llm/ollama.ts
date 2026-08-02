@@ -145,7 +145,7 @@ function toOllamaMessage(msg: ChatMessage): {
     };
   }
   if (msg.role === 'tool') {
-    return { role: 'tool', content: msg.content, tool_name: msg.name };
+    return { role: 'tool', content: msg.content, tool_name: msg.toolName };
   }
   return { role: msg.role, content: msg.content };
 }

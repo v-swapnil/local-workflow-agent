@@ -7,7 +7,6 @@ import {
   createManagedWorkspace,
   attachExistingWorkspace,
   deleteWorkspace,
-  fileTree,
   readWorkspaceFile,
   writeWorkspaceFile,
   renameWorkspaceFile,
@@ -55,12 +54,10 @@ export const workspaceRouter = router({
   memories: publicProcedure
     .input(z.object({ workspaceId: z.string() }))
     .query(({ input }) => listWorkspaceMemories(input.workspaceId)),
-  deleteMemory: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => {
-      deleteMemory(input.id);
-      return { ok: true };
-    }),
+  deleteMemory: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
+    deleteMemory(input.id);
+    return { ok: true };
+  }),
   searchFiles: publicProcedure
     .input(
       z.object({
@@ -97,15 +94,6 @@ export const fileRouter = router({
   files: publicProcedure
     .input(z.object({ workspaceId: z.string() }))
     .query(({ input }) => listWorkspaceFiles({ workspaceId: input.workspaceId })),
-  tree: publicProcedure
-    .input(
-      z.object({
-        workspaceId: z.string(),
-        path: z.string().default(''),
-        depth: z.number().int().min(1).max(8).default(4),
-      }),
-    )
-    .query(({ input }) => fileTree(input.workspaceId, input.path, input.depth)),
   read: publicProcedure
     .input(z.object({ workspaceId: z.string(), path: z.string() }))
     .query(({ input }) => readWorkspaceFile(input.workspaceId, input.path)),

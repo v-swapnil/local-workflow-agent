@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { readFileSync, existsSync } from 'node:fs';
-import { createPatch } from 'diff';
 import { getWorkspace } from '../workspaces';
-import { safeJoin } from '../../util/safePath.js';
 import {
   readFileTool,
   writeFileTool,
@@ -25,8 +22,10 @@ import {
   listExportsTool,
 } from './codesearch.js';
 import { requestApproval } from '../approvals/index.js';
-import type { Tool, ToolName, ToolResult, ToolContext } from './types.js';
+import type { Tool, ToolName, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
+import { ToolResultV2 } from '@shared/types';
+import { APPROVAL_DECISION } from '@shared/constants';
 
 const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
   read_file: readFileTool as Tool<unknown, unknown>,
@@ -126,129 +125,55 @@ function getTool(name: ToolName): Tool<unknown, unknown> {
   return tool;
 }
 
-export interface InvokeOpts {
-  workspaceId: string;
-  /** Override the workspace path (e.g. when running in a worktree). Falls back to ws.path. */
-  workspacePath?: string;
-  /** Session ID — passed through to tools that need it (e.g. create_task). */
-  sessionId?: string;
-  /** When set, sensitive tools will require approval before execution. */
-  taskId?: string;
-  signal?: AbortSignal;
-  onLog?: ToolContext['onLog'];
-}
-
 /**
  * Validate args against the tool schema, then run.
  * Catches errors and packages them into a uniform `ToolResult`.
  */
 export async function invokeTool(
   name: ToolName,
-  rawArgs: unknown,
-  opts: InvokeOpts,
-): Promise<ToolResult> {
-  const tool = getTool(name);
-  const t0 = Date.now();
+  rawArgs: Record<string, unknown>,
+  opts: ToolContext,
+): Promise<ToolResultV2> {
+  const workspace = await getWorkspace(opts.workspaceId);
+
   try {
-    const parsed = tool.schema.parse(rawArgs);
-    const ws = await getWorkspace(opts.workspaceId);
+    const tool = getTool(name);
+    const parsed = tool.schema.parse(rawArgs) as Record<string, unknown>;
 
     if (tool.needsApproval && opts.taskId) {
-      const decision = await requestApproval(
-        opts.taskId,
-        name,
-        parsed as Record<string, unknown>,
-        opts.signal,
-      );
-      if (decision === 'deny') {
-        return { ok: false, error: 'denied by user', durationMs: Date.now() - t0 };
+      const decision = await requestApproval(opts.taskId, name, parsed, opts.signal);
+      if (decision === APPROVAL_DECISION.DENY) {
+        return {
+          status: 'cancelled',
+          content: 'Tool execution denied by user.',
+          truncated: false,
+        };
       }
     }
 
-    const ctx: ToolContext = {
+    const toolContext: ToolContext = {
       workspaceId: opts.workspaceId,
-      workspacePath: opts.workspacePath ?? ws.path,
+      workspacePath: opts.workspacePath ?? workspace.path,
       sessionId: opts.sessionId,
       taskId: opts.taskId,
       signal: opts.signal,
-      onLog: opts.onLog,
     };
-    const output = await tool.run(parsed, ctx);
-    return { ok: true, output, durationMs: Date.now() - t0 };
+    const output = await tool.run(parsed, toolContext);
+
+    return {
+      status: 'success',
+      truncated: false,
+      content: output as Record<string, unknown>,
+    };
   } catch (err) {
-    const raw =
-      err instanceof z.ZodError
-        ? `invalid args: ${err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    return { ok: false, error: addRecoveryHint(raw, name), durationMs: Date.now() - t0 };
-  }
-}
-
-function buildDiffPreview(
-  toolName: ToolName,
-  args: unknown,
-  workspacePath: string,
-): string | undefined {
-  try {
-    if (toolName === 'edit_file') {
-      const { path, oldString, newString } = args as {
-        path: string;
-        oldString: string;
-        newString: string;
-      };
-      return createPatch(
-        path,
-        oldString + (oldString.endsWith('\n') ? '' : '\n'),
-        newString + (newString.endsWith('\n') ? '' : '\n'),
-      );
+    let errorMessage = err instanceof Error ? err.message : String(err);
+    if (err instanceof z.ZodError) {
+      errorMessage = `Invalid tool args: ${err.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`;
     }
-    if (toolName === 'write_file') {
-      const { path, content } = args as { path: string; content: string };
-      const abs = safeJoin(workspacePath, path);
-      const original = existsSync(abs) ? readFileSync(abs, 'utf8') : '';
-      return createPatch(path, original, content);
-    }
-  } catch {
-    return undefined;
+    return {
+      status: 'error',
+      truncated: false,
+      content: errorMessage,
+    };
   }
-  return undefined;
 }
-
-const RECOVERY_HINTS: [string, string][] = [
-  [
-    'oldString not found in file',
-    'Use read_file to verify the current file content before retrying.',
-  ],
-  [
-    'oldString appears multiple times',
-    'Include more surrounding context lines to make the match unique.',
-  ],
-  ['ENOENT', 'Use glob or list_dir to verify the correct file path.'],
-  [
-    'file too large',
-    'Use grep to search within the file, or read_file with offset/limit for specific sections.',
-  ],
-  [
-    'failed to apply patch',
-    'File content may have changed. Use read_file to verify current state, or use edit_file for simpler changes.',
-  ],
-  [
-    'path escapes workspace',
-    'Use paths relative to the workspace root. Do not use absolute paths or "..".',
-  ],
-  [
-    'Binary file detected',
-    'Use run_shell with the "file" command to inspect, or "xxd" for a hex dump.',
-  ],
-];
-
-function addRecoveryHint(msg: string, _toolName: ToolName): string {
-  for (const [pattern, hint] of RECOVERY_HINTS) {
-    if (msg.includes(pattern)) return `${msg}\nHint: ${hint}`;
-  }
-  return msg;
-}
-
-export type { Tool, ToolName, ToolResult, ToolContext, InvokeOpts as ToolInvokeOpts };

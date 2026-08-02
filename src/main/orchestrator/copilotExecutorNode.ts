@@ -34,7 +34,7 @@ export async function copilotExecutorNode(
 
     // CopilotProvider.chat() handles the full agentic session (tools, permissions, events).
     // It returns done:true since toolCalls is always [] (SDK manages tools internally).
-    await llmChat(ctx, 'copilot', conv.getMessages(), agent?.temperature);
+    await llmChat(ctx, conv.getMessages(), agent?.temperature);
 
     emitStepFinished(ctx.taskId, stepId, true, {});
     return { history: [] };

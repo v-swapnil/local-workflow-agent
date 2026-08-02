@@ -1,49 +1,54 @@
 import { z } from 'zod';
 import {
-  fileTree,
   readWorkspaceFile,
   writeWorkspaceFile,
   getWorkspace,
   deleteWorkspacePath,
 } from '../workspaces';
-import type { ReadFileResult } from '../workspaces';
 import { safeJoin } from '../../util/safePath.js';
 import { planPatch } from '../../util/patch.js';
-import { readFileSync, existsSync } from 'node:fs';
 import { grep } from '../grep.js';
-import type { GrepResult } from '../grep.js';
-import { glob } from '../glob.js';
+import { glob, MAX_RESULTS } from '../glob.js';
 import type { Tool } from './types.js';
+import { ToolResultV2 } from '@shared/types';
+import { readSourceFile, readWorkspaceDirectory } from '../workspaces/workspaceFiles';
 
-export const readFileTool: Tool<{ path: string; offset?: number; limit?: number }, ReadFileResult> =
-  {
-    name: 'read_file',
-    description:
-      'Read a UTF-8 text file from the workspace. Returns file content with size and line metadata.\n' +
-      'Parameters:\n' +
-      '- offset: 1-based start line (default: 1)\n' +
-      '- limit: number of lines to read (default: 2000, max output: 50 KB)\n' +
-      'Tips:\n' +
-      '- Use grep to find relevant lines in large files before reading specific ranges\n' +
-      '- Call read_file in parallel when reading multiple files\n' +
-      '- Binary files (images, executables) return an error — use run_shell for those\n' +
-      '- For files >2000 lines, use offset to paginate (offset=N to continue from line N)',
-    schema: z.object({
-      path: z.string().min(1),
-      offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .optional()
-        .describe('Number of lines to read from offset (default 2000).'),
-    }),
-    needsApproval: false,
-    run: async ({ path, offset, limit }, ctx) =>
-      readWorkspaceFile(ctx.workspaceId, path, offset, limit),
-  };
+export const readFileTool: Tool<{ path: string; offset?: number; limit?: number }, ToolResultV2> = {
+  name: 'read_file',
+  description:
+    'Read a UTF-8 text file from the workspace. Returns file content with line number prefixed.\n' +
+    'Parameters:\n' +
+    '- path: file path relative to workspace root\n' +
+    '- offset: 1-based start line (default: 1)\n' +
+    '- limit: number of lines to read (default: 2000, max output: 50 KB)\n' +
+    'Tips:\n' +
+    '- Use grep to find relevant lines in large files before reading specific ranges\n' +
+    '- Call read_file in parallel when reading multiple files\n' +
+    '- Binary files (images, executables) return an error — use run_shell for those\n' +
+    '- For files >2000 lines, use offset to paginate (offset=N to continue from line N)',
+  schema: z.object({
+    path: z.string().min(1).describe('File path relative to workspace root.'),
+    offset: z.number().int().min(1).optional().describe('Start line (1-based, inclusive).'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe('Number of lines to read from offset (default 2000).'),
+  }),
+  needsApproval: false,
+  run: async ({ path, offset, limit }, ctx) => {
+    if (!ctx.workspaceId) throw new Error('read_file tool requires a workspaceId in the context');
+    const fileContent = await readWorkspaceFile(ctx.workspaceId, path, {
+      offset,
+      limit,
+      prefixLineNumber: true,
+    });
+    return { status: 'success', content: fileContent, truncated: false };
+  },
+};
 
-export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; bytes: number }> = {
+export const writeFileTool: Tool<{ path: string; content: string }, ToolResultV2> = {
   name: 'write_file',
   description:
     'Create or overwrite a UTF-8 text file in the workspace.\n' +
@@ -52,58 +57,46 @@ export const writeFileTool: Tool<{ path: string; content: string }, { ok: true; 
   schema: z.object({ path: z.string().min(1), content: z.string() }),
   needsApproval: true,
   run: async ({ path, content }, ctx) => {
+    if (!ctx.workspaceId) throw new Error('write_file tool requires a workspaceId in the context');
     await writeWorkspaceFile(ctx.workspaceId, path, content);
-    return { ok: true, bytes: Buffer.byteLength(content, 'utf8') };
+    return { status: 'success', content: 'File created successfully', truncated: false };
   },
 };
 
-export const listDirTool: Tool<{ path?: string; depth?: number; limit?: number }, unknown> = {
+export const listDirTool: Tool<{ path?: string; depth?: number }, ToolResultV2> = {
   name: 'list_dir',
   description:
     'Return a directory tree of the workspace (or a sub-path).\n' +
-    'Directories are listed first, sorted alphabetically. Ignored: .git, node_modules, .DS_Store, .next, dist, out, .turbo.\n' +
+    'Directories are listed first, sorted alphabetically.\n' +
     'Parameters:\n' +
     '- path: subdirectory to list (default: workspace root)\n' +
-    '- depth: recursion depth 1-8 (default: 4)\n' +
-    '- limit: max number of entries to return (default: 1000)\n' +
     'Tips:\n' +
-    '- Use depth=1 for a quick overview of immediate children\n' +
-    '- Use depth=2-3 to understand project structure without overwhelming output\n' +
     '- For finding specific files, use glob instead',
-  schema: z.object({
-    path: z.string().optional(),
-    depth: z.number().int().min(1).max(8).optional(),
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(10000)
-      .optional()
-      .describe('Max number of entries to return (default 1000).'),
-  }),
+  schema: z.object({ path: z.string().optional() }),
   needsApproval: false,
-  run: async ({ path, depth, limit }, ctx) =>
-    fileTree(ctx.workspaceId, path ?? '', depth ?? 4, limit ?? 1000),
+  run: async ({ path }, ctx) => {
+    if (!ctx.workspaceId) throw new Error('list_dir tool requires a workspaceId in the context');
+    const files = await readWorkspaceDirectory(ctx.workspaceId, path);
+    const content = files.map((file) => file.path).join('\n');
+    return { status: 'success', content, truncated: false };
+  },
 };
 
 export const grepTool: Tool<
-  { pattern: string; path?: string; glob?: string; context?: number; limit?: number },
-  GrepResult
+  { pattern: string; path?: string; filePattern?: string },
+  ToolResultV2
 > = {
   name: 'grep',
   description:
     'Search file contents in the workspace for a regex pattern.\n' +
-    'Returns matching lines with file paths and line numbers. Default limit: 500 matches. ' +
-    'Files >512 KB are skipped. Case-insensitive by default.\n' +
+    'Returns matching lines with file paths and line numbers. Files >512 KB are skipped. Case-insensitive by default.\n' +
     'Parameters:\n' +
     '- pattern: regex pattern to search for\n' +
     '- path: subdirectory to search in (default: workspace root)\n' +
-    '- glob: file glob filter (e.g. "*.ts", "*.{ts,tsx}")\n' +
-    '- context: lines before/after each match to include (default: 0)\n' +
-    '- limit: max number of matches to return (default: 500)\n' +
+    '- filePattern: file pattern/glob filter (e.g. "*.ts", "*.{ts,tsx}")\n' +
     'Tips:\n' +
-    '- Use glob to narrow to specific file types for faster results\n' +
-    '- If results are truncated, narrow your pattern or add path/glob filters\n' +
+    '- Use filePattern to narrow to specific file types for faster results\n' +
+    '- If results are truncated, narrow your pattern or add path/filePattern filters\n' +
     '- For file name search, use glob instead',
   schema: z.object({
     pattern: z.string().min(1).describe('The regex pattern to search for in file contents.'),
@@ -111,49 +104,38 @@ export const grepTool: Tool<
       .string()
       .optional()
       .describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
-    glob: z.string().optional().describe('File glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
-    context: z
-      .number()
-      .int()
-      .min(0)
-      .max(10)
+    filePattern: z
+      .string()
       .optional()
-      .describe('Number of context lines before and after each match (default 0).'),
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(5000)
-      .optional()
-      .describe('Max number of matches to return (default 500).'),
+      .describe('File pattern/glob to include (e.g. "*.ts", "*.{ts,tsx}").'),
   }),
   needsApproval: false,
   run: async (args, ctx) => {
+    if (!ctx.workspaceId) throw new Error('grep tool requires a workspaceId in the context');
     const ws = await getWorkspace(ctx.workspaceId);
-    return grep(ws.path, {
+    const matches = await grep(ws.path, {
       pattern: args.pattern,
       isRegex: true,
       caseSensitive: false,
-      rel: args.path,
-      include: args.glob,
-      context: args.context,
-      maxHits: args.limit,
+      path: args.path,
+      include: args.filePattern,
     });
+    return {
+      status: 'success',
+      content: matches.files.map((file) => `${file.path}\n${file.matches.join('')}`).join('\n'),
+      truncated: matches.truncated,
+    };
   },
 };
 
-export const globTool: Tool<
-  { pattern: string; path?: string; limit?: number },
-  { files: string[]; count: number; truncated: boolean }
-> = {
+export const globTool: Tool<{ pattern: string; path?: string }, ToolResultV2> = {
   name: 'glob',
   description:
     'Search for files by name pattern in the workspace.\n' +
-    'Returns matching file paths sorted by modification time (most recent first). Default limit: 100 results.\n' +
+    'Returns matching file paths sorted by modification time (most recent first).\n' +
     'Parameters:\n' +
     '- pattern: glob pattern (e.g. "**/*.ts", "src/**/*.test.*", "**/schema.*")\n' +
     '- path: subdirectory to search in (default: workspace root)\n' +
-    '- limit: max results to return (default: 100, max: 1000)\n' +
     'Tips:\n' +
     '- Use "**/" prefix to search recursively\n' +
     '- For content search within files, use grep instead',
@@ -166,25 +148,25 @@ export const globTool: Tool<
       .string()
       .optional()
       .describe('Directory to search in (relative to workspace root). Defaults to workspace root.'),
-    limit: z
-      .number()
-      .int()
-      .min(1)
-      .max(1000)
-      .optional()
-      .describe('Max results to return (default 100).'),
   }),
   needsApproval: false,
   run: async (args, ctx) => {
+    if (!ctx.workspaceId) throw new Error('glob tool requires a workspaceId in the context');
     const ws = await getWorkspace(ctx.workspaceId);
-    return glob(ws.path, { pattern: args.pattern, rel: args.path, limit: args.limit });
+    const matches = await glob(ws.path, args);
+    const content = matches.files;
+    if (matches.truncated) {
+      content.push(
+        `Found ${matches.count} files matching pattern. Showing the ${MAX_RESULTS} most recent results. Use more specific pattern or path to narrow results.`,
+      );
+    } else if (matches.count === 0) {
+      content.push(`No files found.`);
+    }
+    return { status: 'success', content: content.join('\n'), truncated: matches.truncated };
   },
 };
 
-export const applyPatchTool: Tool<
-  { patch: string },
-  { applied: { path: string; isNew: boolean; isDelete: boolean }[] }
-> = {
+export const applyPatchTool: Tool<{ patch: string }, ToolResultV2> = {
   name: 'apply_patch',
   description:
     'Apply a unified diff patch to one or more files in the workspace.\n' +
@@ -198,12 +180,9 @@ export const applyPatchTool: Tool<
   schema: z.object({ patch: z.string().min(1) }),
   needsApproval: true,
   run: async ({ patch }, ctx) => {
+    if (!ctx.workspaceId) throw new Error('apply_patch tool requires a workspaceId in the context');
     const ws = await getWorkspace(ctx.workspaceId);
-    const planned = planPatch(patch, (rel) => {
-      const abs = safeJoin(ws.path, rel);
-      if (!existsSync(abs)) return null;
-      return readFileSync(abs, 'utf8');
-    });
+    const planned = await planPatch(patch, ws.path);
     const applied: { path: string; isNew: boolean; isDelete: boolean }[] = [];
     for (const change of planned) {
       if (change.isDelete) {
@@ -213,13 +192,17 @@ export const applyPatchTool: Tool<
       }
       applied.push({ path: change.path, isNew: change.isNew, isDelete: change.isDelete });
     }
-    return { applied };
+    return {
+      status: 'success',
+      content: `Applied patch to ${applied.length} files`,
+      truncated: false,
+    };
   },
 };
 
 export const editFileTool: Tool<
   { path: string; oldString: string; newString: string; replaceAll?: boolean },
-  { ok: true }
+  ToolResultV2
 > = {
   name: 'edit_file',
   description:
@@ -228,7 +211,7 @@ export const editFileTool: Tool<
     'variations are tolerated automatically). Include 3-5 lines of surrounding context to ensure a unique match.\n' +
     'Parameters:\n' +
     '- path: file path relative to workspace root\n' +
-    '- oldString: text to find (empty string = append to file or create new file)\n' +
+    '- oldString: text to find (empty string = append to file)\n' +
     '- newString: replacement text (must differ from oldString)\n' +
     '- replaceAll: replace all occurrences (default: false)\n' +
     'Common mistakes:\n' +
@@ -243,22 +226,18 @@ export const editFileTool: Tool<
   }),
   needsApproval: true,
   run: async ({ path, oldString, newString, replaceAll }, ctx) => {
+    if (!ctx.workspaceId) throw new Error('edit_file tool requires a workspaceId in the context');
+    if (!oldString && !newString) throw new Error('Both oldString and newString cannot be empty');
     if (oldString === newString) throw new Error('oldString and newString are identical');
+
     const ws = await getWorkspace(ctx.workspaceId);
     const abs = safeJoin(ws.path, path);
-    if (!existsSync(abs)) {
-      if (oldString === '') {
-        // Create new file
-        await writeWorkspaceFile(ctx.workspaceId, path, newString);
-        return { ok: true as const };
-      }
-      throw new Error(`file not found: ${path}`);
-    }
-    const content = readFileSync(abs, 'utf8');
+    const content = await readSourceFile(abs);
+
+    // Append to file if oldString is empty (new file or append)
     if (oldString === '') {
-      // Append
       await writeWorkspaceFile(ctx.workspaceId, path, content + newString);
-      return { ok: true as const };
+      return { status: 'success', content: `File edited successfully`, truncated: false };
     }
 
     // 1. Try exact match
@@ -268,7 +247,7 @@ export const editFileTool: Tool<
         const second = content.indexOf(oldString, first + 1);
         if (second !== -1) {
           throw new Error(
-            'oldString appears multiple times. Provide more context to make it unique, or set replaceAll=true.',
+            'ERROR: oldString appears multiple times in file. provide more context to make it unique, or set replaceAll=true.',
           );
         }
       }
@@ -276,7 +255,7 @@ export const editFileTool: Tool<
         ? content.replaceAll(oldString, newString)
         : content.replace(oldString, newString);
       await writeWorkspaceFile(ctx.workspaceId, path, updated);
-      return { ok: true as const };
+      return { status: 'success', content: `File edited successfully`, truncated: false };
     }
 
     // 2. Fuzzy fallback — normalize whitespace/smart-quotes on both sides
@@ -287,7 +266,9 @@ export const editFileTool: Tool<
 
     const matchStart = findFuzzyMatch(normContentLines, normOldLines);
     if (matchStart === -1) {
-      throw new Error('oldString not found in file');
+      throw new Error(
+        'ERROR: oldString not found in file. use read_file tool to verify current content and provide more context if needed.',
+      );
     }
 
     if (!replaceAll) {
@@ -295,14 +276,14 @@ export const editFileTool: Tool<
       const second = findFuzzyMatch(normContentLines, normOldLines, matchStart + 1);
       if (second !== -1) {
         throw new Error(
-          'oldString appears multiple times (after whitespace normalization). Provide more context to make it unique, or set replaceAll=true.',
+          'ERROR: oldString appears multiple times (after whitespace normalization). provide more context to make it unique, or set replaceAll=true.',
         );
       }
       const before = contentLines.slice(0, matchStart).join('\n');
       const after = contentLines.slice(matchStart + oldLines.length).join('\n');
       const parts = [before, newString, after].filter((p, i) => i === 1 || p !== '');
       await writeWorkspaceFile(ctx.workspaceId, path, parts.join('\n'));
-      return { ok: true as const };
+      return { status: 'success', content: `File edited successfully`, truncated: false };
     }
 
     // replaceAll with fuzzy — replace all non-overlapping fuzzy matches
@@ -326,7 +307,7 @@ export const editFileTool: Tool<
       idx = findFuzzyMatch(normResult, normOldLines, idx + newLines.length);
     }
     await writeWorkspaceFile(ctx.workspaceId, path, result.join('\n'));
-    return { ok: true as const };
+    return { status: 'success', content: `File edited successfully`, truncated: false };
   },
 };
 

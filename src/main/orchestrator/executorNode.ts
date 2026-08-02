@@ -43,28 +43,27 @@ async function runExecutorLoop(
   while (true) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
-    const response = await llmChat(ctx, 'executor', conv.getMessages(), temperature);
+    const response = await llmChat(ctx, conv.getMessages(), temperature);
     if (response.done || !response.toolCalls?.length) break;
 
-    conv.addAssistantMessage(response.text, response.toolCalls);
+    conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
 
     const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
       const tc = response.toolCalls[i]!;
-      conv.addToolResult(tc.id, r.tool, r.ok ? r.output : `ERROR: ${r.error ?? 'unknown error'}`);
+      conv.addToolResult(tc.id, r.toolName, r.content);
       newObs.push({
-        tool: r.tool,
-        args: r.args,
-        ok: r.ok,
-        output: r.output,
-        error: r.error,
-        durationMs: r.durationMs,
+        tool: r.toolName,
+        args: r.arguments,
+        ok: r.status === 'success',
+        output: r.content,
+        durationMs: r.duration,
       });
     }
 
-    if (results.some((r) => r.ok && r.tool === 'task_complete')) {
+    if (results.some((r) => r.status === 'success' && r.toolName === 'task_complete')) {
       log.info('executor completed task');
       break;
     }

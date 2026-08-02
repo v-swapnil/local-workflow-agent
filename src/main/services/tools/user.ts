@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { requestUserInput } from '../approvals/index.js';
 import type { Tool } from './types.js';
-import { UserInputRequest, UserInputResponse } from '../approvals/types.js';
+import { UserInputRequest } from '../approvals/types.js';
+import { ToolResultV2 } from '@shared/types.js';
 
-export const askQuestionTool: Tool<UserInputRequest, UserInputResponse> = {
+export const askQuestionTool: Tool<UserInputRequest, ToolResultV2> = {
   name: 'ask_question',
   description:
     'Ask the user a question and wait for their response.\n' +
@@ -26,10 +27,8 @@ export const askQuestionTool: Tool<UserInputRequest, UserInputResponse> = {
   }),
   needsApproval: false,
   run: async (request, ctx) => {
-    if (!ctx.taskId) {
-      return { answer: '' };
-    }
+    if (!ctx.taskId) throw new Error('ask_question tool requires a taskId in the context');
     const answer = await requestUserInput(ctx.taskId, request, ctx.signal);
-    return { answer };
+    return { status: 'success', content: answer, truncated: false };
   },
 };

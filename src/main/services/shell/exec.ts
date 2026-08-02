@@ -3,13 +3,13 @@ import treeKill from 'tree-kill';
 import { resolveShell, buildShellArgs } from './env.js';
 import { truncateOutput } from './truncate.js';
 import { logger } from '../logger.js';
+import { ToolResultV2 } from '@shared/types.js';
 
 export interface ShellExecOptions {
   command: string;
   cwd: string;
   timeoutMs?: number;
   signal?: AbortSignal;
-  onLog?: (chunk: { stream: 'stdout' | 'stderr'; text: string }) => void;
 }
 
 export interface ShellResult {
@@ -21,7 +21,6 @@ export interface ShellResult {
   timedOut: boolean;
   killedByUser: boolean;
   truncated: boolean;
-  fullOutputPath: string | null;
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -45,13 +44,12 @@ function killGracefully(pid: number | undefined): void {
   });
 }
 
-export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
+export async function runShell(opts: ShellExecOptions): Promise<ToolResultV2> {
   const { shellPath, shellName } = await resolveShell();
   const shellArgs = buildShellArgs(shellName, opts.command);
   const timeoutMs = Math.min(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
-  const t0 = Date.now();
 
-  return new Promise<ShellResult>((resolve, reject) => {
+  return new Promise<ToolResultV2>((resolve, reject) => {
     let timedOut = false;
     let killedByUser = false;
     let settled = false;
@@ -65,7 +63,11 @@ export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
         detached: process.platform !== 'win32',
       });
     } catch (err) {
-      reject(err);
+      logger.error({ command: opts.command, cwd: opts.cwd, err }, 'Failed to spawn shell process');
+      reject(
+        'ERROR: failed to spawn shell process - ' +
+          (err instanceof Error ? err.message : String(err)),
+      );
       return;
     }
 
@@ -73,6 +75,7 @@ export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
     logger.info({ cmd: opts.command, cwd: opts.cwd, pid }, 'shell start');
 
     const chunks: string[] = [];
+    const errorChunks: string[] = [];
 
     child.stdout?.setEncoding('utf8');
     child.stderr?.setEncoding('utf8');
@@ -80,22 +83,22 @@ export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
     child.stdout?.on('data', (chunk: string) => {
       const text = stripAnsi(chunk);
       chunks.push(text);
-      opts.onLog?.({ stream: 'stdout', text });
     });
 
     child.stderr?.on('data', (chunk: string) => {
       const text = stripAnsi(chunk);
-      chunks.push(text);
-      opts.onLog?.({ stream: 'stderr', text });
+      errorChunks.push(text);
     });
 
     const timer = setTimeout(() => {
       timedOut = true;
+      errorChunks.push(`ETIMEDOUT: Command timed out after ${timeoutMs}ms`);
       killGracefully(pid);
     }, timeoutMs);
 
     const onAbort = () => {
       killedByUser = true;
+      errorChunks.push('ECANCELED: Command killed by user (abort signal received)');
       killGracefully(pid);
     };
 
@@ -113,25 +116,20 @@ export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
       clearTimeout(timer);
       opts.signal?.removeEventListener('abort', onAbort);
 
-      const raw = chunks.join('');
-      const { text, truncated, fullOutputPath } = truncateOutput(raw);
+      const commandOutput = [
+        '[stdout]: ' + chunks.join(''),
+        '[stderr]: ' + errorChunks.join(''),
+        'Command finished with exit code: ' + exitCode,
+      ].join('\n');
 
-      logger.info(
-        { cmd: opts.command, exitCode, sig, timedOut, killedByUser, ms: Date.now() - t0 },
-        'shell done',
-      );
+      const { content, truncated } = truncateOutput(commandOutput);
 
-      resolve({
-        ok: exitCode === 0 && !timedOut && !killedByUser,
-        exitCode,
-        signal: sig,
-        output: text,
-        durationMs: Date.now() - t0,
-        timedOut,
-        killedByUser,
-        truncated,
-        fullOutputPath,
-      });
+      logger.info({ cmd: opts.command, exitCode, sig, timedOut, killedByUser }, 'shell done');
+
+      const isErrored = timedOut || exitCode !== 0;
+      const status = killedByUser ? 'cancelled' : isErrored ? 'error' : 'success';
+
+      resolve({ status, content, truncated });
     };
 
     child.on('error', (err) => {
@@ -139,9 +137,9 @@ export async function runShell(opts: ShellExecOptions): Promise<ShellResult> {
       settled = true;
       clearTimeout(timer);
       opts.signal?.removeEventListener('abort', onAbort);
-      reject(err);
+      reject('ERROR: shell process error - ' + (err instanceof Error ? err.message : String(err)));
     });
 
-    child.on('close', (code, sig) => finish(code, sig));
+    child.on('close', (code, signal) => finish(code, signal));
   });
 }

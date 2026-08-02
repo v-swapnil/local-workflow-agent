@@ -1,5 +1,6 @@
 import { ToolName } from './agent';
-import type { AgentKind } from './constants';
+import { type AgentKind } from './constants';
+import { ApprovalDecision } from './types';
 
 export interface WorkspaceRecord {
   id: string;
@@ -181,7 +182,7 @@ export type TaskEventRecord =
       taskId: string;
       ts: number;
       approvalId: string;
-      decision: 'approve' | 'deny';
+      decision: ApprovalDecision;
     }
   | {
       type: 'user_input.requested';

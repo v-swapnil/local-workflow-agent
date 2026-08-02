@@ -3,7 +3,7 @@ import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../serv
 import { requestApproval } from '../services/approvals/index.js';
 import { buildGraph } from './graph.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
+import { PROVIDERS, AGENT_KIND, type AgentKind, APPROVAL_DECISION } from '@shared/constants';
 import { getAgentOrNull } from '../services/agents.js';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
@@ -75,7 +75,7 @@ export async function runWorkflow(
       graph.addNode(node.id, async (_state: WorkflowState) => {
         emitLog(taskId, undefined, true, `[workflow] approval requested by node "${node.id}"`);
         const decision = await requestApproval(taskId, 'ask_question', node.data, ctx.signal);
-        if (decision === 'deny') {
+        if (decision === APPROVAL_DECISION.DENY) {
           throw new Error(`Approval denied at node "${node.id}"`);
         }
         return { currentNodeId: node.id };

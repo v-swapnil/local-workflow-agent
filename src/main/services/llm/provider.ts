@@ -20,8 +20,8 @@ export type ToolCallResult = ToolCall;
 export type ChatMessage =
   | { role: 'system'; content: string }
   | { role: 'user'; content: string }
-  | { role: 'assistant'; content: string; toolCalls?: ToolCall[] }
-  | { role: 'tool'; toolCallId: string; name: string; content: string };
+  | { role: 'assistant'; content: string; thinking?: string; toolCalls?: ToolCall[] }
+  | { role: 'tool'; toolCallId: string; toolName: string; content: string };
 
 export interface ChatToolDef {
   type: 'function';

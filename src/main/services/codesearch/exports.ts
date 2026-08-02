@@ -34,7 +34,7 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
           c.type === 'identifier',
       );
       const name = val?.childForFieldName?.('name')?.text ?? val?.text ?? 'default';
-      entries.push({ name, kind: 'default', line, isReExport: false });
+      entries.push({ name, kind: 'default', line });
       return;
     }
 
@@ -43,7 +43,6 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
     if (exportClause) {
       const fromNode = node.children.find((c) => c.type === 'string');
       const source = fromNode?.text.replace(/^['"`]|['"`]$/g, '');
-      const isReExport = !!source;
       for (const spec of exportClause.namedChildren) {
         if (spec.type !== 'export_specifier') continue;
         // use 'name' field (original name) not 'alias'
@@ -54,8 +53,6 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
           name: nameNode.text,
           kind: 're-export',
           line,
-          isReExport,
-          source,
         });
       }
       return;
@@ -66,7 +63,7 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
     if (starNode) {
       const fromNode = node.children.find((c) => c.type === 'string');
       const source = fromNode?.text.replace(/^['"`]|['"`]$/g, '');
-      entries.push({ name: '*', kind: 're-export', line, isReExport: true, source });
+      entries.push({ name: '*', kind: 're-export', line });
       return;
     }
 
@@ -76,27 +73,27 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
         case 'function_declaration':
         case 'generator_function_declaration': {
           const name = child.childForFieldName('name')?.text;
-          if (name) entries.push({ name, kind: 'function', line, isReExport: false });
+          if (name) entries.push({ name, kind: 'function', line });
           break;
         }
         case 'class_declaration': {
           const name = child.childForFieldName('name')?.text;
-          if (name) entries.push({ name, kind: 'class', line, isReExport: false });
+          if (name) entries.push({ name, kind: 'class', line });
           break;
         }
         case 'interface_declaration': {
           const name = child.childForFieldName('name')?.text;
-          if (name) entries.push({ name, kind: 'interface', line, isReExport: false });
+          if (name) entries.push({ name, kind: 'interface', line });
           break;
         }
         case 'type_alias_declaration': {
           const name = child.childForFieldName('name')?.text;
-          if (name) entries.push({ name, kind: 'type', line, isReExport: false });
+          if (name) entries.push({ name, kind: 'type', line });
           break;
         }
         case 'enum_declaration': {
           const name = child.childForFieldName('name')?.text;
-          if (name) entries.push({ name, kind: 'enum', line, isReExport: false });
+          if (name) entries.push({ name, kind: 'enum', line });
           break;
         }
         case 'lexical_declaration':
@@ -110,7 +107,7 @@ function parseTsJsExports(root: SyntaxNode): ExportEntry[] {
               val?.type === 'arrow_function' || val?.type === 'function_expression'
                 ? ('function' as const)
                 : ('variable' as const);
-            entries.push({ name, kind, line, isReExport: false });
+            entries.push({ name, kind, line });
           }
           break;
         }
@@ -141,7 +138,6 @@ function parsePythonExports(root: SyntaxNode): ExportEntry[] {
                 name,
                 kind: 'variable',
                 line: toLine(node.startPosition.row),
-                isReExport: false,
               });
             }
           }
@@ -158,7 +154,6 @@ function parsePythonExports(root: SyntaxNode): ExportEntry[] {
           name,
           kind: 'function',
           line: toLine(node.startPosition.row),
-          isReExport: false,
         });
       }
     }
@@ -169,7 +164,6 @@ function parsePythonExports(root: SyntaxNode): ExportEntry[] {
           name,
           kind: 'class',
           line: toLine(node.startPosition.row),
-          isReExport: false,
         });
       }
     }
@@ -181,7 +175,7 @@ function parsePythonExports(root: SyntaxNode): ExportEntry[] {
         const name = inner.childForFieldName('name')?.text;
         const kind = inner.type === 'class_definition' ? 'class' : 'function';
         if (name && !name.startsWith('_')) {
-          entries.push({ name, kind, line: toLine(node.startPosition.row), isReExport: false });
+          entries.push({ name, kind, line: toLine(node.startPosition.row) });
         }
       }
     }

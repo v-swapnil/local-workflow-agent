@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { addMemory, MEMORY_TYPES } from '../memories.js';
 import type { Tool } from './types.js';
+import { ToolResultV2 } from '@shared/types.js';
 
 const SCOPES = ['session', 'workspace'] as const;
 
 export const createMemoryTool: Tool<
   { scope?: 'session' | 'workspace'; type: (typeof MEMORY_TYPES)[number]; content: string },
-  { ok: true; memory: unknown }
+  ToolResultV2
 > = {
   name: 'create_memory',
   description:
@@ -29,21 +30,13 @@ export const createMemoryTool: Tool<
   }),
   needsApproval: false,
   run: async ({ scope = 'session', type, content }, ctx) => {
-    if (scope === 'workspace') {
-      const memory = addMemory({
-        workspaceId: ctx.workspaceId,
-        type,
-        content,
-      });
-      return { ok: true, memory };
-    }
-    const memory = addMemory({
-      workspaceId: ctx.workspaceId,
-      sessionId: ctx.sessionId,
-      taskId: ctx.taskId,
-      type,
-      content,
-    });
-    return { ok: true, memory };
+    if (!ctx.workspaceId)
+      throw new Error('create_memory tool requires a workspaceId in the context');
+    const workspaceDetails =
+      scope === 'workspace'
+        ? { workspaceId: ctx.workspaceId }
+        : { workspaceId: ctx.workspaceId, sessionId: ctx.sessionId, taskId: ctx.taskId };
+    addMemory({ type, content, ...workspaceDetails });
+    return { status: 'success', content: 'Memory created successfully', truncated: false };
   },
 };

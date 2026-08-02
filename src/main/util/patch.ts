@@ -5,6 +5,8 @@
  * normalise edge cases (missing files, /dev/null, posix paths).
  */
 import { parsePatch, applyPatch } from 'diff';
+import { safeJoin } from './safePath';
+import { readSourceFile } from '@main/services/workspaces';
 
 export interface PatchedFile {
   path: string;
@@ -20,10 +22,7 @@ function stripPrefix(p: string | undefined): string {
   return p;
 }
 
-export function planPatch(
-  patch: string,
-  readOriginal: (path: string) => string | null,
-): PatchedFile[] {
+export async function planPatch(patch: string, root: string): Promise<PatchedFile[]> {
   const files = parsePatch(patch);
   const out: PatchedFile[] = [];
   for (const f of files) {
@@ -32,16 +31,14 @@ export function planPatch(
     const isNew = oldPath === '/dev/null';
     const isDelete = newPath === '/dev/null';
     const targetPath = isDelete ? oldPath : newPath;
-
     if (isDelete) {
       out.push({ path: targetPath, content: '', isNew: false, isDelete: true });
       continue;
     }
-
-    const original = isNew ? '' : (readOriginal(oldPath) ?? '');
+    const original = isNew ? '' : await readSourceFile(safeJoin(root, oldPath));
     const result = applyPatch(original, f, { fuzzFactor: 2 });
     if (result === false) {
-      throw new Error(`failed to apply patch to ${targetPath}`);
+      throw new Error(`ERROR: failed to apply patch to ${targetPath}`);
     }
     out.push({ path: targetPath, content: result, isNew, isDelete: false });
   }

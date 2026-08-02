@@ -81,6 +81,7 @@ export function emitToolCallStarted(
   return { stepId: row.id };
 }
 
+// TODO: fix tool call storage
 export function emitToolCallFinished(
   taskId: string,
   stepId: string,

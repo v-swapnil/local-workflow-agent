@@ -2,6 +2,7 @@ import { PermissionRequest, PermissionRequestResult } from '@github/copilot-sdk'
 import { requestApproval } from '../approvals';
 import { ToolName } from '@shared/agent';
 import { getToolCallById } from './events';
+import { APPROVAL_DECISION } from '@shared/constants';
 
 export async function resolvePermissionRequest({
   taskId,
@@ -16,8 +17,10 @@ export async function resolvePermissionRequest({
   const toolName = (toolCall?.tool ?? request.kind) as ToolName;
   const decision = await requestApproval(taskId, toolName, toolCall?.arguments, signal);
 
-  if (decision === 'approve') {
+  if (decision === APPROVAL_DECISION.APPROVE) {
     return { kind: 'approve-once' };
+  } else if (decision === APPROVAL_DECISION.DENY) {
+    return { kind: 'reject' };
   }
 
   return { kind: 'no-result' };

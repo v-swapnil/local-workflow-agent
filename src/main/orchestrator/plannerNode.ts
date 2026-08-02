@@ -36,7 +36,7 @@ async function runPlannerLoop(
     if (ctx.signal.aborted) throw new Error('aborted');
 
     const messages = conv.getMessages();
-    const response = await llmChat(ctx, 'planner', messages, temperature, readOnlyTools);
+    const response = await llmChat(ctx, messages, temperature, readOnlyTools);
 
     if (response.done) {
       const plan = response.text;
@@ -44,13 +44,13 @@ async function runPlannerLoop(
       return plan;
     }
 
-    conv.addAssistantMessage(response.text, response.toolCalls);
+    conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
     const results = await executeToolCalls(ctx, 'planner', response.toolCalls);
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
       const tc = response.toolCalls[i]!;
-      conv.addToolResult(tc.id, r.tool, r.ok ? r.output : `ERROR: ${r.error ?? 'unknown error'}`);
+      conv.addToolResult(tc.id, r.toolName, r.content);
     }
   }
 }

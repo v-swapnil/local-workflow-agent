@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { readFile } from 'node:fs/promises';
-import { getWorkspace } from '../workspaces';
+import { getWorkspace, readSourceFile } from '../workspaces';
 import { safeJoin } from '../../util/safePath.js';
 import { grep } from '../grep.js';
 import {
@@ -21,18 +20,7 @@ import type { Tool } from './types.js';
 const MAX_DEFS = 10;
 const MAX_REFS = 100;
 const MAX_CANDIDATE_FILES = 100;
-// High cap — we only use file paths from grep hits, not the individual lines
 const GREP_CANDIDATE_HITS = 5000;
-
-// ─── Shared helpers ───────────────────────────────────────────────────────────
-
-async function readSourceFile(absPath: string): Promise<string | null> {
-  try {
-    return await readFile(absPath, 'utf8');
-  } catch {
-    return null;
-  }
-}
 
 async function grepCandidatePaths(
   root: string,

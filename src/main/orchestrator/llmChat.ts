@@ -6,18 +6,16 @@ import type { RunCtx } from './runCtx.js';
 import { getSetting, SETTING_KEYS } from '@main/services/settings.js';
 import { ProviderId } from '@shared/types.js';
 
-export interface ToolCallResponse {
+interface ToolCallResponse {
   done: false;
   toolCalls: ToolCall[];
-  /** Text content of the assistant message (may be empty string). */
   text: string;
   thinking?: string;
 }
 
-export interface DoneResponse {
+interface DoneResponse {
   done: true;
   toolCalls?: undefined;
-  /** Text content from the final LLM response (used by planner to extract the plan). */
   text: string;
   thinking?: string;
 }
@@ -28,7 +26,6 @@ export interface DoneResponse {
  */
 export async function llmChat(
   ctx: RunCtx,
-  agent: string,
   messages: ChatMessage[],
   temperature = 0.2,
   availableTools?: ChatToolDef[],

@@ -1,5 +1,4 @@
 import { ToolName } from '@shared/agent.js';
-import { ApprovalDecision } from './types.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
 import { ApprovalRequestRecord } from '@shared/schema';
 import { nanoid } from 'nanoid';
@@ -9,6 +8,8 @@ import { updateTask } from '../workspaces/index.js';
 import { taskBus } from '../events.js';
 import { eq } from 'drizzle-orm';
 import { pendingApprovals, pendingUserInputs } from './state.js';
+import { APPROVAL_DECISION } from '@shared/constants.js';
+import { ApprovalDecision } from '@shared/types.js';
 
 export async function isAutoApprove(): Promise<boolean> {
   return (await getSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS)) === 'true';
@@ -24,7 +25,7 @@ export async function requestApproval(
   args: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<ApprovalDecision> {
-  if (await isAutoApprove()) return 'approve';
+  if (await isAutoApprove()) return APPROVAL_DECISION.APPROVE;
 
   const req: ApprovalRequestRecord = {
     id: nanoid(10),
@@ -94,7 +95,8 @@ export function decideApproval(id: string, decision: ApprovalDecision): boolean 
     decision,
   });
 
-  p.resolve(decision === 'deny' ? 'deny' : 'approve');
+  p.resolve(decision);
+
   return true;
 }
 
@@ -113,7 +115,7 @@ export function clearTaskApprovals(taskId: string): void {
   for (const [id, p] of pendingApprovals) {
     if (p.request.taskId === taskId) {
       pendingApprovals.delete(id);
-      p.resolve('deny');
+      p.resolve(APPROVAL_DECISION.DENY);
     }
   }
   // Also clear pending user-input requests for this task

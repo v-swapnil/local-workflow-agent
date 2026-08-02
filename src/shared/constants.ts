@@ -13,4 +13,10 @@ export const AGENT_KIND = {
   PLANNER: 'planner',
 } as const;
 
+export const APPROVAL_DECISION = {
+  APPROVE: 'approve',
+  DENY: 'deny',
+} as const;
+
+// TODO: move this to types file
 export type AgentKind = (typeof AGENT_KIND)[keyof typeof AGENT_KIND];

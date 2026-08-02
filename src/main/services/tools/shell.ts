@@ -4,7 +4,8 @@ import { classifyCommand } from '../shell/safety.js';
 import { requestApproval } from '../approvals/index.js';
 import { logger } from '../logger.js';
 import type { Tool } from './types.js';
-import type { ShellResult } from '../shell/exec.js';
+import { APPROVAL_DECISION } from '@shared/constants.js';
+import { ToolResultV2 } from '@shared/types.js';
 
 const DESCRIPTION = `Execute a shell command in the workspace directory.
 
@@ -34,32 +35,30 @@ const DESCRIPTION = `Execute a shell command in the workspace directory.
 - Default: 2 minutes. Max: 10 minutes.
 - For long operations, set timeout appropriately.`;
 
-const shellInputSchema = z.object({
-  command: z
-    .string()
-    .min(1)
-    .describe('The shell command to execute. Supports pipes, chaining (&&, ||), redirections.'),
-  description: z
-    .string()
-    .min(1)
-    .describe('5-10 word description of what this command does and why.'),
-  timeout: z
-    .number()
-    .int()
-    .min(1)
-    .max(600)
-    .optional()
-    .describe('Timeout in seconds. Default 120 (2 min), max 600 (10 min).'),
-});
-
-type ShellInput = z.infer<typeof shellInputSchema>;
-
-export const runShellTool: Tool<ShellInput, ShellResult> = {
+export const runShellTool: Tool<
+  { description: string; command: string; timeout?: number },
+  ToolResultV2
+> = {
   name: 'run_shell',
   description: DESCRIPTION,
-  schema: shellInputSchema,
+  schema: z.object({
+    command: z
+      .string()
+      .min(1)
+      .describe('The shell command to execute. Supports pipes, chaining (&&, ||), redirections.'),
+    description: z
+      .string()
+      .min(1)
+      .describe('5-10 word description of what this command does and why.'),
+    timeout: z
+      .number()
+      .int()
+      .min(1)
+      .max(600)
+      .optional()
+      .describe('Timeout in seconds. Default 120 (2 min), max 600 (10 min).'),
+  }),
   needsApproval: false,
-
   run: async (input, ctx) => {
     // 1. Classify command safety
     const classification = classifyCommand(input.command);
@@ -70,17 +69,7 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
         { command: input.command, reason: classification.denyReason },
         'shell command denied',
       );
-      return {
-        ok: false,
-        exitCode: null,
-        signal: null,
-        output: `Command blocked: ${classification.denyReason}`,
-        durationMs: 0,
-        timedOut: false,
-        killedByUser: false,
-        truncated: false,
-        fullOutputPath: null,
-      };
+      throw new Error(`ERROR: command blocked - ${classification.denyReason}`);
     }
 
     // 4. Prompted commands → request approval (standard flow handles session allow-listing)
@@ -91,18 +80,8 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
         { command: input.command, description: input.description },
         ctx.signal,
       );
-      if (decision === 'deny') {
-        return {
-          ok: false,
-          exitCode: null,
-          signal: null,
-          output: 'Command denied by user',
-          durationMs: 0,
-          timedOut: false,
-          killedByUser: false,
-          truncated: false,
-          fullOutputPath: null,
-        };
+      if (decision === APPROVAL_DECISION.DENY) {
+        throw new Error('ERROR: command denied by user');
       }
     }
 
@@ -112,7 +91,6 @@ export const runShellTool: Tool<ShellInput, ShellResult> = {
       cwd: ctx.workspacePath,
       timeoutMs: input.timeout !== undefined ? input.timeout * 1000 : undefined,
       signal: ctx.signal,
-      onLog: ctx.onLog,
     });
   },
 };

@@ -1,6 +1,5 @@
 import { ApprovalRequestRecord } from '@shared/schema';
-
-export type ApprovalDecision = 'approve' | 'deny';
+import { ApprovalDecision } from '@shared/types';
 
 export interface PendingApproval {
   request: ApprovalRequestRecord;
@@ -16,8 +15,4 @@ export interface UserInputRequest {
   question: string;
   description?: string;
   choices?: string[];
-}
-
-export interface UserInputResponse {
-  answer: string;
 }

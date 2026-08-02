@@ -8,7 +8,6 @@ export interface ToolContext {
   sessionId?: string;
   taskId?: string;
   signal?: AbortSignal;
-  onLog?: (chunk: { stream: 'stdout' | 'stderr'; text: string }) => void;
 }
 
 export interface Tool<I, O> {
@@ -23,11 +22,4 @@ export interface Tool<I, O> {
 export interface ToolInvocation {
   name: ToolName;
   args: unknown;
-}
-
-export interface ToolResult {
-  ok: boolean;
-  output?: unknown;
-  error?: string;
-  durationMs: number;
 }

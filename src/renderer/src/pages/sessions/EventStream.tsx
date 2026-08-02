@@ -2,6 +2,7 @@ import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
 import { summarizeToolCall, summarizeToolResult } from './toolSummary';
 import { Play, Square, StepForward } from 'lucide-react';
+import { APPROVAL_DECISION } from '@shared/constants';
 
 export function EventRow({ ev }: { ev: TaskEventRecord }) {
   const t = new Date(ev.ts).toLocaleTimeString([], {
@@ -98,7 +99,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
       );
     case 'approval.decided':
       return (
-        <Line ts={t} tone={ev.decision === 'deny' ? 'rose' : 'emerald'}>
+        <Line ts={t} tone={ev.decision === APPROVAL_DECISION.DENY ? 'rose' : 'emerald'}>
           approval {ev.decision}
         </Line>
       );

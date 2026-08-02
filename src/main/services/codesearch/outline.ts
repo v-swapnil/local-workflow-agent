@@ -1,5 +1,12 @@
 import { getParser } from './language.js';
-import { walk, toLine, tryMakeSymbol, findParentClassName, variableKind, isNodeExported } from './ast.js';
+import {
+  walk,
+  toLine,
+  tryMakeSymbol,
+  findParentClassName,
+  variableKind,
+  isNodeExported,
+} from './ast.js';
 import type { SyntaxNode } from './ast.js';
 import type { OutlineSymbol, Language } from './types.js';
 
@@ -23,11 +30,21 @@ function parseTsJsOutline(root: SyntaxNode): OutlineSymbol[] {
   walk(root, (node) => {
     let sym: OutlineSymbol | null = null;
     switch (node.type) {
-      case 'function_declaration':   sym = tryMakeSymbol(node, 'function');   break;
-      case 'class_declaration':      sym = tryMakeSymbol(node, 'class');       break;
-      case 'interface_declaration':  sym = tryMakeSymbol(node, 'interface');   break;
-      case 'type_alias_declaration': sym = tryMakeSymbol(node, 'type');        break;
-      case 'enum_declaration':       sym = tryMakeSymbol(node, 'enum');        break;
+      case 'function_declaration':
+        sym = tryMakeSymbol(node, 'function');
+        break;
+      case 'class_declaration':
+        sym = tryMakeSymbol(node, 'class');
+        break;
+      case 'interface_declaration':
+        sym = tryMakeSymbol(node, 'interface');
+        break;
+      case 'type_alias_declaration':
+        sym = tryMakeSymbol(node, 'type');
+        break;
+      case 'enum_declaration':
+        sym = tryMakeSymbol(node, 'enum');
+        break;
       case 'method_definition':
         sym = tryMakeSymbol(node, 'method', findParentClassName(node), false);
         break;
@@ -83,7 +100,9 @@ function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
       const className = nameNode?.text ?? null;
       if (className) {
         symbols.push({
-          name: className, kind: 'class', parentName: null,
+          name: className,
+          kind: 'class',
+          parentName: null,
           exported: true,
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),

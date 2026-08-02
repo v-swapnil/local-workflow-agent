@@ -1,12 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import type { ToolName } from '@shared/agent';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-
-const STREAMING: ToolName[] = ['run_shell'];
 
 /** Build a default JSON args string from a JSON Schema `properties` object. */
 function defaultArgsFromSchema(schema: Record<string, unknown>): string {
@@ -21,11 +19,6 @@ function defaultArgsFromSchema(schema: Record<string, unknown>): string {
     else obj[key] = null;
   }
   return JSON.stringify(obj, null, 2);
-}
-
-interface LogLine {
-  stream: 'stdout' | 'stderr';
-  text: string;
 }
 
 export function ToolPlayground() {
@@ -54,85 +47,45 @@ export function ToolPlayground() {
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
-  const [logs, setLogs] = useState<LogLine[]>([]);
   const [duration, setDuration] = useState<number | null>(null);
 
-  const [streamKey, setStreamKey] = useState<number | null>(null);
-  const subPayload = useRef<{ workspaceId: string; name: ToolName; args: unknown } | null>(null);
-
   const invoke = trpc.tool.invoke.useMutation();
-
-  const isStreaming = STREAMING.includes(tool);
-
-  trpc.tool.invokeStream.useSubscription(
-    subPayload.current ?? { workspaceId: '', name: 'list_dir', args: {} },
-    {
-      enabled: streamKey !== null,
-      onData: (msg) => {
-        if (msg.type === 'log') {
-          setLogs((prev) => [...prev, { stream: msg.stream, text: msg.text }]);
-        } else {
-          setRunning(false);
-          setStreamKey(null);
-          setDuration(msg.durationMs);
-          if (msg.ok) {
-            setResult(msg.output ?? null);
-            setError(null);
-          } else {
-            setError(msg.error ?? 'unknown error');
-            setResult(null);
-          }
-        }
-      },
-      onError: (err) => {
-        setRunning(false);
-        setStreamKey(null);
-        setError(err.message);
-      },
-    },
-  );
 
   const selectTool = (tool: ToolName) => {
     setTool(tool);
     setArgs(presets[tool] ?? '{}');
     setResult(null);
-    setLogs([]);
     setError(null);
     setDuration(null);
   };
 
   const execToolCall = async () => {
+    setError(null);
+    setResult(null);
+    setDuration(null);
+
     if (!workspaceId) {
       setError('no active workspace');
       return;
     }
-    let parsed: unknown;
+    let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(args);
     } catch (e) {
       setError(`invalid JSON: ${(e as Error).message}`);
       return;
     }
-    setError(null);
-    setResult(null);
-    setLogs([]);
-    setDuration(null);
+
     setRunning(true);
-
-    if (isStreaming) {
-      subPayload.current = { workspaceId, name: tool, args: parsed };
-      setStreamKey(Date.now());
-      return;
-    }
-
-    const t0 = Date.now();
     const res = await invoke.mutateAsync({ workspaceId, name: tool, args: parsed });
     setRunning(false);
-    setDuration(Date.now() - t0);
-    if (res.ok) {
-      setResult(res.output ?? null);
+
+    if (res.status === 'success') {
+      setDuration(res.duration);
+      setResult(res.content ?? null);
     } else {
-      setError(res.error ?? 'failed');
+      setDuration(res.duration);
+      setError(res.content ?? 'failed');
     }
   };
 
@@ -146,7 +99,12 @@ export function ToolPlayground() {
   }, [result]);
 
   return (
-    <Tabs value={tool} onValueChange={(v) => selectTool(v as ToolName)} orientation="vertical" className="grid grid-cols-[200px_1fr] gap-6">
+    <Tabs
+      value={tool}
+      onValueChange={(v) => selectTool(v as ToolName)}
+      orientation="vertical"
+      className="grid grid-cols-[200px_1fr] gap-6"
+    >
       <TabsList className="flex h-auto flex-col items-stretch rounded-lg border border-ink-800/40 bg-ink-900/15 p-0">
         <div className="px-3 py-1.5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-500 border-b border-ink-800/30">
           read
@@ -208,25 +166,6 @@ export function ToolPlayground() {
             {error && <span className="font-mono text-ui-xs text-signal-err">{error}</span>}
           </div>
         </div>
-
-        {isStreaming && (
-          <div>
-            <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
-              live log
-            </div>
-            <div className="h-48 overflow-auto rounded-lg border border-ink-800/40 bg-ink-950/80 p-3 font-mono text-ui-xs leading-relaxed">
-              {logs.length === 0 && <div className="text-ink-500">// no output yet</div>}
-              {logs.map((l, i) => (
-                <span
-                  key={i}
-                  className={l.stream === 'stderr' ? 'text-signal-err' : 'text-ink-200'}
-                >
-                  {l.text}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div>
           <div className="mb-2 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">

@@ -1,6 +1,6 @@
 import { relative, join, sep } from 'node:path';
-import fg from 'fast-glob';
-import { detectLanguage, IGNORE_PATTERNS, SUPPORTED_GLOB, MAX_FILES, MAX_FILE_BYTES } from './language.js';
+import { globby } from 'globby';
+import { detectLanguage, SUPPORTED_GLOB, MAX_FILES, MAX_FILE_BYTES } from './language.js';
 import type { CodeFile } from './types.js';
 
 /**
@@ -9,22 +9,21 @@ import type { CodeFile } from './types.js';
  */
 export async function enumerateCodeFiles(root: string, rel?: string): Promise<CodeFile[]> {
   const cwd = rel ? join(root, rel) : root;
-  const entries = await fg(SUPPORTED_GLOB, {
+  const entries = await globby(SUPPORTED_GLOB, {
     cwd,
-    ignore: IGNORE_PATTERNS,
     onlyFiles: true,
     dot: true,
     suppressErrors: true,
     stats: true,
+    gitignore: true,
   });
 
   const results: CodeFile[] = [];
   for (const entry of entries) {
     if (results.length >= MAX_FILES) break;
-    const stats = (entry as { stats?: { size: number } }).stats;
+    const stats = entry.stats;
     if (stats && stats.size > MAX_FILE_BYTES) continue;
-    const relPath = relative(root, join(cwd, (entry as { path: string }).path))
-      .split(sep).join('/');
+    const relPath = relative(root, join(cwd, entry.path)).split(sep).join('/');
     const lang = detectLanguage(relPath);
     if (!lang) continue;
     results.push({ absPath: join(root, relPath), relPath, lang });

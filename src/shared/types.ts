@@ -1,6 +1,7 @@
 // Domain types shared across processes. Expanded in later phases.
 
-import { PROVIDERS } from './constants';
+import { ToolName } from './agent';
+import { APPROVAL_DECISION, PROVIDERS } from './constants';
 
 export type TaskStatus =
   | 'queued'
@@ -73,3 +74,27 @@ export interface Note {
   updatedAt: number;
 }
 
+export type ToolResultStatus = 'success' | 'error' | 'cancelled';
+
+export interface ToolResultV2 {
+  status: ToolResultStatus;
+  truncated: boolean;
+  content: string | Record<string, unknown>;
+}
+
+export interface ToolExecutionResult extends ToolResultV2 {
+  toolCallId?: string | number;
+  toolName: ToolName;
+  arguments: Record<string, unknown>;
+  content: string;
+  duration: number;
+}
+
+export type ApprovalDecision = (typeof APPROVAL_DECISION)[keyof typeof APPROVAL_DECISION];
+
+export interface FileNode {
+  type: 'file' | 'directory';
+  path: string; // workspace-relative, posix-style
+  size?: number;
+  children?: FileNode[];
+}

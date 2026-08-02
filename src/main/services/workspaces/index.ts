@@ -5,12 +5,9 @@ export {
   attachExistingWorkspace,
   deleteWorkspace,
 } from './workspace.js';
-export type { FileNode, ReadFileResult } from './workspaceFiles.js';
 export {
-  fileTree,
   readSourceFile,
   readWorkspaceFile,
-  readTextFileFromRoot,
   writeWorkspaceFile,
   renameWorkspaceFile,
   deleteWorkspacePath,

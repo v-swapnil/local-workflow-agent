@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { createTask } from '../workspaces';
 import { enqueueTask } from '../../orchestrator/queue.js';
 import type { Tool } from './types.js';
+import { ToolResultV2 } from '@shared/types';
 
-export const createTaskTool: Tool<{ prompt: string }, { taskId: string; status: string }> = {
+export const createTaskTool: Tool<{ prompt: string }, ToolResultV2> = {
   name: 'create_task',
   description:
     'Create a new task in the current session. The task will be queued and ' +
@@ -19,16 +20,14 @@ export const createTaskTool: Tool<{ prompt: string }, { taskId: string; status: 
   }),
   needsApproval: false,
   run: async ({ prompt }, ctx) => {
-    if (!ctx.sessionId) {
-      throw new Error('create_task requires a session context');
-    }
+    if (!ctx.sessionId) throw new Error('create_task requires a session context');
     const task = createTask(ctx.sessionId, prompt);
     enqueueTask(task.id);
-    return { taskId: task.id, status: task.status };
+    return { status: 'success', content: `Task created successfully`, truncated: false };
   },
 };
 
-export const taskCompleteTool: Tool<{ summary?: string }, { done: true; summary?: string }> = {
+export const taskCompleteTool: Tool<{ summary?: string }, ToolResultV2> = {
   name: 'task_complete',
   description:
     'Signal that the current task is complete.\n' +
@@ -41,5 +40,9 @@ export const taskCompleteTool: Tool<{ summary?: string }, { done: true; summary?
     summary: z.string().min(1).optional(),
   }),
   needsApproval: false,
-  run: async ({ summary }) => ({ done: true, summary }),
+  run: async ({ summary }) => ({
+    status: 'success',
+    content: `Summary: ${summary ?? 'No summary provided.'}\nTask marked as complete.`,
+    truncated: false,
+  }),
 };

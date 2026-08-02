@@ -1,26 +1,11 @@
-import { stat } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import fg from 'fast-glob';
+import { globby } from 'globby';
 
-const DEFAULT_IGNORE = [
-  '**/.git/**',
-  '**/node_modules/**',
-  '**/.DS_Store',
-  '**/.next/**',
-  '**/dist/**',
-  '**/out/**',
-  '**/.turbo/**',
-  '**/.venv/**',
-  '**/venv/**',
-  '**/__pycache__/**',
-  '**/.cache/**',
-];
-
-const MAX_RESULTS = 100;
+export const MAX_RESULTS = 100;
 
 export interface GlobOptions {
   pattern: string;
-  rel?: string;
+  path?: string;
   limit?: number;
 }
 
@@ -32,32 +17,25 @@ export async function glob(
   root: string,
   opts: GlobOptions,
 ): Promise<{ files: string[]; count: number; truncated: boolean }> {
-  const cwd = opts.rel ? join(root, opts.rel) : root;
+  const cwd = opts.path ? join(root, opts.path) : root;
 
-  const entries = await fg(opts.pattern, {
+  const entries = await globby(opts.pattern, {
     cwd,
-    ignore: DEFAULT_IGNORE,
     onlyFiles: true,
     dot: true,
     suppressErrors: true,
+    gitignore: true,
+    stats: true,
   });
 
   // Get mtime for sorting
   const withMtime: { path: string; mtime: number }[] = [];
   for (const entry of entries) {
-    const abs = join(cwd, entry);
-    try {
-      const s = await stat(abs);
-      withMtime.push({
-        path: relative(root, abs).split(sep).join('/'),
-        mtime: s.mtimeMs,
-      });
-    } catch {
-      withMtime.push({
-        path: relative(root, abs).split(sep).join('/'),
-        mtime: 0,
-      });
-    }
+    const abs = join(cwd, entry.path);
+    withMtime.push({
+      path: relative(root, abs).split(sep).join('/'),
+      mtime: entry.stats?.mtimeMs ?? 0,
+    });
   }
 
   // Sort by mtime descending (most recently modified first)

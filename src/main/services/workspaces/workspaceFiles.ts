@@ -1,89 +1,31 @@
 import { mkdir, readdir, stat, readFile, writeFile, rename, rm, open } from 'node:fs/promises';
-import { join, dirname, sep } from 'node:path';
+import { join, dirname } from 'node:path';
 import { safeJoin } from '../../util/safePath.js';
 import { getWorkspace } from './workspace.js';
 import { gitFor } from '../git/gitCore.js';
+import { FileNode } from '@shared/types.js';
 
-const IGNORED = new Set(['.git', 'node_modules', '.DS_Store', '.next', 'dist', 'out', '.turbo']);
 const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
-const DEFAULT_READ_LIMIT = 2000;
 const MAX_LINE_LENGTH = 2000;
-const MAX_OUTPUT_BYTES = 50 * 1024; // 50 KB
 
-export interface FileNode {
-  name: string;
-  path: string; // workspace-relative, posix-style
-  isDir: boolean;
-  size?: number;
-  children?: FileNode[];
-}
-
-export interface ReadFileResult {
-  path: string;
-  content: string;
-  /** Total bytes of the file on disk. */
-  size: number;
-  /** Total line count in the file. */
-  lines: number;
-  /** Whether the returned content is a subset of the file. */
-  truncated: boolean;
-}
-
-export async function fileTree(
+export async function readWorkspaceDirectory(
   workspaceId: string,
-  relPath = '',
-  depth = 4,
-  limit = 1000,
-): Promise<FileNode> {
+  relativePath?: string,
+): Promise<FileNode[]> {
   const ws = await getWorkspace(workspaceId);
-  const abs = relPath ? safeJoin(ws.path, relPath) : ws.path;
-  return walk(ws.path, abs, depth, { count: 0, limit });
-}
-
-async function walk(
-  root: string,
-  abs: string,
-  depth: number,
-  budget: { count: number; limit: number },
-): Promise<FileNode> {
-  const fileStat = await stat(abs);
-  const rel =
-    abs === root
-      ? ''
-      : abs
-          .slice(root.length + 1)
-          .split(sep)
-          .join('/');
-  const name = abs.split(sep).at(-1)!;
-  if (!fileStat.isDirectory()) {
-    return { name, path: rel, isDir: false, size: fileStat.size };
-  }
-  const node: FileNode = { name, path: rel, isDir: true, children: [] };
-  if (depth <= 0) return node;
-  let entries: string[];
-  try {
-    entries = await readdir(abs);
-  } catch {
-    return node;
-  }
-  entries.sort((a, b) => a.localeCompare(b));
-  const children: FileNode[] = [];
+  const abs = relativePath ? safeJoin(ws.path, relativePath) : ws.path;
+  if (!(await stat(abs)).isDirectory()) throw new Error('ERROR: not a directory.');
+  const entries = await readdir(abs);
+  const results: FileNode[] = [];
   for (const entry of entries) {
-    if (IGNORED.has(entry)) continue;
-    if (budget.count >= budget.limit) break;
-    budget.count++;
-    const childAbs = join(abs, entry);
-    try {
-      const child = await walk(root, childAbs, depth - 1, budget);
-      children.push(child);
-    } catch {
-      /* skip unreadable */
-    }
+    const stats = await stat(join(abs, entry));
+    results.push({
+      type: stats.isDirectory() ? 'directory' : 'file',
+      path: entry,
+      size: stats.size,
+    });
   }
-  // dirs first, then files
-  children.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name));
-  node.children = children;
-  return node;
+  return results;
 }
 
 export async function listWorkspaceFiles({ workspaceId }: { workspaceId: string }) {
@@ -92,20 +34,6 @@ export async function listWorkspaceFiles({ workspaceId }: { workspaceId: string 
   const result = await git.raw(['ls-files', '--cached', '--others', '--exclude-standard']);
   const paths = result.split('\n');
   return paths;
-}
-
-export async function readSourceFile(filePath: string): Promise<{ content: string; size: number }> {
-  const fileStats = await stat(filePath);
-  if (fileStats.isDirectory()) throw new Error('is a directory');
-  if (await isBinaryFile(filePath)) {
-    const ext = filePath.split('.').pop()?.toLowerCase();
-    throw new Error(
-      `Binary file detected (${ext ?? 'unknown type'}). ` +
-        `Use run_shell with 'file' or 'xxd' to inspect binary files.`,
-    );
-  }
-  const content = await readFile(filePath, 'utf8');
-  return { content, size: fileStats.size };
 }
 
 async function isBinaryFile(filePath: string): Promise<boolean> {
@@ -122,100 +50,49 @@ async function isBinaryFile(filePath: string): Promise<boolean> {
   }
 }
 
-export async function readWorkspaceFile(
-  workspaceId: string,
-  relPath: string,
-  offset?: number,
-  limit?: number,
-): Promise<ReadFileResult> {
-  const ws = await getWorkspace(workspaceId);
-  const filePath = safeJoin(ws.path, relPath);
-
-  if (offset === undefined && limit === undefined) {
-    const { content, size } = await readSourceFile(filePath);
-    return {
-      path: filePath,
-      content,
-      size,
-      lines: content.split('\n').length,
-      truncated: false,
-    };
-  }
-
-  return readTextFileFromRoot(filePath, offset, limit);
+export async function readSourceFile(filePath: string): Promise<string> {
+  const stats = await stat(filePath);
+  if (stats.isDirectory()) throw new Error('ERROR: path is a directory, not a file.');
+  if (await isBinaryFile(filePath)) throw new Error('ERROR: binary file detected.');
+  if (stats.size > MAX_FILE_BYTES)
+    throw new Error(
+      `ERROR: file too large (${stats.size} bytes). max allowed is ${MAX_FILE_BYTES} bytes.`,
+    );
+  const content = await readFile(filePath, 'utf8');
+  return content;
 }
 
-export async function readTextFileFromRoot(
-  filePath: string,
-  offset?: number,
-  limit?: number,
-): Promise<ReadFileResult> {
-  const { content: fileContent, size: fileSize } = await readSourceFile(filePath);
+export async function readWorkspaceFile(
+  workspaceId: string,
+  relativePath: string,
+  options?: { offset?: number; limit?: number; prefixLineNumber?: boolean },
+): Promise<string> {
+  const workspace = await getWorkspace(workspaceId);
+  const filePath = safeJoin(workspace.path, relativePath);
+  const fileContent = await readSourceFile(filePath);
 
-  if (fileSize > MAX_FILE_BYTES)
-    throw new Error(`file too large (${fileSize} bytes, max ${MAX_FILE_BYTES})`);
+  if (options?.offset || options?.limit) {
+    const lines = fileContent.split('\n');
+    const start = (options.offset ?? 1) - 1; // 1-based → 0-based
+    const end = start + (options.limit ?? MAX_LINE_LENGTH);
 
-  const allLines = fileContent.split('\n');
-  const totalLines = allLines.length;
+    if (start < 0) throw new Error(`ERROR: offset must be >= 1.`);
+    if (start >= lines.length)
+      throw new Error(`ERROR: offset ${options.offset} exceeds total lines ${lines.length}.`);
 
-  const start = (offset ?? 1) - 1; // 1-based → 0-based
-  const maxLines = limit ?? DEFAULT_READ_LIMIT;
+    const content = options.prefixLineNumber
+      ? lines.slice(start, end).map((line, index) => `${start + 1 + index}:${line}`)
+      : lines.slice(start, end);
 
-  const lines: string[] = [];
-  let bytes = 0;
-  let cut = false;
-  let more = false;
-
-  for (let i = start; i < totalLines; i++) {
-    if (lines.length >= maxLines) {
-      more = true;
-      break;
-    }
-    let line = allLines[i]!;
-    if (line.length > MAX_LINE_LENGTH) {
-      line = line.substring(0, MAX_LINE_LENGTH) + `... (line truncated)`;
-    }
-    const entryBytes = Buffer.byteLength(line, 'utf8') + (lines.length > 0 ? 1 : 0);
-    if (bytes + entryBytes > MAX_OUTPUT_BYTES) {
-      cut = true;
-      more = true;
-      break;
-    }
-    lines.push(line);
-    bytes += entryBytes;
+    return content.join('\n');
   }
 
-  const last = start + lines.length;
-  const truncated = more || cut || start > 0;
-
-  const content = [];
-
-  if (lines.length === 0) {
-    content.push('(file is empty)');
-  } else {
-    content.push(lines.join('\n'));
-  }
-
-  if (cut) {
-    content.push(`\n(output truncated at ${MAX_OUTPUT_BYTES} bytes)`);
-    content.push(
-      `\n(Output capped at ${MAX_OUTPUT_BYTES} bytes. Showing lines ${start + 1}-${last}. Use offset=${last + 1} to continue.)`,
-    );
-  } else if (more) {
-    content.push(
-      `\n(Showing lines ${start + 1}-${last} of ${totalLines}. Use offset=${last + 1} to continue.)`,
-    );
-  } else {
-    content.push(`\n(End of file — total ${totalLines} lines)`);
-  }
-
-  return {
-    path: filePath,
-    content: content.join('\n'),
-    size: fileSize,
-    lines: totalLines,
-    truncated,
-  };
+  return options?.prefixLineNumber
+    ? fileContent
+        .split('\n')
+        .map((line, index) => `${index + 1}:${line}`)
+        .join('\n')
+    : fileContent;
 }
 
 export async function writeWorkspaceFile(

@@ -22,17 +22,13 @@ function parseTsJsImports(root: SyntaxNode): ImportEntry[] {
   for (const node of root.children) {
     if (node.type !== 'import_statement') continue;
 
-    const isTypeOnly = node.children.some(
-      (c) => c.type === 'type' || (c.type === 'identifier' && c.text === 'type'),
-    );
-
     const sourceNode = node.children.find((c) => c.type === 'string');
     if (!sourceNode) continue;
     const source = sourceNode.text.replace(/^['"`]|['"`]$/g, '');
 
     const clause = node.children.find((c) => c.type === 'import_clause');
     if (!clause) {
-      imports.push({ source, names: ['*'], isTypeOnly: false });
+      imports.push({ source, names: ['*'] });
       continue;
     }
 
@@ -46,14 +42,13 @@ function parseTsJsImports(root: SyntaxNode): ImportEntry[] {
         for (const spec of part.namedChildren) {
           if (spec.type !== 'import_specifier') continue;
           const nm =
-            spec.childForFieldName('name') ??
-            spec.children.find((c) => c.type === 'identifier');
+            spec.childForFieldName('name') ?? spec.children.find((c) => c.type === 'identifier');
           if (nm) names.push(nm.text);
         }
       }
     }
 
-    imports.push({ source, names: names.length ? names : ['*'], isTypeOnly });
+    imports.push({ source, names: names.length ? names : ['*'] });
   }
 
   return imports;
@@ -66,10 +61,10 @@ function parsePythonImports(root: SyntaxNode): ImportEntry[] {
     if (node.type === 'import_statement') {
       for (const child of node.namedChildren) {
         if (child.type === 'dotted_name') {
-          imports.push({ source: child.text, names: [child.text], isTypeOnly: false });
+          imports.push({ source: child.text, names: [child.text] });
         } else if (child.type === 'aliased_import') {
           const nm = child.childForFieldName('name') ?? child.children[0];
-          if (nm) imports.push({ source: nm.text, names: [nm.text], isTypeOnly: false });
+          if (nm) imports.push({ source: nm.text, names: [nm.text] });
         }
       }
       continue;
@@ -94,7 +89,7 @@ function parsePythonImports(root: SyntaxNode): ImportEntry[] {
         }
       }
 
-      imports.push({ source, names: names.length ? names : ['*'], isTypeOnly: false });
+      imports.push({ source, names: names.length ? names : ['*'] });
     }
   }
 
