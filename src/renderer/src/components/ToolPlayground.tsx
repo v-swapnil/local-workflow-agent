@@ -5,6 +5,7 @@ import type { ToolName } from '@shared/agent';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
+import { ToolResultV2 } from '@shared/types';
 
 /** Build a default JSON args string from a JSON Schema `properties` object. */
 function defaultArgsFromSchema(schema: Record<string, unknown>): string {
@@ -44,7 +45,7 @@ export function ToolPlayground() {
 
   const [tool, setTool] = useState<ToolName>('list_dir');
   const [args, setArgs] = useState('{}');
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<ToolResultV2 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
@@ -77,22 +78,27 @@ export function ToolPlayground() {
     }
 
     setRunning(true);
+    const start = Date.now();
     const res = await invoke.mutateAsync({ workspaceId, name: tool, args: parsed });
     setRunning(false);
 
     if (res.status === 'success') {
-      setDuration(res.duration);
-      setResult(res.content ?? null);
+      setDuration(Date.now() - start);
+      setResult(res ?? null);
     } else {
-      setDuration(res.duration);
-      setError(res.content ?? 'failed');
+      setDuration(Date.now() - start);
+      setError(
+        typeof res.content === 'string' ? res.content : JSON.stringify(res.content, null, 2),
+      );
     }
   };
 
   const resultPretty = useMemo(() => {
     if (result === null || result === undefined) return '';
     try {
-      return JSON.stringify(result, null, 2);
+      return typeof result?.content === 'string'
+        ? result?.content
+        : JSON.stringify(result, null, 2);
     } catch {
       return String(result);
     }

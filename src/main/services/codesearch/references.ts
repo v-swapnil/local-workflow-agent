@@ -18,7 +18,7 @@ export function findSymbolNodes(
   source: string,
   symbol: string,
   lang: Language,
-): Array<Pick<DefinitionResult, 'line' | 'signature' | 'exported'>> {
+): Array<Pick<DefinitionResult, 'line' | 'content'>> {
   let tree: ReturnType<ReturnType<typeof getParser>['parse']>;
   try {
     tree = getParser(lang).parse(source);
@@ -26,7 +26,7 @@ export function findSymbolNodes(
     return [];
   }
 
-  const results: Array<Pick<DefinitionResult, 'line' | 'signature' | 'exported'>> = [];
+  const results: Array<Pick<DefinitionResult, 'line' | 'content'>> = [];
   const lines = source.split('\n');
 
   walk(tree.rootNode, (node) => {
@@ -35,8 +35,7 @@ export function findSymbolNodes(
     if (!nameNode || nameNode.text !== symbol) return;
     results.push({
       line: toLine(node.startPosition.row),
-      signature: extractSignature(node, lines),
-      exported: lang === 'python' ? true : isNodeExported(node),
+      content: extractSignature(node, lines),
     });
   });
 
@@ -47,7 +46,7 @@ export function findReferenceNodes(
   source: string,
   symbol: string,
   lang: Language,
-): Array<Pick<ReferenceResult, 'line' | 'text'>> {
+): Array<Pick<ReferenceResult, 'line' | 'content'>> {
   let tree: ReturnType<ReturnType<typeof getParser>['parse']>;
   try {
     tree = getParser(lang).parse(source);
@@ -55,7 +54,7 @@ export function findReferenceNodes(
     return [];
   }
 
-  const results: Array<Pick<ReferenceResult, 'line' | 'text'>> = [];
+  const results: Array<Pick<ReferenceResult, 'line' | 'content'>> = [];
   const lines = source.split('\n');
   const seenLines = new Set<number>();
 
@@ -65,7 +64,7 @@ export function findReferenceNodes(
     const row = node.startPosition.row;
     if (seenLines.has(row)) return;
     seenLines.add(row);
-    results.push({ line: toLine(row), text: (lines[row] ?? '').trim() });
+    results.push({ line: toLine(row), content: (lines[row] ?? '').trim() });
   });
 
   return results;

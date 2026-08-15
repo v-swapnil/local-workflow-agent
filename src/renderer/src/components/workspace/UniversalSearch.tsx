@@ -66,12 +66,15 @@ export function UniversalSearch({ workspaceId }: { workspaceId: string }) {
         )}
 
         {debounced && !isLoading && mode === 'files' && (
-          <FileResults files={fileResults.data?.files ?? []} truncated={fileResults.data?.truncated} />
+          <FileResults
+            files={fileResults.data?.files ?? []}
+            truncated={fileResults.data?.truncated}
+          />
         )}
 
         {debounced && !isLoading && mode === 'content' && (
           <ContentResults
-            hits={contentResults.data?.hits ?? []}
+            files={contentResults.data?.files ?? []}
             truncated={contentResults.data?.truncated}
           />
         )}
@@ -105,27 +108,27 @@ function FileResults({ files, truncated }: { files: string[]; truncated?: boolea
 }
 
 function ContentResults({
-  hits,
+  files,
   truncated,
 }: {
-  hits: { path: string; line: number; text: string }[];
+  files: { path: string; matches: string[] }[];
   truncated?: boolean;
 }) {
-  if (hits.length === 0) {
+  if (files.length === 0) {
     return <div className="py-4 font-mono text-ui-sm text-ink-600">no matches found.</div>;
   }
   return (
     <div className="space-y-0.5">
-      {hits.map((hit, i) => (
-        <div
-          key={`${hit.path}:${hit.line}:${i}`}
-          className="rounded px-2 py-1 hover:bg-ink-800/30"
-        >
+      {files.map((hit, i) => (
+        <div key={`${hit.path}:${i}`} className="rounded px-2 py-1 hover:bg-ink-800/30">
           <div className="truncate font-mono text-ui-xs text-amber" title={hit.path}>
             {hit.path}
-            <span className="ml-2 text-ink-600">:{hit.line}</span>
           </div>
-          <div className="truncate font-mono text-ui-xs text-ink-400">{hit.text.trim()}</div>
+          {hit.matches.map((match, j) => (
+            <div key={j} className="truncate font-mono text-ui-xs text-ink-400">
+              {match}
+            </div>
+          ))}
         </div>
       ))}
       {truncated && (

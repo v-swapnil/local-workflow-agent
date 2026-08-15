@@ -75,7 +75,6 @@ export async function runShell(opts: ShellExecOptions): Promise<ToolResultV2> {
     logger.info({ cmd: opts.command, cwd: opts.cwd, pid }, 'shell start');
 
     const chunks: string[] = [];
-    const errorChunks: string[] = [];
 
     child.stdout?.setEncoding('utf8');
     child.stderr?.setEncoding('utf8');
@@ -87,18 +86,18 @@ export async function runShell(opts: ShellExecOptions): Promise<ToolResultV2> {
 
     child.stderr?.on('data', (chunk: string) => {
       const text = stripAnsi(chunk);
-      errorChunks.push(text);
+      chunks.push(text);
     });
 
     const timer = setTimeout(() => {
       timedOut = true;
-      errorChunks.push(`ETIMEDOUT: Command timed out after ${timeoutMs}ms`);
+      chunks.push(`ETIMEDOUT: Command timed out after ${timeoutMs}ms`);
       killGracefully(pid);
     }, timeoutMs);
 
     const onAbort = () => {
       killedByUser = true;
-      errorChunks.push('ECANCELED: Command killed by user (abort signal received)');
+      chunks.push('ECANCELED: Command killed by user (abort signal received)');
       killGracefully(pid);
     };
 
@@ -117,10 +116,11 @@ export async function runShell(opts: ShellExecOptions): Promise<ToolResultV2> {
       opts.signal?.removeEventListener('abort', onAbort);
 
       const commandOutput = [
-        '[stdout]: ' + chunks.join(''),
-        '[stderr]: ' + errorChunks.join(''),
-        'Command finished with exit code: ' + exitCode,
-      ].join('\n');
+        chunks.join(''),
+        sig
+          ? `Command terminated by signal: ${sig}`
+          : `Command finished with exit code: ${exitCode}`,
+      ].join('\n\n');
 
       const { content, truncated } = truncateOutput(commandOutput);
 

@@ -55,7 +55,6 @@ export function isNodeExported(node: SyntaxNode): boolean {
 export function tryMakeSymbol(
   node: SyntaxNode,
   kind: OutlineSymbol['kind'],
-  parentName: string | null = null,
   exported?: boolean,
 ): OutlineSymbol | null {
   const nameNode = node.childForFieldName('name');
@@ -63,7 +62,6 @@ export function tryMakeSymbol(
   return {
     name: nameNode.text,
     kind,
-    parentName,
     exported: exported ?? isNodeExported(node),
     startLine: toLine(node.startPosition.row),
     endLine: toLine(node.endPosition.row),

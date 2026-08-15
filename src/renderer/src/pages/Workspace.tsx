@@ -19,7 +19,7 @@ export function Workspace() {
   const { workspaceId, isLoading } = useActiveWorkspace();
 
   return (
-    <section className="mx-auto flex min-h-full flex-col p-4 animate-fade-in gap-4">
+    <section className="mx-auto flex h-full min-h-0 flex-col p-4 animate-fade-in gap-4">
       {isLoading && <div className="font-mono text-ui-sm text-ink-500">loading workspace...</div>}
 
       {!isLoading && !workspaceId && (
@@ -31,7 +31,7 @@ export function Workspace() {
       {workspaceId && (
         <>
           <WorkspaceOverview workspaceId={workspaceId} />
-          <Tabs defaultValue="search">
+          <Tabs defaultValue="search" className="flex min-h-0 flex-1 flex-col">
             <TabsList className="h-auto rounded-lg border border-ink-800/40 bg-ink-900/15 p-0.5">
               {TABS.map(([value, label]) => (
                 <TabsTrigger
@@ -44,7 +44,7 @@ export function Workspace() {
               ))}
             </TabsList>
 
-            <TabsContent value="search" className="mt-4">
+            <TabsContent value="search" className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
               <UniversalSearch workspaceId={workspaceId} />
               <WorkspaceFiles
                 workspaceId={workspaceId}

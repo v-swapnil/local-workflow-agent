@@ -14,39 +14,31 @@ import { runShellTool } from './shell.js';
 import { askQuestionTool } from './user.js';
 import { createMemoryTool } from './memory.js';
 import { createTaskTool, taskCompleteTool } from './task.js';
-import {
-  listSymbolsTool,
-  listImportsTool,
-  findSymbolTool,
-  findReferencesTool,
-  listExportsTool,
-} from './codesearch.js';
+import { outlineFileTool, findSymbolTool, findReferencesTool } from './codesearch.js';
 import { requestApproval } from '../approvals/index.js';
 import type { Tool, ToolName, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
 import { ToolResultV2 } from '@shared/types';
 import { APPROVAL_DECISION } from '@shared/constants';
 
-const REGISTRY: Record<ToolName, Tool<unknown, unknown>> = {
-  read_file: readFileTool as Tool<unknown, unknown>,
-  write_file: writeFileTool as Tool<unknown, unknown>,
-  edit_file: editFileTool as Tool<unknown, unknown>,
-  apply_patch: applyPatchTool as Tool<unknown, unknown>,
-  list_dir: listDirTool as Tool<unknown, unknown>,
-  grep: grepTool as Tool<unknown, unknown>,
-  glob: globTool as Tool<unknown, unknown>,
-  run_shell: runShellTool as Tool<unknown, unknown>,
-  ask_question: askQuestionTool as Tool<unknown, unknown>,
-  create_memory: createMemoryTool as Tool<unknown, unknown>,
-  create_task: createTaskTool as Tool<unknown, unknown>,
-  task_complete: taskCompleteTool as Tool<unknown, unknown>,
+const REGISTRY = {
+  read_file: readFileTool,
+  write_file: writeFileTool,
+  edit_file: editFileTool,
+  apply_patch: applyPatchTool,
+  list_dir: listDirTool,
+  grep: grepTool,
+  glob: globTool,
+  run_shell: runShellTool,
+  ask_question: askQuestionTool,
+  create_memory: createMemoryTool,
+  create_task: createTaskTool,
+  task_complete: taskCompleteTool,
   // ── codebase search ──
-  list_symbols: listSymbolsTool as Tool<unknown, unknown>,
-  list_imports: listImportsTool as Tool<unknown, unknown>,
-  find_symbol: findSymbolTool as Tool<unknown, unknown>,
-  find_references: findReferencesTool as Tool<unknown, unknown>,
-  list_exports: listExportsTool as Tool<unknown, unknown>,
-};
+  outline_file: outlineFileTool,
+  find_symbol: findSymbolTool,
+  find_references: findReferencesTool,
+} as const;
 
 export function listToolNames(): ToolName[] {
   return Object.keys(REGISTRY) as ToolName[];
@@ -91,11 +83,9 @@ const READ_ONLY_TOOLS: ToolName[] = [
   'glob',
   'ask_question',
   // ── codebase search ──
-  'list_symbols',
-  'list_imports',
+  'outline_file',
   'find_symbol',
   'find_references',
-  'list_exports',
 ];
 
 /** Returns true if the given tool is read-only (safe to run in parallel). */
@@ -119,10 +109,10 @@ export function listReadOnlyToolsForLLM(): ChatToolDef[] {
     }));
 }
 
-function getTool(name: ToolName): Tool<unknown, unknown> {
+function getTool(name: ToolName): Tool<Record<string, unknown>, ToolResultV2> {
   const tool = REGISTRY[name];
   if (!tool) throw new Error(`unknown tool: ${name}`);
-  return tool;
+  return tool as unknown as Tool<Record<string, unknown>, ToolResultV2>;
 }
 
 /**
@@ -160,11 +150,7 @@ export async function invokeTool(
     };
     const output = await tool.run(parsed, toolContext);
 
-    return {
-      status: 'success',
-      truncated: false,
-      content: output as Record<string, unknown>,
-    };
+    return output;
   } catch (err) {
     let errorMessage = err instanceof Error ? err.message : String(err);
     if (err instanceof z.ZodError) {

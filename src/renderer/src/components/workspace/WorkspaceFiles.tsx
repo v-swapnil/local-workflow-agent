@@ -21,16 +21,16 @@ export function WorkspaceFiles({
   activePath: string | null;
   setActivePath: (p: string | null) => void;
 }) {
-  const tree = trpc.file.tree.useQuery({ workspaceId, path: '', depth: 4 });
+  const files = trpc.file.files.useQuery({ workspaceId });
   return (
-    <div className="flex h-full flex-1">
+    <div className="flex min-h-0 flex-1 rounded border border-ink-800">
       <aside className="flex w-64 shrink-0 flex-col border-r border-ink-800 bg-ink-900/30 p-2">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {tree.isLoading && <div className="px-3 text-ui-base text-ink-400">...</div>}
-          {tree.data && (
-            <FileTree root={tree.data} activePath={activePath} onOpen={setActivePath} />
+          {files.isLoading && <div className="px-3 text-ui-base text-ink-400">...</div>}
+          {files.data && (
+            <FileTree paths={files.data} activePath={activePath} onOpen={setActivePath} />
           )}
-          {tree.data && (tree.data.children?.length ?? 0) === 0 && (
+          {files.data && files.data.filter(Boolean).length === 0 && (
             <div className="px-3 py-4 font-mono text-ui-sm text-ink-500">empty workspace.</div>
           )}
         </div>

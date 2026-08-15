@@ -84,8 +84,6 @@ export const workspaceRouter = router({
         pattern: input.query,
         isRegex: false,
         caseSensitive: false,
-        maxHits: input.limit ?? 100,
-        context: 0,
       });
     }),
 });

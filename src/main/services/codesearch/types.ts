@@ -3,7 +3,6 @@ export type Language = 'typescript' | 'tsx' | 'javascript' | 'python';
 export interface OutlineSymbol {
   name: string;
   kind: 'function' | 'class' | 'method' | 'interface' | 'type' | 'enum' | 'variable';
-  parentName: string | null;
   exported: boolean;
   startLine: number; // 1-based
   endLine: number; // 1-based
@@ -23,18 +22,23 @@ export interface ExportEntry {
 export interface DefinitionResult {
   path: string;
   line: number;
-  signature: string;
-  exported: boolean;
+  content: string;
 }
 
 export interface ReferenceResult {
   path: string;
   line: number;
-  text: string;
+  content: string;
 }
 
 export interface CodeFile {
   absPath: string;
   relPath: string; // workspace-relative, forward slashes
   lang: Language;
+}
+
+export interface FileOutline {
+  symbols: OutlineSymbol[];
+  imports: ImportEntry[];
+  exports: ExportEntry[];
 }

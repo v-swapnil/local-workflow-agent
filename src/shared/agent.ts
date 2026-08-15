@@ -13,11 +13,9 @@ export type ToolName =
   | 'create_task'
   | 'task_complete'
   // ── codebase search ──
-  | 'list_symbols'
-  | 'list_imports'
+  | 'outline_file'
   | 'find_symbol'
-  | 'find_references'
-  | 'list_exports';
+  | 'find_references';
 
 /** ───────── Executor I/O ───────── */
 

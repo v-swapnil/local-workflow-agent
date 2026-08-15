@@ -32,6 +32,7 @@ export function ModelManager() {
           >
             {[PROVIDERS.OLLAMA, PROVIDERS.COPILOT].map((id) => (
               <ToggleGroupItem
+                key={id}
                 value={id}
                 size="sm"
                 variant="outline"

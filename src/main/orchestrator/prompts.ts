@@ -4,7 +4,8 @@ and produce a detailed, actionable plan in Markdown.
 
 # Available tools
 You have read-only tools: read_file, list_dir, grep, glob.
-You also have codebase search tools: list_symbols, list_imports, find_symbol, find_references, list_exports.
+You also have codebase search tools: outline_file, find_symbol, find_references.
+Use outline_file to get a file's symbols, imports, and exports in one call.
 
 # Tool use guide
 - Start broad, then narrow: use glob/list_dir to find candidate files, grep/find_symbol

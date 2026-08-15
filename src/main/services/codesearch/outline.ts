@@ -1,12 +1,5 @@
 import { getParser } from './language.js';
-import {
-  walk,
-  toLine,
-  tryMakeSymbol,
-  findParentClassName,
-  variableKind,
-  isNodeExported,
-} from './ast.js';
+import { walk, toLine, tryMakeSymbol, variableKind, isNodeExported } from './ast.js';
 import type { SyntaxNode } from './ast.js';
 import type { OutlineSymbol, Language } from './types.js';
 
@@ -46,7 +39,7 @@ function parseTsJsOutline(root: SyntaxNode): OutlineSymbol[] {
         sym = tryMakeSymbol(node, 'enum');
         break;
       case 'method_definition':
-        sym = tryMakeSymbol(node, 'method', findParentClassName(node), false);
+        sym = tryMakeSymbol(node, 'method', false);
         break;
       case 'variable_declarator': {
         const nameNode = node.childForFieldName('name');
@@ -54,7 +47,6 @@ function parseTsJsOutline(root: SyntaxNode): OutlineSymbol[] {
         sym = {
           name: nameNode.text,
           kind: variableKind(node.childForFieldName('value')),
-          parentName: null,
           exported: isNodeExported(node),
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),
@@ -86,7 +78,6 @@ function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
         symbols.push({
           name: nameNode.text,
           kind: parentClassName ? 'method' : 'function',
-          parentName: parentClassName,
           exported: !parentClassName,
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),
@@ -102,7 +93,6 @@ function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
         symbols.push({
           name: className,
           kind: 'class',
-          parentName: null,
           exported: true,
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),

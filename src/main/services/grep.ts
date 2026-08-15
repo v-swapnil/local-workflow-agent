@@ -21,7 +21,7 @@ interface GrepHit {
   line: number;
   content: string;
 }
-interface GrepResultV2 {
+export interface GrepResultV2 {
   files: Array<{
     path: string;
     matches: string[];

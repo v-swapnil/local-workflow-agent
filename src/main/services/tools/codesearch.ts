@@ -9,18 +9,14 @@ import {
   parseExports,
   findSymbolNodes,
   findReferenceNodes,
-  type OutlineSymbol,
-  type ImportEntry,
-  type ExportEntry,
-  type DefinitionResult,
-  type ReferenceResult,
 } from '../codesearch/parser.js';
 import type { Tool } from './types.js';
+import { DefinitionResult, FileOutline, ReferenceResult } from '../codesearch/types';
+import { ToolResultV2 } from '@shared/types';
 
 const MAX_DEFS = 10;
 const MAX_REFS = 100;
 const MAX_CANDIDATE_FILES = 100;
-const GREP_CANDIDATE_HITS = 5000;
 
 async function grepCandidatePaths(
   root: string,
@@ -31,58 +27,51 @@ async function grepCandidatePaths(
     pattern: symbol,
     isRegex: false,
     caseSensitive: true,
-    rel: path,
+    path: path,
     include: '**/*.{ts,tsx,js,jsx,mjs,cjs,py}',
-    maxHits: GREP_CANDIDATE_HITS,
   });
-  return [...new Set(result.hits.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
+  return [...new Set(result.files.map((h) => h.path))].slice(0, MAX_CANDIDATE_FILES);
 }
 
-// ─── list_symbols ──────────────────────────────────────────────────────────────
+// ─── outline_file ──────────────────────────────────────────────────────────────
 
-export const listSymbolsTool: Tool<{ path: string }, OutlineSymbol[]> = {
-  name: 'list_symbols',
+export const outlineFileTool: Tool<{ path: string }, ToolResultV2> = {
+  name: 'outline_file',
   description:
-    'Return all named symbols (functions, classes, methods, interfaces, types, enums, ' +
-    'exported variables) in a workspace file. Each entry includes name, kind, parent ' +
-    "class name, and line range. Use this to understand a file's structure without " +
-    'reading its full content.',
-  schema: z.object({ path: z.string().min(1) }),
+    'Summarize the structure of a single workspace file in one call. Returns:\n' +
+    '- symbols: all named symbols (functions, classes, methods, interfaces, types, ' +
+    'enums, exported variables) with kind, exported flag, and line range.\n' +
+    '- imports: ES import statements with source module and imported identifiers ' +
+    '(CommonJS require() is not parsed).\n' +
+    '- exports: exported symbols with kind, line, and whether each is a re-export.\n' +
+    "Use this to understand a file's structure and dependencies without reading its " +
+    'full content. Trace an import to its source module, then call outline_file on that ' +
+    'module to see what it provides.',
+  schema: z.object({ path: z.string().min(1).describe('File path relative to workspace root.') }),
   needsApproval: false,
   run: async ({ path }, ctx) => {
     const ws = await getWorkspace(ctx.workspaceId);
     const lang = detectLanguage(path);
-    if (!lang) return [];
-    const source = await readSourceFile(safeJoin(ws.path, path));
-    if (!source) return [];
-    return parseOutline(source, lang);
-  },
-};
-
-// ─── list_imports ──────────────────────────────────────────────────────────────
-
-export const listImportsTool: Tool<{ path: string }, ImportEntry[]> = {
-  name: 'list_imports',
-  description:
-    'List all ES import statements in a workspace file. Returns the source module ' +
-    'and the named identifiers imported. Use this to understand dependencies and trace ' +
-    'where a symbol comes from, then call find_symbol on the source module. ' +
-    'Note: CommonJS require() is not parsed in v1.',
-  schema: z.object({ path: z.string().min(1) }),
-  needsApproval: false,
-  run: async ({ path }, ctx) => {
-    const ws = await getWorkspace(ctx.workspaceId);
-    const lang = detectLanguage(path);
-    if (!lang) return [];
-    const source = await readSourceFile(safeJoin(ws.path, path));
-    if (!source) return [];
-    return parseImports(source, lang);
+    const source = lang ? await readSourceFile(safeJoin(ws.path, path)) : null;
+    const outline =
+      lang && source
+        ? {
+            symbols: parseOutline(source, lang),
+            imports: parseImports(source, lang),
+            exports: parseExports(source, lang),
+          }
+        : { symbols: [], imports: [], exports: [] };
+    return {
+      status: 'success',
+      truncated: false,
+      content: outline as unknown as Record<string, unknown>,
+    };
   },
 };
 
 // ─── find_symbol ──────────────────────────────────────────────────────────────
 
-export const findSymbolTool: Tool<{ symbol: string; path?: string }, DefinitionResult[]> = {
+export const findSymbolTool: Tool<{ symbol: string; path?: string }, ToolResultV2> = {
   name: 'find_symbol',
   description:
     'Find where a named symbol (function, class, type, interface, variable) is defined ' +
@@ -109,19 +98,22 @@ export const findSymbolTool: Tool<{ symbol: string; path?: string }, DefinitionR
         results.push({
           path: relPath,
           line: hit.line,
-          signature: hit.signature,
-          exported: hit.exported,
+          content: hit.content,
         });
       }
     }
 
-    return results;
+    return {
+      status: 'success',
+      truncated: false,
+      content: results as unknown as Record<string, unknown>,
+    };
   },
 };
 
 // ─── find_references ──────────────────────────────────────────────────────────
 
-export const findReferencesTool: Tool<{ symbol: string; path?: string }, ReferenceResult[]> = {
+export const findReferencesTool: Tool<{ symbol: string; path?: string }, ToolResultV2> = {
   name: 'find_references',
   description:
     'Find all usages of a named symbol across the workspace. Uses grep to locate ' +
@@ -146,34 +138,14 @@ export const findReferencesTool: Tool<{ symbol: string; path?: string }, Referen
       if (!source) continue;
       for (const hit of findReferenceNodes(source, symbol, lang)) {
         if (results.length >= MAX_REFS) break;
-        results.push({ path: relPath, line: hit.line, text: hit.text });
+        results.push({ path: relPath, line: hit.line, content: hit.content });
       }
     }
 
-    return results;
-  },
-};
-
-// ─── list_exports ──────────────────────────────────────────────────────────────
-
-export const listExportsTool: Tool<{ path: string }, ExportEntry[]> = {
-  name: 'list_exports',
-  description:
-    'List all exported symbols from a workspace file.\n' +
-    "Returns each export's name, kind (function/class/type/interface/variable/enum/default), " +
-    'line number, and whether it is a re-export from another module.\n' +
-    'Use this to understand what a module provides. Complements list_imports: ' +
-    'trace an import to its source module, then use list_exports to see what is available.',
-  schema: z.object({
-    path: z.string().min(1).describe('File path relative to workspace root.'),
-  }),
-  needsApproval: false,
-  run: async ({ path }, ctx) => {
-    const ws = await getWorkspace(ctx.workspaceId);
-    const lang = detectLanguage(path);
-    if (!lang) return [];
-    const source = await readSourceFile(safeJoin(ws.path, path));
-    if (!source) return [];
-    return parseExports(source, lang);
+    return {
+      status: 'success',
+      truncated: false,
+      content: results as unknown as Record<string, unknown>,
+    };
   },
 };

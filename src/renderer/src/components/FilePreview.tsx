@@ -22,7 +22,7 @@ export function FilePreview({ workspaceId, path }: FilePreviewProps) {
   return (
     <div className="flex h-full w-full">
       <File
-        file={{ name: path, contents: file.data?.content || '' }}
+        file={{ name: path, contents: file.data ?? '' }}
         options={{
           disableFileHeader: true,
           overflow: 'wrap',
