@@ -171,7 +171,7 @@ export const notes = sqliteTable('notes', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
-  tags: text('tags').notNull().default('[]'), // JSON string[]
+  tags: text('tags').notNull().default(''),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });

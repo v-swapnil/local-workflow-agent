@@ -1,4 +1,3 @@
-export const APP_NAME = 'ASE';
 export const APP_BUNDLE_ID = 'com.ase.app';
 export const DEFAULT_OLLAMA_MODEL = 'qwen2.5-coder:7b';
 export const DEFAULT_COPILOT_MODEL = 'claude-sonnet-4.5';

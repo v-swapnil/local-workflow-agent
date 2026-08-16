@@ -17,7 +17,6 @@ export function useNoteAutosave(noteId: string, patch: NotePatch) {
   });
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   const { title, content, tags } = patch;
-  const tagsKey = JSON.stringify(tags);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -28,8 +27,7 @@ export function useNoteAutosave(noteId: string, patch: NotePatch) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noteId, title, content, tagsKey]);
+  }, [noteId, title, content, tags]);
 
   return { isSaving: update.isPending };
 }

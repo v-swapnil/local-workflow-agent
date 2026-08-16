@@ -6,11 +6,6 @@ import { getSetting, SETTING_KEYS } from '../settings';
 import { createWorktree, removeWorktreeBySession } from '../worktrees';
 import { getDb } from '@main/db';
 
-export async function buildSessionSummary(sessionId: string) {
-  const session = getDb().select().from(sessions).where(eq(sessions.id, sessionId)).get();
-  if (!session) throw new Error(`session not found: ${sessionId}`);
-}
-
 export async function createSession(workspaceId: string, title: string): Promise<SessionRecord> {
   const now = Date.now();
   const row = {

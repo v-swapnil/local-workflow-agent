@@ -14,11 +14,11 @@ import type { SkillRecord } from '@shared/schema.js';
 
 const log = logger.child({ mod: 'skills' });
 
-export const ID_RE = /^[a-z0-9][a-z0-9-_]*$/i;
+const ID_RE = /^[a-z0-9][a-z0-9-_]*$/i;
 
 type SkillSource = SkillRecord['source'];
 
-export function userSkillsDir(): string {
+function userSkillsDir(): string {
   return join(userDataDir(), 'skills');
 }
 

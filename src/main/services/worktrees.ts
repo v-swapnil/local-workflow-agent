@@ -143,16 +143,3 @@ export function getWorktree(worktreeId: string): WorktreeRecord | null {
   const row = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get();
   return (row as WorktreeRecord | undefined) ?? null;
 }
-
-export function getWorktreeStatus(
-  worktreeId: string,
-): { exists: boolean; status: string; branch: string; path: string } | null {
-  const record = getWorktree(worktreeId);
-  if (!record) return null;
-  return {
-    exists: existsSync(record.path),
-    status: record.status,
-    branch: record.branch,
-    path: record.path,
-  };
-}

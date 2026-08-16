@@ -5,7 +5,7 @@ import { logger } from '../logger.js';
 
 const log = logger.child({ mod: 'git' });
 
-export interface GitFileStatus {
+interface GitFileStatus {
   path: string;
   index: string;
   working_dir: string;

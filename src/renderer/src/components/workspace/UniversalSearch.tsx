@@ -50,17 +50,15 @@ export function UniversalSearch({ workspaceId }: { workspaceId: string }) {
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={mode === 'files' ? 'search file names...' : 'search file contents...'}
+        placeholder={
+          mode === 'files'
+            ? 'start typing to search file names...'
+            : 'start typing to search file contents...'
+        }
         className="font-mono text-ui-sm"
       />
 
       <div className="mt-3 max-h-96 overflow-y-auto">
-        {!debounced && (
-          <div className="py-4 font-mono text-ui-sm text-ink-600">
-            start typing to search the workspace.
-          </div>
-        )}
-
         {debounced && isLoading && (
           <div className="py-4 font-mono text-ui-sm text-ink-500">searching...</div>
         )}

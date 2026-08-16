@@ -11,14 +11,6 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled';
 
-export type AgentRole = 'planner' | 'executor';
-export type StepStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'skipped';
-
-export interface AppHealth {
-  app: { name: string; version: string };
-  db: { ok: boolean; path: string };
-}
-
 export type ProviderId = (typeof PROVIDERS)[keyof typeof PROVIDERS];
 
 export type KanbanLane = 'todo' | 'in_progress' | 'done' | 'need_help';
@@ -42,18 +34,6 @@ export interface KanbanCard {
   createdAt: number;
 }
 
-export interface WorktreeRecord {
-  id: string;
-  workspaceId: string;
-  sessionId: string | null;
-  branch: string;
-  path: string;
-  baseBranch: string;
-  baseCommit: string;
-  status: 'active' | 'removed';
-  createdAt: number;
-}
-
 export interface Note {
   id: string;
   title: string;
@@ -63,7 +43,7 @@ export interface Note {
   updatedAt: number;
 }
 
-export type ToolResultStatus = 'success' | 'error' | 'cancelled';
+type ToolResultStatus = 'success' | 'error' | 'cancelled';
 
 export interface ToolResultV2 {
   status: ToolResultStatus;

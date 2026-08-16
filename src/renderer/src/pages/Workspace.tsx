@@ -32,7 +32,7 @@ export function Workspace() {
         <>
           <WorkspaceOverview workspaceId={workspaceId} />
           <Tabs defaultValue="search" className="flex min-h-0 flex-1 flex-col">
-            <TabsList className="h-auto rounded-lg border border-ink-800/40 bg-ink-900/15 p-0.5">
+            <TabsList className="h-auto rounded-lg border border-ink-800/40 bg-ink-900/15 p-0.5 justify-start">
               {TABS.map(([value, label]) => (
                 <TabsTrigger
                   key={value}

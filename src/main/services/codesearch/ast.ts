@@ -68,18 +68,6 @@ export function tryMakeSymbol(
   };
 }
 
-/** Walk up parent pointers to find the enclosing class name, if any. */
-export function findParentClassName(node: SyntaxNode): string | null {
-  let cursor: SyntaxNode | null = node.parent;
-  while (cursor) {
-    if (cursor.type === 'class_declaration' || cursor.type === 'class_expression') {
-      return cursor.childForFieldName('name')?.text ?? null;
-    }
-    cursor = cursor.parent;
-  }
-  return null;
-}
-
 /** Determine symbol kind for a variable_declarator based on its value node type. */
 export function variableKind(valueNode: SyntaxNode | null): OutlineSymbol['kind'] {
   if (valueNode?.type === 'arrow_function' || valueNode?.type === 'function_expression') {

@@ -1,7 +1,7 @@
 import { KanbanLane, TaskStatus } from '@shared/types';
 import { listSessions, listTasks } from '../workspaces';
 
-export function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
+function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
   if (taskStatuses.length === 0) return 'todo';
 
   const hasAwaiting = taskStatuses.includes('awaiting_approval');

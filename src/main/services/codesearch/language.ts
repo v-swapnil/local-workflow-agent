@@ -6,9 +6,6 @@ import Python from 'tree-sitter-python';
 import { extname } from 'node:path';
 import type { Language } from './types.js';
 
-export const SUPPORTED_GLOB = '**/*.{ts,tsx,js,jsx,mjs,cjs,py}';
-export const MAX_FILES = 300;
-export const MAX_FILE_BYTES = 512 * 1024; // 512 KB — same limit used in grep.ts
 export const MAX_SIGNATURE_LENGTH = 200;
 
 const EXT_TO_LANG: Record<string, Language> = {

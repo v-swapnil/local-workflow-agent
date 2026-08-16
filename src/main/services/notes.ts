@@ -5,17 +5,11 @@ import { notes } from '../db/schema.js';
 import type { Note } from '@shared/types';
 
 function toNote(row: typeof notes.$inferSelect): Note {
-  let tags: string[] = [];
-  try {
-    tags = JSON.parse(row.tags);
-  } catch {
-    tags = [];
-  }
   return {
     id: row.id,
     title: row.title,
     content: row.content,
-    tags,
+    tags: row.tags.split(',') ?? [],
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

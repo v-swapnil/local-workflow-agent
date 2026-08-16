@@ -1,12 +1,9 @@
-import { Minus, Plus } from 'lucide-react';
-import { Button } from '../ui/button';
-import { TreeLeaf, TreeNode } from '../ui/tree-node';
-import { ChangedFileListItem } from './ChangedFileListItem';
 import { trpc } from '@renderer/trpc';
-import { useChangedFiles } from './useChangedFiles';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActiveChange, ChangeKind } from './changeUtils';
+import { useChangedFiles } from './useChangedFiles';
 import { FileTree } from '../FileTree';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { GitStatus } from '@pierre/trees';
 
 interface ChangesSidebarProps {
@@ -37,33 +34,16 @@ export function ChangesSidebar({
   active,
   setActive,
 }: ChangesSidebarProps) {
-  const [stagedExpanded, setStagedExpanded] = useState(false);
-  const [unstagedExpanded, setUnstagedExpanded] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'tree'>('tree');
+  const [activeTab, setActiveTab] = useState<'staged' | 'unstaged'>('unstaged');
 
-  const utils = trpc.useUtils();
   const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });
-  const invalidateStatus = () => utils.git.status.invalidate({ workspaceId, worktreeId });
-
-  const stage = trpc.git.stage.useMutation({ onSuccess: invalidateStatus });
-  const unstage = trpc.git.unstage.useMutation({ onSuccess: invalidateStatus });
-
-  const stageAll = trpc.git.stageAll.useMutation({ onSuccess: invalidateStatus });
-  const unstageAll = trpc.git.unstageAll.useMutation({ onSuccess: invalidateStatus });
 
   const filesBySection = useChangedFiles(status.data);
 
   const stagedFiles = filesBySection.staged;
   const unStagedFiles = filesBySection.others;
 
-  // Unified list for the tree view: dedupe by path, prefer the working-tree
-  // entry so selecting a file shows its unstaged diff when it exists in both.
-  const treeFiles = useMemo(() => {
-    const byPath = new Map<string, (typeof unStagedFiles)[number]>();
-    for (const file of unStagedFiles) byPath.set(file.path, file);
-    for (const file of stagedFiles) if (!byPath.has(file.path)) byPath.set(file.path, file);
-    return [...byPath.values()];
-  }, [stagedFiles, unStagedFiles]);
+  const activeFiles = activeTab === 'staged' ? stagedFiles : unStagedFiles;
 
   useEffect(() => {
     if (!active) return;
@@ -98,153 +78,34 @@ export function ChangesSidebar({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-1 px-2 pb-2">
-        <Button
-          variant={viewMode === 'tree' ? 'outline' : 'ghost'}
-          size="xs"
-          className="h-6 px-2 font-mono text-ui-2xs"
-          onClick={() => setViewMode('tree')}
-        >
-          tree
-        </Button>
-        <Button
-          variant={viewMode === 'list' ? 'outline' : 'ghost'}
-          size="xs"
-          className="h-6 px-2 font-mono text-ui-2xs"
-          onClick={() => setViewMode('list')}
-        >
-          list
-        </Button>
-      </div>
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as 'staged' | 'unstaged')}
+        className="shrink-0 px-2 pb-2"
+      >
+        <TabsList className="grid h-8 w-full grid-cols-2 bg-ink-900/40 p-0.5 font-mono text-ui-2xs">
+          <TabsTrigger value="unstaged" className="h-full data-[state=active]:bg-ink-800">
+            unstaged ({unStagedFiles.length})
+          </TabsTrigger>
+          <TabsTrigger value="staged" className="h-full data-[state=active]:bg-ink-800">
+            staged ({stagedFiles.length})
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      {viewMode === 'tree' ? (
+      {activeFiles.length === 0 ? (
+        <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">No {activeTab} changes</div>
+      ) : (
         <div className="min-h-0 flex-1">
           <FileTree
-            paths={treeFiles.map((file) => file.path)}
+            paths={activeFiles.map((file) => file.path)}
             activePath={active?.path ?? null}
-            gitStatus={treeFiles.map((file) => ({
+            gitStatus={activeFiles.map((file) => ({
               path: file.path,
               status: toGitStatus(file.kind),
             }))}
-            onOpen={(filePath) => {
-              const file = treeFiles.find((f) => f.path === filePath);
-              if (file) {
-                setActive({
-                  path: file.path,
-                  kind: file.kind,
-                  originalPath: file.originalPath,
-                  staged: file.section === 'staged',
-                });
-              }
-            }}
+            onOpen={(filePath) => handleSelect(filePath, activeTab === 'staged')}
           />
-        </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <TreeNode
-            isActive={stagedFiles.some((file) => active?.path === file.path)}
-            isExpanded={stagedExpanded}
-            onExpandedChange={() => setStagedExpanded(!stagedExpanded)}
-            onSelect={() => setStagedExpanded(!stagedExpanded)}
-            content={<div>Staged ({stagedFiles.length})</div>}
-            actions={
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => unstageAll.mutate({ workspaceId, worktreeId })}
-                disabled={unstageAll.isPending}
-                className="invisible shrink-0 rounded p-1 text-ink-600 hover:border-rose-500/30 hover:text-signal-err group-hover:visible"
-              >
-                <Minus className="h-2.5 w-2.5" strokeWidth={1.5} />
-              </Button>
-            }
-          >
-            {stagedFiles.length > 0 ? (
-              stagedFiles.map((file, index) => {
-                const isLast = index === stagedFiles.length - 1;
-                return (
-                  <TreeLeaf
-                    key={file.path}
-                    isActive={active?.path === file.path}
-                    isLast={isLast}
-                    onSelect={() => handleSelect(file.path, true)}
-                    content={
-                      <ChangedFileListItem isActive={active?.path === file.path} file={file} />
-                    }
-                    actions={
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="xs"
-                        title="Unstage file"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          unstage.mutate({ workspaceId, worktreeId, paths: [file.path] });
-                        }}
-                        className="shrink-0 h-6 w-6 text-ink-500 hover:bg-rose-500/10 hover:text-signal-err"
-                      >
-                        <Minus className="h-3 w-3" strokeWidth={1.5} />
-                      </Button>
-                    }
-                  />
-                );
-              })
-            ) : (
-              <div className="ml-4 py-2 font-mono text-ui-2xs text-ink-600">No files</div>
-            )}
-          </TreeNode>
-          <TreeNode
-            isActive={unStagedFiles.some((file) => active?.path === file.path)}
-            isExpanded={unstagedExpanded}
-            onExpandedChange={() => setUnstagedExpanded(!unstagedExpanded)}
-            onSelect={() => setUnstagedExpanded(!unstagedExpanded)}
-            content={<div>Unstaged ({unStagedFiles.length})</div>}
-            actions={
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => stageAll.mutate({ workspaceId, worktreeId })}
-                disabled={stageAll.isPending}
-                className="invisible shrink-0 rounded p-1 text-ink-600 hover:border-emerald-500/30 hover:text-signal-ok group-hover:visible"
-              >
-                <Plus className="h-2.5 w-2.5" strokeWidth={1.5} />
-              </Button>
-            }
-          >
-            {unStagedFiles.length > 0 ? (
-              unStagedFiles.map((file, index) => {
-                const isLast = index === unStagedFiles.length - 1;
-                return (
-                  <TreeLeaf
-                    key={file.path}
-                    isActive={active?.path === file.path}
-                    isLast={isLast}
-                    onSelect={() => handleSelect(file.path, false)}
-                    content={
-                      <ChangedFileListItem isActive={active?.path === file.path} file={file} />
-                    }
-                    actions={
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="xs"
-                        title="Stage file"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          stage.mutate({ workspaceId, worktreeId, paths: [file.path] });
-                        }}
-                        className="shrink-0 h-6 w-6 text-ink-500 hover:bg-rose-500/10 hover:text-signal-err"
-                      >
-                        <Plus className="h-3 w-3" strokeWidth={1.5} />
-                      </Button>
-                    }
-                  />
-                );
-              })
-            ) : (
-              <div className="ml-4 py-2 font-mono text-ui-2xs text-ink-600">No files</div>
-            )}
-          </TreeNode>
         </div>
       )}
     </div>

@@ -13,7 +13,6 @@ export {
   deleteWorkspacePath,
 } from './workspaceFiles.js';
 export {
-  buildSessionSummary,
   createSession,
   listSessions,
   getSession,

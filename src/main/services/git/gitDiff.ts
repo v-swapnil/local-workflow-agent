@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { getWorkspace } from '../workspaces';
 import { gitFor, isRepo } from './gitCore.js';
 import type { GitDiff } from './gitCore.js';
 
@@ -11,10 +10,6 @@ export interface GitFileStat {
   deletions: number;
   /** Binary files report no line counts (git numstat emits "-"). */
   binary: boolean;
-}
-
-export async function workspaceDiff(workspaceId: string, staged = false): Promise<GitDiff> {
-  return workspaceDiffAtPath((await getWorkspace(workspaceId)).path, staged);
 }
 
 export async function workspaceDiffAtPath(path: string, staged = false): Promise<GitDiff> {
@@ -39,13 +34,6 @@ export async function workspaceDiffAtPath(path: string, staged = false): Promise
   return { isRepo: true, unifiedDiff: tracked + untracked, staged };
 }
 
-export async function showFileAtHead(
-  workspaceId: string,
-  filePath: string,
-): Promise<string | null> {
-  return showFileAtHeadAtPath((await getWorkspace(workspaceId)).path, filePath);
-}
-
 export async function showFileAtHeadAtPath(
   basePath: string,
   filePath: string,
@@ -57,14 +45,6 @@ export async function showFileAtHeadAtPath(
     // New/untracked files and paths absent in HEAD should return null.
     return null;
   }
-}
-
-export async function fileDiff(
-  workspaceId: string,
-  filePath: string,
-  staged = false,
-): Promise<string> {
-  return fileDiffAtPath((await getWorkspace(workspaceId)).path, filePath, staged);
 }
 
 export async function fileDiffAtPath(

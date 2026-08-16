@@ -77,10 +77,6 @@ export function addMemory(input: {
   return row;
 }
 
-export function deleteSessionMemories(sessionId: string): void {
-  getDb().delete(memories).where(eq(memories.sessionId, sessionId)).run();
-}
-
 export function deleteMemory(id: number): void {
   getDb().delete(memories).where(eq(memories.id, id)).run();
 }

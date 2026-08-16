@@ -24,12 +24,6 @@ export function logsDir(): string {
   return dir;
 }
 
-export function reportsDir(): string {
-  const dir = join(logsDir(), 'reports');
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
 export function worktreesRoot(): string {
   const dir = join(userDataDir(), 'worktrees');
   mkdirSync(dir, { recursive: true });
