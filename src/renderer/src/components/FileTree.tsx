@@ -1,13 +1,19 @@
 import { useEffect, useMemo } from 'react';
 import { FileTree as PierreFileTree, useFileTree, useFileTreeSelection } from '@pierre/trees/react';
+import { useUI } from '@renderer/store/ui';
+import { GitStatusEntry, themeToTreeStyles } from '@pierre/trees';
 
 interface FileTreeProps {
   paths: string[];
+  gitStatus: GitStatusEntry[];
   activePath: string | null;
   onOpen: (path: string) => void;
 }
 
-export function FileTree({ paths, activePath, onOpen }: FileTreeProps) {
+export function FileTree({ paths, gitStatus, activePath, onOpen }: FileTreeProps) {
+  const { theme } = useUI();
+  const styles = themeToTreeStyles({ type: theme });
+
   // git ls-files output can include a trailing empty entry; drop blanks.
   const cleanPaths = useMemo(() => paths.filter(Boolean), [paths]);
 
@@ -17,6 +23,7 @@ export function FileTree({ paths, activePath, onOpen }: FileTreeProps) {
     search: true,
     initialSelectedPaths: activePath ? [activePath] : undefined,
     icons: 'standard',
+    gitStatus,
   });
 
   const selectedPaths = useFileTreeSelection(model);
@@ -32,5 +39,5 @@ export function FileTree({ paths, activePath, onOpen }: FileTreeProps) {
     if (item && !item.isDirectory()) onOpen(selectedPath);
   }, [selectedPaths, model, onOpen]);
 
-  return <PierreFileTree model={model} style={{ height: '100%' }} />;
+  return <PierreFileTree model={model} style={{ ...styles, height: '100%' }} />;
 }

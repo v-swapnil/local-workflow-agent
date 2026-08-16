@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Bot, Plus } from 'lucide-react';
 import { trpc } from '../trpc';
 import { AgentList } from '../components/agents/AgentList';
 import { AgentFormPanel } from '../components/agents/AgentFormPanel';
 import { NewAgentModal } from '../components/agents/NewAgentModal';
+import { Button } from '../components/ui/button';
 import { BLANK } from '../components/agents/agentTypes';
 import type { AgentFormState } from '../components/agents/agentTypes';
 import { AgentRecord } from '@shared/schema';
@@ -62,6 +64,15 @@ export function Agents() {
     setForm(createAgentFormState(agent));
   }
 
+  // Auto-select the first agent when the list loads and nothing is selected.
+  useEffect(() => {
+    if (selected) return;
+    const firstAgent = agents[0];
+    if (!firstAgent) return;
+    setSelected(firstAgent.id);
+    setForm(createAgentFormState(firstAgent));
+  }, [agents, selected]);
+
   function newAgent() {
     setShowNewModal(true);
   }
@@ -91,17 +102,32 @@ export function Agents() {
           if (confirm(`Delete agent "${agent?.name ?? id}"?`)) del.mutate({ id });
         }}
       />
-      <AgentFormPanel
-        form={form}
-        setForm={setForm}
-        availableTools={toolsList}
-        onSave={save}
-        onDelete={() => form.id && del.mutate({ id: form.id })}
-        isSaving={upsert.isPending}
-        isDeleting={del.isPending}
-        saveError={upsert.error?.message}
-      />
-
+      {agents.length === 0 ? (
+        <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink-800/40">
+            <Bot className="h-5 w-5 text-ink-500" strokeWidth={1.3} />
+          </div>
+          <div className="font-mono text-ui-sm text-ink-300">no agents yet</div>
+          <div className="max-w-xs font-mono text-ui-xs text-ink-500">
+            create an agent to define its role, system prompt, and tools
+          </div>
+          <Button variant="outline" size="sm" onClick={newAgent} className="mt-1 gap-1.5">
+            <Plus className="h-3 w-3" strokeWidth={1.5} />
+            new agent
+          </Button>
+        </div>
+      ) : (
+        <AgentFormPanel
+          form={form}
+          setForm={setForm}
+          availableTools={toolsList}
+          onSave={save}
+          onDelete={() => form.id && del.mutate({ id: form.id })}
+          isSaving={upsert.isPending}
+          isDeleting={del.isPending}
+          saveError={upsert.error?.message}
+        />
+      )}
       {showNewModal && (
         <NewAgentModal
           isPending={createAgent.isPending}

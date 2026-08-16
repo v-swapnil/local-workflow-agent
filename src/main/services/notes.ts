@@ -1,18 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
-import { noteCollections, notes } from '../db/schema.js';
-import type { Note, NoteCollection } from '@shared/types';
-
-function toCollection(row: typeof noteCollections.$inferSelect): NoteCollection {
-  return {
-    id: row.id,
-    name: row.name,
-    kind: row.kind as NoteCollection['kind'],
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
+import { notes } from '../db/schema.js';
+import type { Note } from '@shared/types';
 
 function toNote(row: typeof notes.$inferSelect): Note {
   let tags: string[] = [];
@@ -23,7 +13,6 @@ function toNote(row: typeof notes.$inferSelect): Note {
   }
   return {
     id: row.id,
-    collectionId: row.collectionId,
     title: row.title,
     content: row.content,
     tags,
@@ -32,40 +21,11 @@ function toNote(row: typeof notes.$inferSelect): Note {
   };
 }
 
-// --- collections ---
-
-export function listCollections(): NoteCollection[] {
-  const rows = getDb().select().from(noteCollections).all();
-  return rows.map(toCollection);
-}
-
-export function createCollection(name: string): NoteCollection {
-  const now = Date.now();
-  const row = {
-    id: nanoid(10),
-    name,
-    kind: 'user' as const,
-    createdAt: now,
-    updatedAt: now,
-  };
-  getDb().insert(noteCollections).values(row).run();
-  return toCollection(row);
-}
-
-export function deleteCollection(id: string): void {
-  const db = getDb();
-  const [row] = db.select().from(noteCollections).where(eq(noteCollections.id, id)).all();
-  if (!row) return;
-  if (row.kind === 'default') throw new Error('cannot delete a default collection');
-  db.delete(notes).where(eq(notes.collectionId, id)).run();
-  db.delete(noteCollections).where(eq(noteCollections.id, id)).run();
-}
-
 // --- notes ---
 
 export function listNotes(): Note[] {
   const rows = getDb().select().from(notes).all();
-  return rows.map(toNote).sort((a, b) => b.updatedAt - a.updatedAt);
+  return rows.map(toNote).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export function getNote(id: string): Note | undefined {
@@ -73,18 +33,11 @@ export function getNote(id: string): Note | undefined {
   return row ? toNote(row) : undefined;
 }
 
-export function createNote(collectionId: string): Note {
+export function createNote(): Note {
   const db = getDb();
-  const [collection] = db
-    .select()
-    .from(noteCollections)
-    .where(eq(noteCollections.id, collectionId))
-    .all();
-  if (!collection) throw new Error(`collection not found: ${collectionId}`);
   const now = Date.now();
   const row = {
     id: nanoid(10),
-    collectionId,
     title: 'Untitled',
     content: '',
     tags: '[]',

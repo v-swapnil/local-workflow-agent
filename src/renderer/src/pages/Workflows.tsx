@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { trpc } from '../trpc';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -143,6 +143,19 @@ export function Workflows() {
     setValidationResult(null);
   }
 
+  // Auto-select the first workflow when the list loads and nothing is selected.
+  useEffect(() => {
+    if (selectedId) return;
+    const firstWorkflow = workflows[0];
+    if (!firstWorkflow) return;
+    setSelectedId(firstWorkflow.id);
+    setName(firstWorkflow.name);
+    setDescription(firstWorkflow.description ?? '');
+    setCurrentDef({ nodes: firstWorkflow.nodes, edges: firstWorkflow.edges });
+    setSaveError(null);
+    setValidationResult(null);
+  }, [workflows, selectedId]);
+
   function newWorkflow() {
     setShowNewModal(true);
   }
@@ -229,8 +242,18 @@ export function Workflows() {
               />
             </Suspense>
           ) : (
-            <div className="flex h-full items-center justify-center font-mono text-ui-xs text-ink-500">
-              select or create a workflow
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink-800/40">
+                <Network className="h-5 w-5 text-ink-500" strokeWidth={1.3} />
+              </div>
+              <div className="font-mono text-ui-sm text-ink-300">no workflows yet</div>
+              <div className="max-w-xs font-mono text-ui-xs text-ink-500">
+                create a workflow to orchestrate agents on a canvas
+              </div>
+              <Button variant="outline" size="sm" onClick={newWorkflow} className="mt-1 gap-1.5">
+                <Plus className="h-3 w-3" strokeWidth={1.5} />
+                new workflow
+              </Button>
             </div>
           )}
         </div>

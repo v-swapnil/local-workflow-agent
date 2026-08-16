@@ -167,27 +167,14 @@ export const schedules = sqliteTable('schedules', {
   nextRunAt: integer('next_run_at'),
 });
 
-export const noteCollections = sqliteTable('note_collections', {
+export const notes = sqliteTable('notes', {
   id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  kind: text('kind').notNull().default('user'), // 'default' | 'user'
+  title: text('title').notNull(),
+  content: text('content').notNull().default(''),
+  tags: text('tags').notNull().default('[]'), // JSON string[]
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
-
-export const notes = sqliteTable(
-  'notes',
-  {
-    id: text('id').primaryKey(),
-    collectionId: text('collection_id').notNull(),
-    title: text('title').notNull(),
-    content: text('content').notNull().default(''),
-    tags: text('tags').notNull().default('[]'), // JSON string[]
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull(),
-  },
-  (t) => ({ cIdx: index('idx_notes_collection').on(t.collectionId) }),
-);
 
 export const taskEvents = sqliteTable(
   'task_events',

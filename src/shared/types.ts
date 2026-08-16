@@ -54,19 +54,8 @@ export interface WorktreeRecord {
   createdAt: number;
 }
 
-export type NoteCollectionKind = 'default' | 'user';
-
-export interface NoteCollection {
-  id: string;
-  name: string;
-  kind: NoteCollectionKind;
-  createdAt: number;
-  updatedAt: number;
-}
-
 export interface Note {
   id: string;
-  collectionId: string;
   title: string;
   content: string;
   tags: string[];
