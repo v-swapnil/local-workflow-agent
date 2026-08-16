@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { trpc } from '../../trpc';
 import { NotesSidebar } from './NotesSidebar';
 import { NoteEditor } from './NoteEditor';
+import { NewNoteModal } from './NewNoteModal';
 
 export function Notes() {
   const utils = trpc.useUtils();
   const notesQuery = trpc.notes.list.useQuery();
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const createNote = trpc.notes.create.useMutation({
     onSuccess: (note) => {
       utils.notes.list.invalidate();
       setSelectedNoteId(note.id);
+      setIsCreating(false);
     },
   });
   const deleteNote = trpc.notes.delete.useMutation({
@@ -29,7 +32,7 @@ export function Notes() {
         notes={notesQuery.data ?? []}
         selectedNoteId={selectedNoteId}
         onSelectNote={setSelectedNoteId}
-        onCreateNote={() => createNote.mutate()}
+        onCreateNote={() => setIsCreating(true)}
         onDeleteNote={(id) => {
           if (window.confirm('Delete this note?')) deleteNote.mutate({ id });
         }}
@@ -44,6 +47,14 @@ export function Notes() {
           </div>
         )}
       </section>
+
+      {isCreating && (
+        <NewNoteModal
+          onCreate={(input) => createNote.mutate(input)}
+          onClose={() => setIsCreating(false)}
+          isPending={createNote.isPending}
+        />
+      )}
     </div>
   );
 }

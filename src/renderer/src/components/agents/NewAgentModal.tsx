@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { FormDialog, FieldLabel } from '../ui/form-dialog';
+import { FormDialog, FormField } from '../ui/form-dialog';
 
 interface NewAgentModalProps {
   onCreate: (input: { name: string; role: string; systemPrompt?: string }) => void;
@@ -28,32 +28,30 @@ export function NewAgentModal({ onCreate, onClose, isPending }: NewAgentModalPro
   return (
     <FormDialog
       title="new agent"
+      description="Agents are autonomous AI entities that can plan and execute tasks. Create a new agent to get started."
       onClose={onClose}
       onSubmit={submit}
       canSubmit={canSave}
       isPending={isPending}
     >
-      <div className="space-y-1">
-        <FieldLabel>name</FieldLabel>
+      <FormField label="name">
         <Input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="my-agent"
         />
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <FieldLabel>role</FieldLabel>
+      <FormField label="role">
         <Input
           value={role}
           onChange={(e) => setRole(e.target.value)}
           placeholder="backend-engineer"
         />
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <FieldLabel optional>system prompt</FieldLabel>
+      <FormField label="system prompt" optional>
         <Textarea
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
@@ -61,7 +59,7 @@ export function NewAgentModal({ onCreate, onClose, isPending }: NewAgentModalPro
           placeholder="You are a skilled backend engineer…"
           className="resize-y leading-relaxed font-mono text-ui-sm"
         />
-      </div>
+      </FormField>
     </FormDialog>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { FormDialog, FieldLabel } from '../ui/form-dialog';
+import { FormDialog, FormField } from '../ui/form-dialog';
 
 interface NewWorkflowModalProps {
   onCreate: (input: { name: string; description?: string }) => void;
@@ -22,13 +22,13 @@ export function NewWorkflowModal({ onCreate, onClose, isPending }: NewWorkflowMo
   return (
     <FormDialog
       title="new workflow"
+      description="Workflows are sequences of tasks that can be executed by agents. Create a new workflow to get started."
       onClose={onClose}
       onSubmit={submit}
       canSubmit={!!name.trim()}
       isPending={isPending}
     >
-      <div className="space-y-1">
-        <FieldLabel>name</FieldLabel>
+      <FormField label="name">
         <Input
           autoFocus
           value={name}
@@ -41,10 +41,9 @@ export function NewWorkflowModal({ onCreate, onClose, isPending }: NewWorkflowMo
           }}
           placeholder="my-workflow"
         />
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <FieldLabel optional>description</FieldLabel>
+      <FormField label="description" optional>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -52,7 +51,7 @@ export function NewWorkflowModal({ onCreate, onClose, isPending }: NewWorkflowMo
           placeholder="what does this workflow do?"
           className="resize-y leading-relaxed"
         />
-      </div>
+      </FormField>
     </FormDialog>
   );
 }

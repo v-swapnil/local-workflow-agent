@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
-import { FormDialog, FieldLabel } from '../../components/ui/form-dialog';
+import { FormDialog, FormField } from '../../components/ui/form-dialog';
 
 interface NewSessionModalProps {
   onCreate: (input: { title: string; context?: string }) => void;
@@ -22,13 +22,13 @@ export function NewSessionModal({ onCreate, onClose, isPending }: NewSessionModa
   return (
     <FormDialog
       title="new session"
+      description="Sessions are saved contexts for your agents. Create a new session to start a fresh context or save your current work."
       onClose={onClose}
       onSubmit={submit}
       canSubmit={!!title.trim()}
       isPending={isPending}
     >
-      <div className="space-y-1">
-        <FieldLabel>session name</FieldLabel>
+      <FormField label="session name">
         <Input
           autoFocus
           value={title}
@@ -41,10 +41,9 @@ export function NewSessionModal({ onCreate, onClose, isPending }: NewSessionModa
           }}
           placeholder="e.g. refactor auth flow"
         />
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <FieldLabel optional>additional context</FieldLabel>
+      <FormField label="additional context" optional>
         <Textarea
           value={context}
           onChange={(e) => setContext(e.target.value)}
@@ -52,7 +51,7 @@ export function NewSessionModal({ onCreate, onClose, isPending }: NewSessionModa
           placeholder="notes or constraints saved as a session memory…"
           className="resize-y leading-relaxed"
         />
-      </div>
+      </FormField>
     </FormDialog>
   );
 }

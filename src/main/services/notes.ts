@@ -33,14 +33,14 @@ export function getNote(id: string): Note | undefined {
   return row ? toNote(row) : undefined;
 }
 
-export function createNote(): Note {
+export function createNote(input?: { title?: string; tags?: string[] }): Note {
   const db = getDb();
   const now = Date.now();
   const row = {
     id: nanoid(10),
-    title: 'Untitled',
+    title: input?.title?.trim() || 'Untitled',
     content: '',
-    tags: '[]',
+    tags: (input?.tags ?? []).join(','),
     createdAt: now,
     updatedAt: now,
   };
@@ -58,7 +58,7 @@ export function updateNote(
   const update: Partial<typeof notes.$inferInsert> = { updatedAt: Date.now() };
   if (patch.title !== undefined) update.title = patch.title;
   if (patch.content !== undefined) update.content = patch.content;
-  if (patch.tags !== undefined) update.tags = JSON.stringify(patch.tags);
+  if (patch.tags !== undefined) update.tags = patch.tags.join(',');
   db.update(notes).set(update).where(eq(notes.id, id)).run();
   const updated = getNote(id);
   if (!updated) throw new Error(`note not found after update: ${id}`);

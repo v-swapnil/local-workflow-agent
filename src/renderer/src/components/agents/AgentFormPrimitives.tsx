@@ -1,5 +1,5 @@
 import { Badge } from '../ui/badge';
-import { Label } from '../ui/label';
+import { Field, FieldLabel } from '../ui/field';
 
 export function RoleBadge({ role }: { role: string }) {
   return (
@@ -24,10 +24,12 @@ export function ModelTag({ model, provider }: { model: string; provider: string 
 
 export function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Label className="flex flex-col gap-1.5 font-normal">
-      <span className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">{label}</span>
+    <Field className="gap-1.5">
+      <FieldLabel className="font-mono text-ui-xs uppercase tracking-widest2 text-ink-500">
+        {label}
+      </FieldLabel>
       {children}
-    </Label>
+    </Field>
   );
 }
 

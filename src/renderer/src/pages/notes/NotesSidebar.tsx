@@ -35,6 +35,7 @@ export function NotesSidebar({
                 title={note.title || 'Untitled'}
                 isActive={note.id === selectedNoteId}
                 onSelect={() => onSelectNote(note.id)}
+                tags={note.tags.map((tag) => ({ label: tag }))}
                 actions={
                   <Button
                     variant="ghost"

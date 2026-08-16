@@ -9,7 +9,16 @@ export const notesRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(({ input }) => notesService.getNote(input.id)),
 
-  create: publicProcedure.mutation(() => notesService.createNote()),
+  create: publicProcedure
+    .input(
+      z
+        .object({
+          title: z.string().optional(),
+          tags: z.array(z.string()).optional(),
+        })
+        .optional(),
+    )
+    .mutation(({ input }) => notesService.createNote(input)),
 
   update: publicProcedure
     .input(
@@ -22,10 +31,8 @@ export const notesRouter = router({
     )
     .mutation(({ input }) => notesService.updateNote(input.id, input)),
 
-  delete: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
-    .mutation(({ input }) => {
-      notesService.deleteNote(input.id);
-      return { ok: true as const };
-    }),
+  delete: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+    notesService.deleteNote(input.id);
+    return { ok: true as const };
+  }),
 });

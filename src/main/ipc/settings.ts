@@ -7,6 +7,7 @@ import { resolveShellDetails } from '../services/shell/index.js';
 
 const themeSchema = z.enum(['dark', 'light']);
 const textSizeSchema = z.enum(['compact', 'default', 'comfortable']);
+const accentSchema = z.enum(['amber', 'teal', 'indigo', 'emerald', 'sky', 'rose']);
 
 export const settingsRouter = router({
   theme: publicProcedure.query(async () => {
@@ -30,6 +31,16 @@ export const settingsRouter = router({
       await setSetting(SETTING_KEYS.UI_TEXT_SIZE, input.value);
       return { ok: true as const };
     }),
+
+  accent: publicProcedure.query(async () => {
+    const saved = await getSetting(SETTING_KEYS.UI_ACCENT);
+    return accentSchema.catch('amber').parse(saved ?? 'amber');
+  }),
+
+  setAccent: publicProcedure.input(z.object({ value: accentSchema })).mutation(async ({ input }) => {
+    await setSetting(SETTING_KEYS.UI_ACCENT, input.value);
+    return { ok: true as const };
+  }),
 
   queueConcurrency: publicProcedure.query(async () => {
     const saved = await getSetting(SETTING_KEYS.QUEUE_CONCURRENCY);

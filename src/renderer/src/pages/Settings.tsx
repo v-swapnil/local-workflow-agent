@@ -2,13 +2,23 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { PageShell } from '../components/PageShell';
 import { ModelManager } from '../components/ModelManager';
 import { trpc } from '../trpc';
-import { useUI, type TextSize } from '../store/ui';
+import { useUI, type TextSize, type AccentColor } from '../store/ui';
 import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
 import { Slider } from '../components/ui/slider';
+import { Field, FieldDescription, FieldError } from '../components/ui/field';
+
+const ACCENTS: { value: AccentColor; label: string; swatch: string }[] = [
+  { value: 'amber', label: 'amber', swatch: 'rgb(240 170 40)' },
+  { value: 'teal', label: 'teal', swatch: 'rgb(45 212 191)' },
+  { value: 'indigo', label: 'indigo', swatch: 'rgb(129 140 248)' },
+  { value: 'emerald', label: 'emerald', swatch: 'rgb(52 211 153)' },
+  { value: 'sky', label: 'sky', swatch: 'rgb(56 189 248)' },
+  { value: 'rose', label: 'rose', swatch: 'rgb(251 113 133)' },
+];
 
 export function Settings() {
   const utils = trpc.useUtils();
@@ -21,6 +31,11 @@ export function Settings() {
   });
   const setTextSize = trpc.settings.setTextSize.useMutation({
     onSuccess: () => utils.settings.textSize.invalidate(),
+  });
+  const accent = useUI((s) => s.accent);
+  const setAccentLocal = useUI((s) => s.setAccent);
+  const setAccent = trpc.settings.setAccent.useMutation({
+    onSuccess: () => utils.settings.accent.invalidate(),
   });
   const autoApprove = trpc.approval.autoApprove.useQuery();
   const setAuto = trpc.approval.setAutoApprove.useMutation({
@@ -161,6 +176,39 @@ export function Settings() {
                   ))}
                 </ToggleGroup>
               </div>
+
+              <div className="mt-5 font-mono text-ui-xs uppercase tracking-widest2 text-ink-400">
+                accent color
+              </div>
+              <div className="flex items-center gap-2">
+                <ToggleGroup
+                  type="single"
+                  value={accent}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setAccentLocal(v as AccentColor);
+                    setAccent.mutate({ value: v as AccentColor });
+                  }}
+                  disabled={setAccent.isPending}
+                  className="flex-wrap gap-1"
+                >
+                  {ACCENTS.map((option) => (
+                    <ToggleGroupItem
+                      key={option.value}
+                      value={option.value}
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-full ring-1 ring-inset ring-black/20"
+                        style={{ backgroundColor: option.swatch }}
+                      />
+                      {option.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
             </div>
           </div>
 
@@ -183,39 +231,40 @@ export function Settings() {
             description="Used by run_shell and task execution. Leave empty to auto-detect from your environment."
           >
             <form
-              className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 const next = shellDraft.trim();
                 if (next) setShellPath.mutate({ value: next });
               }}
             >
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={shellDraft}
-                  onChange={(e) => setShellDraft(e.target.value)}
-                  className="font-mono text-ui-sm"
-                  placeholder="/bin/zsh"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!shellDraft.trim() || !shellChanged || setShellPath.isPending}
-                  >
-                    save
-                  </Button>
+              <Field>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={shellDraft}
+                    onChange={(e) => setShellDraft(e.target.value)}
+                    className="font-mono text-ui-sm"
+                    placeholder="/bin/zsh"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!shellDraft.trim() || !shellChanged || setShellPath.isPending}
+                    >
+                      save
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="font-mono text-ui-xs leading-relaxed text-ink-500">
-                effective: {resolvedShell.data?.shellPath ?? '...'}
-                {resolvedShell.data?.shellName ? ` (${resolvedShell.data.shellName})` : ''}
-              </div>
-              {shellInvalid && (
-                <div className="font-mono text-ui-xs leading-relaxed text-signal-warn">
-                  configured path was not found, so ASE is using the fallback shell above.
-                </div>
-              )}
+                <FieldDescription className="font-mono text-ui-xs leading-relaxed text-ink-500">
+                  effective: {resolvedShell.data?.shellPath ?? '...'}
+                  {resolvedShell.data?.shellName ? ` (${resolvedShell.data.shellName})` : ''}
+                </FieldDescription>
+                {shellInvalid && (
+                  <FieldError className="font-mono text-ui-xs leading-relaxed text-signal-warn">
+                    configured path was not found, so ASE is using the fallback shell above.
+                  </FieldError>
+                )}
+              </Field>
             </form>
           </SettingCard>
           <div className="mt-2">
@@ -329,24 +378,26 @@ export function Settings() {
                 title="linear integration"
                 description="Set your Linear API key to import issues into the Kanban board."
               >
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={linearApiKeyDraft}
-                    onChange={(e) => setLinearApiKeyDraft(e.target.value)}
-                    className="font-mono text-ui-sm"
-                    placeholder="lin_api_..."
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      size="sm"
-                      disabled={!linearApiKeyDraft.trim() || setLinearApiKey.isPending}
-                      onClick={() => setLinearApiKey.mutate({ value: linearApiKeyDraft.trim() })}
-                    >
-                      save
-                    </Button>
+                <Field>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      value={linearApiKeyDraft}
+                      onChange={(e) => setLinearApiKeyDraft(e.target.value)}
+                      className="font-mono text-ui-sm"
+                      placeholder="lin_api_..."
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={!linearApiKeyDraft.trim() || setLinearApiKey.isPending}
+                        onClick={() => setLinearApiKey.mutate({ value: linearApiKeyDraft.trim() })}
+                      >
+                        save
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </Field>
               </SettingCard>
             </div>
           </div>

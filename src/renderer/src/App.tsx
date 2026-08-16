@@ -36,11 +36,14 @@ export function App() {
   const setThemeLocal = useUI((s) => s.setTheme);
   const textSize = useUI((s) => s.textSize);
   const setTextSizeLocal = useUI((s) => s.setTextSize);
+  const accent = useUI((s) => s.accent);
+  const setAccentLocal = useUI((s) => s.setAccent);
   const savedTheme = trpc.settings.theme.useQuery();
   const setTheme = trpc.settings.setTheme.useMutation({
     onSuccess: () => utils.settings.theme.invalidate(),
   });
   const savedTextSize = trpc.settings.textSize.useQuery();
+  const savedAccent = trpc.settings.accent.useQuery();
 
   useEffect(() => {
     if (!savedTheme.data) return;
@@ -53,8 +56,22 @@ export function App() {
   }, [savedTextSize.data, setTextSizeLocal]);
 
   useEffect(() => {
+    if (!savedAccent.data) return;
+    setAccentLocal(savedAccent.data);
+  }, [savedAccent.data, setAccentLocal]);
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    // 'amber' is the default (no attribute needed)
+    if (accent === 'amber') {
+      delete document.documentElement.dataset.accent;
+    } else {
+      document.documentElement.dataset.accent = accent;
+    }
+  }, [accent]);
 
   useEffect(() => {
     // 'compact' is the default (no attribute needed)

@@ -41,7 +41,9 @@ export function WorkspaceSwitcher() {
           <span className="max-w-[140px] truncate normal-case">
             {current ? current.name : 'no workspace'}
           </span>
-          <ChevronDown className={cn('h-2.5 w-2.5 text-ink-500 transition-transform', open && 'rotate-180')} />
+          <ChevronDown
+            className={cn('h-2.5 w-2.5 text-ink-500 transition-transform', open && 'rotate-180')}
+          />
         </Button>
       </DropdownMenuTrigger>
 
@@ -57,26 +59,38 @@ export function WorkspaceSwitcher() {
           {list.data?.length === 0 && (
             <div className="px-4 py-3 text-ui-base text-ink-400">No workspaces yet.</div>
           )}
-          {list.data?.map((w) => (
-            <DropdownMenuItem
-              key={w.id}
-              onSelect={async () => {
-                await setActive(w.id);
-              }}
-              className={cn(
-                'app-no-drag flex-col items-start gap-0.5 border-b border-ink-800/60 px-4 py-2 rounded-none cursor-pointer focus:bg-ink-800/60',
-                w.id === workspaceId && 'bg-ink-800/40',
-              )}
-            >
-              <div className="flex w-full items-center justify-between gap-2">
-                <span className="text-ui-lg text-ink-100">{w.name}</span>
-                <span className="font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-                  {w.managed ? 'managed' : 'linked'}
-                </span>
-              </div>
-              <div className="truncate font-mono text-ui-xs text-ink-500">{w.path}</div>
-            </DropdownMenuItem>
-          ))}
+          {list.data?.map((workspace) => {
+            const isSelected = workspace.id === workspaceId;
+            return (
+              <DropdownMenuItem
+                key={workspace.id}
+                onSelect={async () => {
+                  await setActive(workspace.id);
+                }}
+                className={cn(
+                  'app-no-drag flex-col items-start gap-0.5 border-b border-ink-800/60 px-4 py-2 rounded-none cursor-pointer focus:bg-ink-800/60',
+                  isSelected && 'bg-amber/[0.06] focus:bg-amber/[0.1]',
+                )}
+              >
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span
+                      className={cn(
+                        'truncate text-ui-lg',
+                        isSelected ? 'text-amber' : 'text-ink-100',
+                      )}
+                    >
+                      {workspace.name}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
+                    {isSelected ? 'active' : workspace.managed ? 'managed' : 'linked'}
+                  </span>
+                </div>
+                <div className="truncate font-mono text-ui-xs text-ink-500">{workspace.path}</div>
+              </DropdownMenuItem>
+            );
+          })}
         </ScrollArea>
         <DropdownMenuSeparator className="m-0 bg-ink-800" />
         <DropdownMenuItem
