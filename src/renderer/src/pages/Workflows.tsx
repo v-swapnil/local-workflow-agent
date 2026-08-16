@@ -42,7 +42,7 @@ function WorkflowList({
                 title={w.name}
                 isActive={selectedId === w.id}
                 onSelect={() => onSelect(w.id)}
-                subtitle={w.description ?? undefined}
+                description={w.description ?? undefined}
                 actions={
                   <Button
                     variant="ghost"

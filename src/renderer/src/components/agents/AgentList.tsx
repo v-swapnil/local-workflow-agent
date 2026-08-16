@@ -35,7 +35,7 @@ export function AgentList({ agents, selected, onSelect, onNew, onDelete }: Agent
                 title={a.name}
                 isActive={selected === a.id}
                 onSelect={() => onSelect(a.id)}
-                subtitle={[a.role, a.description?.trim()].filter(Boolean).join(' · ') || undefined}
+                description={[a.role, a.description?.trim()].filter(Boolean).join(' · ') || undefined}
                 actions={
                   <Button
                     variant="ghost"

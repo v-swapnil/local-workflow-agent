@@ -24,8 +24,7 @@ export function SkillSidebar({ skills, focusedName, onSelect }: SkillSidebarProp
             isActive={focusedName === skill.name}
             onSelect={() => onSelect(skill.name)}
             status={{ active: skill.enabled }}
-            subtitle={skill.description?.trim() || undefined}
-            tags={[{ label: skill.source }]}
+            description={skill.description?.trim() || undefined}
           />
         ))}
         {skills.length === 0 && (

@@ -1,6 +1,5 @@
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { WorkspaceOverview } from '../components/workspace/WorkspaceOverview';
-import { UniversalSearch } from '../components/workspace/UniversalSearch';
 import { WorktreeSection } from '../components/workspace/WorktreeSection';
 import { MemorySection } from '../components/workspace/MemorySection';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -30,7 +29,7 @@ export function Workspace() {
 
       {workspaceId && (
         <>
-          <WorkspaceOverview workspaceId={workspaceId} />
+          <WorkspaceOverview workspaceId={workspaceId} onOpenFile={setActivePath} />
           <Tabs defaultValue="search" className="flex min-h-0 flex-1 flex-col">
             <TabsList className="h-auto rounded-lg border border-ink-800/40 bg-ink-900/15 p-0.5 justify-start">
               {TABS.map(([value, label]) => (
@@ -45,7 +44,6 @@ export function Workspace() {
             </TabsList>
 
             <TabsContent value="search" className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
-              <UniversalSearch workspaceId={workspaceId} />
               <WorkspaceFiles
                 workspaceId={workspaceId}
                 activePath={activePath}

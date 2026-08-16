@@ -33,9 +33,9 @@ export function NotesSidebar({
             <li key={note.id}>
               <SidebarListItem
                 title={note.title || 'Untitled'}
+                description={note.tags.join(', ')}
                 isActive={note.id === selectedNoteId}
                 onSelect={() => onSelectNote(note.id)}
-                tags={note.tags.map((tag) => ({ label: tag }))}
                 actions={
                   <Button
                     variant="ghost"
