@@ -30,6 +30,8 @@ export default {
           warn: 'rgb(var(--signal-warn) / <alpha-value>)',
         },
         accent: {
+          DEFAULT: 'rgb(var(--ink-800) / <alpha-value>)',
+          foreground: 'rgb(var(--ink-50) / <alpha-value>)',
           blue: 'rgb(var(--accent-blue) / <alpha-value>)',
           purple: 'rgb(var(--accent-purple) / <alpha-value>)',
         },
