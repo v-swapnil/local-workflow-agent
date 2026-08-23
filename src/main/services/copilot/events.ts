@@ -14,7 +14,7 @@ export async function getToolCallById(taskId: string, toolCallId: string) {
   if (toolCall) {
     return {
       id: toolCall.id,
-      tool: toolCall.tool,
+      toolName: toolCall.toolName,
       arguments: toolCall.arguments ? JSON.parse(toolCall.arguments) : null,
     };
   }
@@ -45,7 +45,7 @@ export async function bridgeEvent(taskId: string, event: SessionEvent): Promise<
       if (toolCall) {
         const ok = !event.data.error;
         const error = event.data.error?.message;
-        emitToolCallFinished(taskId, toolCall.id, ok, toolCall.tool, {}, error);
+        emitToolCallFinished(taskId, toolCall.id, ok, toolCall.toolName, {}, error);
       }
       break;
     }

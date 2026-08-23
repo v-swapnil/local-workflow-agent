@@ -7,6 +7,7 @@ import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import { getAgentOrNull } from '../services/agents.js';
+import { addMessage } from '../services/store.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import type { Observation } from '@shared/agent';
@@ -37,11 +38,20 @@ async function runExecutorLoop(
     if (ctx.signal.aborted) throw new Error('aborted');
 
     const response = await llmChat(ctx, conv.getMessages(), temperature);
+
+    const assistantMessage = addMessage(
+      ctx.sessionId,
+      'assistant',
+      response.text,
+      ctx.taskId,
+      response.thinking ?? null,
+    );
+
     if (response.done || !response.toolCalls?.length) break;
 
     conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
 
-    const results = await executeToolCalls(ctx, 'executor', response.toolCalls);
+    const results = await executeToolCalls(ctx, 'executor', response.toolCalls, assistantMessage.id);
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;

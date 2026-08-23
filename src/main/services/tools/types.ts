@@ -7,6 +7,7 @@ export interface ToolContext {
   workspacePath: string;
   sessionId?: string;
   taskId?: string;
+  toolCallId?: string;
   signal?: AbortSignal;
 }
 

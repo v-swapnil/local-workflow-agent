@@ -5,6 +5,7 @@ import { llmChat } from './llmChat.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { buildPromptContext } from './prompts-context.js';
 import { getAgentOrNull } from '../services/agents.js';
+import { addMessage } from '../services/store.js';
 import { ctxOf } from './runCtx.js';
 import type { AgentState } from './state.js';
 
@@ -34,7 +35,9 @@ export async function copilotExecutorNode(
 
     // CopilotProvider.chat() handles the full agentic session (tools, permissions, events).
     // It returns done:true since toolCalls is always [] (SDK manages tools internally).
-    await llmChat(ctx, conv.getMessages(), agent?.temperature);
+    const response = await llmChat(ctx, conv.getMessages(), agent?.temperature);
+
+    addMessage(ctx.sessionId, 'assistant', response.text, ctx.taskId, response.thinking ?? null);
 
     emitStepFinished(ctx.taskId, stepId, true, {});
     return { history: [] };

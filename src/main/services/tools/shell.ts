@@ -79,6 +79,7 @@ export const runShellTool: Tool<
         'run_shell',
         { command: input.command, description: input.description },
         ctx.signal,
+        ctx.toolCallId,
       );
       if (decision === APPROVAL_DECISION.DENY) {
         throw new Error('ERROR: command denied by user');

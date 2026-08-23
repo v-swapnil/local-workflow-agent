@@ -13,12 +13,13 @@ export async function executeToolCalls(
   ctx: RunCtx,
   agent: string,
   toolCalls: ToolCall[],
+  messageId?: string | null,
 ): Promise<ToolExecutionResult[]> {
   const invokeOne = async (tc: ToolCall): Promise<ToolExecutionResult> => {
     const tool = tc.name as ToolName;
     const args = tc.arguments;
 
-    const { stepId } = emitToolCallStarted(ctx.taskId, agent, tool, args, tc.id);
+    const { id: toolCallRowId } = emitToolCallStarted(ctx.taskId, agent, tool, args, tc.id, messageId);
 
     const start = Date.now();
     const result = await invokeTool(tool, args, {
@@ -26,12 +27,13 @@ export async function executeToolCalls(
       workspacePath: ctx.workspacePath,
       sessionId: ctx.sessionId,
       taskId: ctx.taskId,
+      toolCallId: toolCallRowId,
       signal: ctx.signal,
     });
 
     emitToolCallFinished(
       ctx.taskId,
-      stepId,
+      toolCallRowId,
       result.status !== 'success',
       tool,
       result.content ?? null,

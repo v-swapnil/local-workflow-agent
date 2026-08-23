@@ -1,31 +1,24 @@
-import { addStep, updateStep, addToolCall, updateToolCall } from '../services/store.js';
+import { addToolCall, updateToolCall } from '../services/store.js';
 import { taskBus } from '../services/events.js';
 import type { ToolName } from '../services/tools/types.js';
+import type { ApprovalDecision } from '@shared/types.js';
 import { updateTask } from '@main/services/workspaces';
+import { nanoid } from 'nanoid';
 
 export function emitStepStarted(
   taskId: string,
   sequence: number,
   agent: string,
 ): { stepId: string } {
-  const row = addStep({
-    taskId,
-    sequence,
-    agent,
-    prompt: null,
-    result: null,
-    status: 'running',
-    startedAt: Date.now(),
-    finishedAt: null,
-  });
+  const stepId = nanoid(10);
   taskBus.emit(taskId, {
     type: 'step.started',
     taskId,
     ts: Date.now(),
-    stepId: row.id,
+    stepId,
     agent,
   });
-  return { stepId: row.id };
+  return { stepId };
 }
 
 export function emitStepFinished(
@@ -35,11 +28,6 @@ export function emitStepFinished(
   output: unknown,
   error?: string,
 ): void {
-  updateStep(stepId, {
-    result: output != null ? JSON.stringify(output) : null,
-    status: ok ? 'succeeded' : 'failed',
-    finishedAt: Date.now(),
-  });
   taskBus.emit(taskId, {
     type: 'step.finished',
     taskId,
@@ -57,11 +45,12 @@ export function emitToolCallStarted(
   tool: ToolName,
   args?: unknown,
   toolCallId?: string,
-): { stepId: string } {
+  messageId?: string | null,
+): { id: string } {
   const row = addToolCall({
-    taskId: taskId,
-    stepId: null,
-    tool,
+    taskId,
+    messageId: messageId ?? null,
+    toolName: tool,
     toolCallId,
     arguments: args ? JSON.stringify(args) : null,
     result: null,
@@ -78,19 +67,19 @@ export function emitToolCallStarted(
     tool,
     input: args,
   });
-  return { stepId: row.id };
+  return { id: row.id };
 }
 
 // TODO: fix tool call storage
 export function emitToolCallFinished(
   taskId: string,
-  stepId: string,
+  id: string,
   ok: boolean,
   tool: string,
   output: unknown,
   error?: string,
 ): void {
-  updateToolCall(stepId, {
+  updateToolCall(id, {
     result: output != null ? JSON.stringify(output) : null,
     status: ok ? 'succeeded' : 'failed',
     finishedAt: Date.now(),
@@ -99,7 +88,7 @@ export function emitToolCallFinished(
     type: 'tool_call.finished',
     taskId,
     ts: Date.now(),
-    stepId,
+    stepId: id,
     ok,
     tool,
     output,
@@ -170,5 +159,63 @@ export function emitLog(
     stream: ok ? 'stdout' : 'stderr',
     text: content,
     stepId,
+  });
+}
+
+export function emitApprovalRequested(
+  taskId: string,
+  approvalId: string,
+  tool: string,
+  args: Record<string, unknown>,
+): void {
+  taskBus.emit(taskId, {
+    type: 'approval.requested',
+    taskId,
+    ts: Date.now(),
+    approvalId,
+    tool,
+    args,
+  });
+}
+
+export function emitApprovalDecided(
+  taskId: string,
+  approvalId: string,
+  decision: ApprovalDecision,
+): void {
+  taskBus.emit(taskId, {
+    type: 'approval.decided',
+    taskId,
+    ts: Date.now(),
+    approvalId,
+    decision,
+  });
+}
+
+export function emitUserInputRequested(
+  taskId: string,
+  requestId: string,
+  question: string,
+  description?: string,
+  choices?: string[],
+): void {
+  taskBus.emit(taskId, {
+    type: 'user_input.requested',
+    taskId,
+    ts: Date.now(),
+    requestId,
+    question,
+    description,
+    choices,
+  });
+}
+
+export function emitUserInputResponded(taskId: string, requestId: string, answer: string): void {
+  taskBus.emit(taskId, {
+    type: 'user_input.responded',
+    taskId,
+    ts: Date.now(),
+    requestId,
+    answer,
   });
 }

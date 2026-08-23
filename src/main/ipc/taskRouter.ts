@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
-import { addMessage, listSteps } from '../services/store.js';
+import { addMessage } from '../services/store.js';
 import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
 import { taskBus } from '../services/events.js';
 import type { TaskEventRecord } from '@shared/schema.js';
@@ -37,10 +37,6 @@ export const taskRouter = router({
   list: publicProcedure
     .input(z.object({ sessionId: z.string().min(1) }))
     .query(({ input }) => listTasks(input.sessionId)),
-
-  steps: publicProcedure
-    .input(z.object({ taskId: z.string().min(1) }))
-    .query(({ input }) => listSteps(input.taskId)),
 
   start: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
     enqueueTask(input.id);

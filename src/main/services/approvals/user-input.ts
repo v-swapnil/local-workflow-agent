@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { UserInputRequest } from './types';
-import { taskBus } from '../events';
+import { emitUserInputRequested, emitUserInputResponded } from '@main/orchestrator/eventEmitter';
 import { pendingUserInputs } from './state';
 
 /**
@@ -16,15 +16,7 @@ export function requestUserInput(
 
   return new Promise<string>((resolve, reject) => {
     pendingUserInputs.set(requestId, { taskId, resolve });
-    taskBus.emit(taskId, {
-      type: 'user_input.requested',
-      taskId,
-      ts: Date.now(),
-      requestId,
-      question: request.question,
-      description: request.description,
-      choices: request.choices,
-    });
+    emitUserInputRequested(taskId, requestId, request.question, request.description, request.choices);
 
     const onAbort = () => {
       pendingUserInputs.delete(requestId);
@@ -42,13 +34,7 @@ export function respondUserInput(id: string, answer: string): boolean {
   if (!p) return false;
   pendingUserInputs.delete(id);
 
-  taskBus.emit(p.taskId, {
-    type: 'user_input.responded',
-    taskId: p.taskId,
-    ts: Date.now(),
-    requestId: id,
-    answer,
-  });
+  emitUserInputResponded(p.taskId, id, answer);
 
   p.resolve(answer);
   return true;

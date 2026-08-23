@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import { getDb } from '@main/db/index.js';
 import { approvals } from '@main/db/schema.js';
 import { updateTask } from '../workspaces/index.js';
-import { taskBus } from '../events.js';
+import { emitApprovalRequested, emitApprovalDecided } from '@main/orchestrator/eventEmitter.js';
 import { eq } from 'drizzle-orm';
 import { pendingApprovals, pendingUserInputs } from './state.js';
 import { APPROVAL_DECISION } from '@shared/constants.js';
@@ -24,6 +24,7 @@ export async function requestApproval(
   tool: ToolName,
   args: Record<string, unknown>,
   signal?: AbortSignal,
+  toolCallId?: string,
 ): Promise<ApprovalDecision> {
   if (await isAutoApprove()) return APPROVAL_DECISION.APPROVE;
 
@@ -32,6 +33,7 @@ export async function requestApproval(
     taskId,
     tool,
     args,
+    toolCallId,
     createdAt: Date.now(),
   };
 
@@ -40,10 +42,8 @@ export async function requestApproval(
     .values({
       id: req.id,
       taskId,
-      stepId: null,
-      tool,
-      arguments: JSON.stringify(args),
-      description: null,
+      toolCallId: toolCallId ?? null,
+      toolName: tool,
       decision: 'pending',
       createdAt: req.createdAt,
       decidedAt: null,
@@ -54,14 +54,7 @@ export async function requestApproval(
 
   return new Promise<ApprovalDecision>((resolve, reject) => {
     pendingApprovals.set(req.id, { request: req, resolve });
-    taskBus.emit(taskId, {
-      type: 'approval.requested',
-      taskId,
-      ts: Date.now(),
-      approvalId: req.id,
-      tool,
-      args,
-    });
+    emitApprovalRequested(taskId, req.id, tool, args);
 
     const onAbort = () => {
       pendingApprovals.delete(req.id);
@@ -87,13 +80,7 @@ export function decideApproval(id: string, decision: ApprovalDecision): boolean 
 
   updateTask(p.request.taskId, { status: 'running' });
 
-  taskBus.emit(p.request.taskId, {
-    type: 'approval.decided',
-    taskId: p.request.taskId,
-    ts: Date.now(),
-    approvalId: id,
-    decision,
-  });
+  emitApprovalDecided(p.request.taskId, id, decision);
 
   p.resolve(decision);
 

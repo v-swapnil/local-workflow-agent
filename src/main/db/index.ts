@@ -35,32 +35,24 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at INTEGER NOT NULL, started_at INTEGER, finished_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_tasks_session ON tasks(session_id);
-CREATE TABLE IF NOT EXISTS steps (
-  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, sequence INTEGER NOT NULL,
-  agent TEXT NOT NULL, prompt TEXT, result TEXT,
-  status TEXT NOT NULL DEFAULT 'pending',
-  started_at INTEGER, finished_at INTEGER
-);
-CREATE INDEX IF NOT EXISTS idx_steps_task ON steps(task_id);
 CREATE TABLE IF NOT EXISTS tool_calls (
-  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, step_id TEXT,
-  tool TEXT NOT NULL, arguments TEXT, result TEXT,
+  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, message_id TEXT,
+  tool_name TEXT NOT NULL, arguments TEXT, result TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   started_at INTEGER, finished_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_tool_calls_task ON tool_calls(task_id);
-CREATE INDEX IF NOT EXISTS idx_tool_calls_step ON tool_calls(step_id);
+CREATE INDEX IF NOT EXISTS idx_tool_calls_message ON tool_calls(message_id);
 CREATE TABLE IF NOT EXISTS approvals (
-  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, step_id TEXT,
-  tool TEXT NOT NULL, arguments TEXT NOT NULL,
-  description TEXT,
+  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, tool_call_id TEXT,
+  tool_name TEXT NOT NULL,
   decision TEXT NOT NULL DEFAULT 'pending',
   created_at INTEGER NOT NULL, decided_at INTEGER
 );
 CREATE TABLE IF NOT EXISTS skills (
   id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, path TEXT NOT NULL,
   description TEXT, enabled INTEGER NOT NULL DEFAULT 1,
-  builtin INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS agents (
   id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, role TEXT NOT NULL,
@@ -289,6 +281,26 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   // Drop migration: remove planner concept (agents.kind) and unused plan channel (tasks.plan)
   try { _sqlite.exec(`ALTER TABLE agents DROP COLUMN kind`); } catch { /* already dropped */ }
   try { _sqlite.exec(`ALTER TABLE tasks DROP COLUMN plan`); } catch { /* already dropped */ }
+  // Additive migration: messages become the durable conversation log — add thinking column
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN thinking TEXT`); } catch { /* exists */ }
+  // Drop migration: remove dead steps table (superseded by ephemeral step.* events only)
+  try { _sqlite.exec(`DROP TABLE IF EXISTS steps`); } catch { /* already dropped */ }
+  // Drop migration: remove unused skills.builtin column
+  try { _sqlite.exec(`ALTER TABLE skills DROP COLUMN builtin`); } catch { /* already dropped */ }
+  // Rename migration: tool_calls.tool → tool_name (clearer, mirrors approvals.tool_name)
+  try { _sqlite.exec(`ALTER TABLE tool_calls RENAME COLUMN tool TO tool_name`); } catch { /* already renamed */ }
+  // Rename migration: tool_calls.step_id → message_id (tool calls now link to the assistant
+  // message that issued them, not the removed steps table)
+  try { _sqlite.exec(`DROP INDEX IF EXISTS idx_tool_calls_step`); } catch { /* ignore */ }
+  try { _sqlite.exec(`ALTER TABLE tool_calls RENAME COLUMN step_id TO message_id`); } catch { /* already renamed */ }
+  try { _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_tool_calls_message ON tool_calls(message_id)`); } catch { /* exists */ }
+  // Slim migration: approvals link to tool_calls via tool_call_id instead of duplicating
+  // tool/arguments/description; step_id was always null
+  try { _sqlite.exec(`ALTER TABLE approvals RENAME COLUMN tool TO tool_name`); } catch { /* already renamed */ }
+  try { _sqlite.exec(`ALTER TABLE approvals ADD COLUMN tool_call_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN step_id`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN arguments`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN description`); } catch { /* already dropped */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

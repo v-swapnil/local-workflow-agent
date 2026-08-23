@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { SessionRecord } from '@shared/schema.js';
-import { memories, messages, sessions, steps, tasks, toolCalls } from '@main/db/schema';
+import { memories, messages, sessions, tasks, toolCalls } from '@main/db/schema';
 import { getSetting, SETTING_KEYS } from '../settings';
 import { createWorktree, removeWorktreeBySession } from '../worktrees';
 import { getDb } from '@main/db';
@@ -58,7 +58,6 @@ export function deleteSession(id: string): void {
   const taskRows = db.select().from(tasks).where(eq(tasks.sessionId, id)).all();
   for (const t of taskRows) {
     db.delete(toolCalls).where(eq(toolCalls.taskId, t.id)).run();
-    db.delete(steps).where(eq(steps.taskId, t.id)).run();
   }
   db.delete(tasks).where(eq(tasks.sessionId, id)).run();
   db.delete(messages).where(eq(messages.sessionId, id)).run();

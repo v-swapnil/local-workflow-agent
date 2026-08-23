@@ -25,6 +25,7 @@ export interface MessageRecord {
   taskId?: string | null;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  thinking?: string | null;
   createdAt: number;
 }
 
@@ -43,23 +44,11 @@ export interface TaskRecord {
   finishedAt: number | null;
 }
 
-export interface StepRecord {
-  id: string;
-  taskId: string;
-  sequence: number;
-  agent: string;
-  prompt: string | null;
-  result: string | null;
-  status: string;
-  startedAt: number | null;
-  finishedAt: number | null;
-}
-
 export interface ToolCallRecord {
   id: string;
   taskId: string;
-  stepId: string | null;
-  tool: string;
+  messageId: string | null;
+  toolName: string;
   toolCallId?: string;
   arguments: string | null;
   result: string | null;
@@ -85,6 +74,7 @@ export interface ApprovalRequestRecord {
   taskId: string;
   tool: ToolName;
   args: unknown;
+  toolCallId?: string;
   createdAt: number;
 }
 

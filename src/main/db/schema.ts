@@ -30,6 +30,7 @@ export const messages = sqliteTable(
     taskId: text('task_id'),
     role: text('role').notNull(),
     content: text('content').notNull(),
+    thinking: text('thinking'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({
@@ -57,29 +58,13 @@ export const tasks = sqliteTable(
   (t) => ({ sIdx: index('idx_tasks_session').on(t.sessionId) }),
 );
 
-export const steps = sqliteTable(
-  'steps',
-  {
-    id: text('id').primaryKey(),
-    taskId: text('task_id').notNull(),
-    sequence: integer('sequence').notNull(),
-    agent: text('agent').notNull(),
-    prompt: text('prompt'),
-    result: text('result'),
-    status: text('status').notNull().default('pending'),
-    startedAt: integer('started_at'),
-    finishedAt: integer('finished_at'),
-  },
-  (t) => ({ tIdx: index('idx_steps_task').on(t.taskId) }),
-);
-
 export const toolCalls = sqliteTable(
   'tool_calls',
   {
     id: text('id').primaryKey(),
     taskId: text('task_id').notNull(),
-    stepId: text('step_id'),
-    tool: text('tool').notNull(),
+    messageId: text('message_id'),
+    toolName: text('tool_name').notNull(),
     toolCallId: text('tool_call_id'),
     arguments: text('arguments'),
     result: text('result'),
@@ -89,17 +74,15 @@ export const toolCalls = sqliteTable(
   },
   (t) => ({
     tIdx: index('idx_tool_calls_task').on(t.taskId),
-    sIdx: index('idx_tool_calls_step').on(t.stepId),
+    mIdx: index('idx_tool_calls_message').on(t.messageId),
   }),
 );
 
 export const approvals = sqliteTable('approvals', {
   id: text('id').primaryKey(),
   taskId: text('task_id').notNull(),
-  stepId: text('step_id'),
-  tool: text('tool').notNull(),
-  arguments: text('arguments').notNull(),
-  description: text('description'),
+  toolCallId: text('tool_call_id'),
+  toolName: text('tool_name').notNull(),
   decision: text('decision').notNull().default('pending'),
   createdAt: integer('created_at').notNull(),
   decidedAt: integer('decided_at'),
@@ -111,7 +94,6 @@ export const skills = sqliteTable('skills', {
   path: text('path').notNull(),
   description: text('description'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-  builtin: integer('builtin', { mode: 'boolean' }).notNull().default(false),
   updatedAt: integer('updated_at').notNull(),
 });
 

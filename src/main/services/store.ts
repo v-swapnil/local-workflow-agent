@@ -1,12 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
-import { sessions, messages, steps, toolCalls } from '../db/schema.js';
-import type {
-  MessageRecord,
-  StepRecord,
-  ToolCallRecord,
-} from '@shared/schema.js';
+import { sessions, messages, toolCalls } from '../db/schema.js';
+import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
 
 // ───────── Messages ─────────
 
@@ -15,6 +11,7 @@ export function addMessage(
   role: MessageRecord['role'],
   content: string,
   taskId?: string,
+  thinking?: string | null,
 ): MessageRecord {
   const m: MessageRecord = {
     id: nanoid(10),
@@ -22,6 +19,7 @@ export function addMessage(
     taskId: taskId ?? null,
     role,
     content,
+    thinking: thinking ?? null,
     createdAt: Date.now(),
   };
   getDb().insert(messages).values(m).run();
@@ -36,27 +34,6 @@ export function listMessages(sessionId: string): MessageRecord[] {
     .where(eq(messages.sessionId, sessionId))
     .all()
     .sort((a, b) => a.createdAt - b.createdAt) as MessageRecord[];
-}
-
-// ───────── Steps ─────────
-
-export function addStep(input: Omit<StepRecord, 'id'>): StepRecord {
-  const row = { id: nanoid(10), ...input };
-  getDb().insert(steps).values(row).run();
-  return row;
-}
-
-export function updateStep(id: string, patch: Partial<StepRecord>): void {
-  getDb().update(steps).set(patch).where(eq(steps.id, id)).run();
-}
-
-export function listSteps(taskId: string): StepRecord[] {
-  return getDb()
-    .select()
-    .from(steps)
-    .where(eq(steps.taskId, taskId))
-    .all()
-    .sort((a, b) => a.sequence - b.sequence) as StepRecord[];
 }
 
 // ───────── Tool Calls ─────────
