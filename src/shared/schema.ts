@@ -1,5 +1,4 @@
 import { ToolName } from './agent';
-import { type AgentKind } from './constants';
 import { ApprovalDecision } from './types';
 
 export interface WorkspaceRecord {
@@ -35,7 +34,6 @@ export interface TaskRecord {
   prompt: string;
   status: string;
   provider: string | null;
-  plan: string | null;
   result: string | null;
   model: string | null;
   agentId: string | null;
@@ -111,7 +109,6 @@ export interface AgentRecord {
   tools: string | null;
   temperature: number;
   description: string | null;
-  kind: AgentKind;
 }
 
 export type TaskEventRecord =

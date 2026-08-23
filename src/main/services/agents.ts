@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { agents } from '../db/schema.js';
 import type { AgentRecord } from '@shared/schema.js';
-import { AGENT_KIND, AgentKind } from '@shared/constants.js';
 
 export function listAgents(): AgentRecord[] {
   return getDb().select().from(agents).all() as AgentRecord[];
@@ -28,7 +27,6 @@ interface UpsertAgentInput {
   tools?: string | null;
   temperature: number;
   description?: string;
-  kind?: AgentKind;
 }
 
 export function upsertAgent(input: UpsertAgentInput): AgentRecord {
@@ -43,7 +41,6 @@ export function upsertAgent(input: UpsertAgentInput): AgentRecord {
     tools: input.tools ?? null,
     temperature: input.temperature,
     description: input.description ?? null,
-    kind: input.kind ?? AGENT_KIND.PLANNER_EXECUTOR,
   };
 
   getDb()

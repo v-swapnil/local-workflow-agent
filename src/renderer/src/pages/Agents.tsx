@@ -23,7 +23,6 @@ function createAgentFormState(agent: AgentRecord): AgentFormState {
       : [],
     temperature: agent.temperature,
     description: agent.description ?? '',
-    kind: agent.kind,
   };
 }
 
@@ -86,7 +85,6 @@ export function Agents() {
       tools: form.tools.length > 0 ? form.tools.join(',') : null,
       temperature: form.temperature,
       description: form.description || undefined,
-      kind: form.kind,
     });
   }
 
@@ -138,7 +136,6 @@ export function Agents() {
               role,
               systemPrompt: systemPrompt ?? '',
               temperature: BLANK.temperature,
-              kind: BLANK.kind,
             })
           }
         />

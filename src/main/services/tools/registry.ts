@@ -93,22 +93,6 @@ export function isReadOnlyTool(name: string): boolean {
   return READ_ONLY_TOOLS.includes(name as ToolName);
 }
 
-export function listReadOnlyToolsForLLM(): ChatToolDef[] {
-  return Object.values(REGISTRY)
-    .filter((tool) => READ_ONLY_TOOLS.includes(tool.name))
-    .map((tool) => ({
-      type: 'function' as const,
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: zodToJsonSchema(tool.schema, { target: 'jsonSchema7' }) as Record<
-          string,
-          unknown
-        >,
-      },
-    }));
-}
-
 function getTool(name: ToolName): Tool<Record<string, unknown>, ToolResultV2> {
   const tool = REGISTRY[name];
   if (!tool) throw new Error(`unknown tool: ${name}`);

@@ -16,7 +16,6 @@ export function createTask(
     prompt,
     status: 'queued',
     provider: null,
-    plan: null,
     result: null,
     model: opts?.model ?? null,
     agentId: opts?.agentId ?? null,

@@ -3,8 +3,7 @@ import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../serv
 import { requestApproval } from '../services/approvals/index.js';
 import { buildGraph } from './graph.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS, AGENT_KIND, type AgentKind, APPROVAL_DECISION } from '@shared/constants';
-import { getAgentOrNull } from '../services/agents.js';
+import { PROVIDERS, APPROVAL_DECISION } from '@shared/constants';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
@@ -51,10 +50,8 @@ export async function runWorkflow(
         emitLog(taskId, undefined, true, `[workflow] node "${node.id}" (agent)`);
         try {
           const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
-          const agentRecord = getAgentOrNull(agentId);
-          const kind = agentRecord?.kind ?? AGENT_KIND.PLANNER_EXECUTOR;
           const agentCtx: RunCtx = { ...ctx, agentId };
-          const agentGraph = buildGraph(provider, kind);
+          const agentGraph = buildGraph(provider);
           const initial: Partial<AgentState> = { prompt: state.prompt };
           await agentGraph.invoke(initial, {
             configurable: { runCtx: agentCtx },
@@ -118,9 +115,9 @@ export async function runWorkflow(
       signal: ctx.signal,
       timeout: ctx.timeoutMs,
     });
-    return { status: 'succeeded', plan: null };
+    return { status: 'succeeded' };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { status: 'failed', plan: null, reason: msg };
+    return { status: 'failed', reason: msg };
   }
 }

@@ -7,7 +7,7 @@ import {
   updateTask,
 } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS, AGENT_KIND, type AgentKind } from '@shared/constants';
+import { PROVIDERS } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { clearTaskApprovals } from '../services/approvals/index.js';
@@ -15,7 +15,6 @@ import { createBranch } from '../services/git';
 import { getWorktreeForSession } from '../services/worktrees.js';
 import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
-import { getAgentOrNull } from '../services/agents.js';
 import type { AgentState } from './state.js';
 
 import { runWorkflow } from './workflow-runner.js';
@@ -67,7 +66,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     if (!model) {
       return finish(task, {
         status: 'failed',
-        plan: null,
         reason: 'no active model configured (Settings → Models)',
       });
     }
@@ -112,19 +110,16 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     if (task.workflowId) {
       result = await runWorkflow(taskId, task.workflowId, ctx);
     } else {
-      const agent = task.agentId ? getAgentOrNull(task.agentId) : null;
-      const kind = agent?.kind ?? AGENT_KIND.PLANNER_EXECUTOR;
-      const graph = buildGraph(provider, kind);
+      const graph = buildGraph(provider);
       const initial: Partial<AgentState> = { prompt: task.prompt };
-      const final = (await graph.invoke(initial, {
+      await graph.invoke(initial, {
         configurable: { runCtx: ctx },
         signal: ctrl.signal,
         timeout: taskTimeout,
-      })) as AgentState;
+      });
 
       result = {
         status: 'succeeded',
-        plan: final.plan,
       };
     }
 
@@ -135,7 +130,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
     log.error({ taskId, err: msg }, 'task failed');
     return finish(task, {
       status: aborted ? 'cancelled' : 'failed',
-      plan: null,
       reason: msg,
     });
   }

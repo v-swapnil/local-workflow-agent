@@ -44,10 +44,9 @@ export const tasks = sqliteTable(
     id: text('id').primaryKey(),
     sessionId: text('session_id').notNull(),
     prompt: text('prompt').notNull(),
+    result: text('result'),
     status: text('status').notNull().default('queued'),
     provider: text('provider'),
-    plan: text('plan'),
-    result: text('result'),
     model: text('model'),
     agentId: text('agent_id'),
     workflowId: text('workflow_id'),
@@ -143,7 +142,6 @@ export const agents = sqliteTable('agents', {
   tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
   description: text('description'),
-  kind: text('kind').notNull().default('planner+executor'),
 });
 
 export const workflows = sqliteTable('workflows', {

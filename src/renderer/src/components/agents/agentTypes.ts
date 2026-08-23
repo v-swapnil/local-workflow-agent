@@ -1,4 +1,3 @@
-import { AGENT_KIND, type AgentKind } from '@shared/constants';
 import type { AgentRecord } from '@shared/schema';
 
 export interface AgentFormState {
@@ -9,7 +8,6 @@ export interface AgentFormState {
   tools: string[];
   temperature: number;
   description: string;
-  kind: AgentKind;
 }
 
 export const BLANK: AgentFormState = {
@@ -19,5 +17,4 @@ export const BLANK: AgentFormState = {
   tools: [],
   temperature: 0.2,
   description: '',
-  kind: AGENT_KIND.PLANNER_EXECUTOR,
 };

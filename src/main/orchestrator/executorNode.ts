@@ -1,13 +1,12 @@
 import type { RunnableConfig } from '@langchain/core/runnables';
 import { logger } from '../services/logger.js';
-import { EXECUTOR_SYSTEM, EXECUTOR_ONLY_SYSTEM } from './prompts.js';
+import { EXECUTOR_SYSTEM } from './prompts.js';
 import { Conversation } from './conversation.js';
 import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import { getAgentOrNull } from '../services/agents.js';
-import { AGENT_KIND } from '@shared/constants';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import type { Observation } from '@shared/agent';
@@ -18,7 +17,7 @@ const log = logger.child({ mod: 'orchestrator' });
 /**
  * Shared executor loop logic. Creates a Conversation and drives it to
  * completion, returning accumulated Observations for state/UI display.
- * When plan is null the agent acts directly without a pre-made plan.
+ * The agent analyzes the codebase itself — no pre-made plan is provided.
  */
 async function runExecutorLoop(
   ctx: RunCtx,
@@ -26,17 +25,11 @@ async function runExecutorLoop(
   state: AgentState,
   temperature?: number,
 ): Promise<Observation[]> {
-  const plan = state.plan;
-
   const conv = new Conversation({ system: systemPrompt });
 
   const promptContext = await buildPromptContext(ctx);
   const goalLine = `**GOAL**: ${state.prompt}`;
-  const userMessages = plan
-    ? [promptContext, goalLine, `**PLAN**: ${plan}`].join('\n')
-    : [promptContext, goalLine].join('\n');
-
-  conv.addUserMessage(userMessages);
+  conv.addUserMessage([promptContext, goalLine].join('\n'));
 
   const newObs: Observation[] = [];
 
@@ -79,14 +72,11 @@ export async function executorNode(
   const ctx = ctxOf(config);
   const agent = ctx.agentId ? getAgentOrNull(ctx.agentId) : null;
 
-  const isExecutorOnly = agent?.kind === AGENT_KIND.EXECUTOR;
-  const basePrompt = isExecutorOnly ? EXECUTOR_ONLY_SYSTEM : EXECUTOR_SYSTEM;
-
-  let systemPrompt = basePrompt;
+  let systemPrompt = EXECUTOR_SYSTEM;
   let temperature: number | undefined;
 
   if (agent) {
-    systemPrompt = [basePrompt, '---', agent.systemPrompt].join('\n');
+    systemPrompt = [EXECUTOR_SYSTEM, '---', agent.systemPrompt].join('\n');
     temperature = agent.temperature;
   }
 

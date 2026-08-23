@@ -286,6 +286,9 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`DROP INDEX IF EXISTS idx_notes_collection`); } catch { /* ignore */ }
   try { _sqlite.exec(`ALTER TABLE notes DROP COLUMN collection_id`); } catch { /* already dropped */ }
   try { _sqlite.exec(`DROP TABLE IF EXISTS note_collections`); } catch { /* ignore */ }
+  // Drop migration: remove planner concept (agents.kind) and unused plan channel (tasks.plan)
+  try { _sqlite.exec(`ALTER TABLE agents DROP COLUMN kind`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE tasks DROP COLUMN plan`); } catch { /* already dropped */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;
