@@ -3,9 +3,9 @@ import { trpc } from '../../trpc';
 import { cn } from '../../lib/utils';
 import { useChangedFiles } from '../../components/changes/useChangedFiles';
 import { changeMeta, splitPath, summarizeWorking } from '../../components/changes/changeUtils';
-import type { ChangedFile } from '../../components/changes/changeUtils';
 import { ChevronRight, FileDiff } from 'lucide-react';
 import { GitFileStat } from '@main/services/git/gitDiff';
+import { ChangedFile } from '@renderer/components/changes/types';
 
 function FileRow({ file, stat }: { file: ChangedFile; stat?: GitFileStat }) {
   const meta = changeMeta(file.kind);

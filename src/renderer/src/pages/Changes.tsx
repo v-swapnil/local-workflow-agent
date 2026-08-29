@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
-import type { ActiveChange } from '../components/changes/changeUtils';
 import { UnifiedDiffPanel } from '@renderer/components/changes/UnifiedDiffPanel';
 import { CustomSelect } from '@renderer/components/CustomSelect';
 import { ChangesSidebar } from '@renderer/components/changes/ChangesSidebar';
+import { ActiveChange } from '@renderer/components/changes/types';
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (

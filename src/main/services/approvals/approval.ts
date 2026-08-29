@@ -14,7 +14,7 @@ export const isAutoApprove = async (): Promise<boolean> => {
   return (await getSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS)) === 'true';
 };
 
-const createPendingApproval = (taskId: number, toolCallId: number | null, toolName: string) => {
+export const createPendingApproval = (taskId: number, toolCallId: number | null, toolName: string) => {
   return getDb()
     .insert(approvals)
     .values({

@@ -1,10 +1,10 @@
 import { trpc } from '@renderer/trpc';
 import { useEffect, useState } from 'react';
-import { ActiveChange, ChangeKind } from './changeUtils';
 import { useChangedFiles } from './useChangedFiles';
 import { FileTree } from '../FileTree';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { GitStatus } from '@pierre/trees';
+import { ActiveChange, ChangeKind } from './types';
 
 interface ChangesSidebarProps {
   workspaceId: number;

@@ -16,9 +16,3 @@ export type ToolName =
   | 'outline_file'
   | 'find_symbol'
   | 'find_references';
-
-// TODO: remove this
-export interface TaskResult {
-  status: 'succeeded' | 'failed' | 'cancelled';
-  reason?: string;
-}

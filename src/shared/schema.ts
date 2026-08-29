@@ -17,6 +17,7 @@ export type {
   WorktreeRecord,
   UserInputRecord,
 } from '@main/db/types';
+export type { SkillDetails } from '@main/services/skills/types';
 
 export type TaskEventRecord =
   | {

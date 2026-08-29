@@ -6,11 +6,11 @@ import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
-import type { TaskResult } from '@shared/agent';
 import { logger } from '../services/logger.js';
 import type { RunCtx } from './runCtx.js';
 import { emitLog } from './eventEmitter.js';
 import { getTask } from '@main/services/workspaces';
+import { TaskResult } from './types.js';
 
 const log = logger.child({ mod: 'workflow-runner' });
 
@@ -72,7 +72,7 @@ export async function runWorkflow(
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
         emitLog(taskId, 'info', `[workflow] approval requested by node "${node.id}"`);
-        // TODO: fix this 
+        // TODO: fix this
         const decision = await requestApproval(taskId, null, 'workflow_approval', ctx.signal);
         if (decision === 'denied') {
           throw new Error(`Approval denied at node "${node.id}"`);

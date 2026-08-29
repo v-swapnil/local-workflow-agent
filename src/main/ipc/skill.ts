@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
 import {
   listSkills,
-  getSkillByName,
+  getSkillById,
   setSkillEnabled,
   revealSkillInOS,
   syncSkills,
@@ -12,22 +12,22 @@ export const skillRouter = router({
   list: publicProcedure.query(() => listSkills()),
 
   get: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
-    .query(({ input }) => getSkillByName(input.name)),
+    .input(z.object({ id: z.number() }))
+    .query(({ input }) => getSkillById(input.id)),
 
   toggle: publicProcedure
-    .input(z.object({ name: z.string().min(1), enabled: z.boolean() }))
+    .input(z.object({ id: z.number(), enabled: z.boolean() }))
     .mutation(async ({ input }) => {
-      await setSkillEnabled(input.name, input.enabled);
+      await setSkillEnabled(input.id, input.enabled);
       return { ok: true as const };
     }),
 
   refresh: publicProcedure.mutation(() => syncSkills()),
 
   reveal: publicProcedure
-    .input(z.object({ name: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
-      await revealSkillInOS(input.name);
+      await revealSkillInOS(input.id);
       return { ok: true as const };
     }),
 });

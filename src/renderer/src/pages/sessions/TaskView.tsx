@@ -42,7 +42,7 @@ export function TaskView({ taskId }: { taskId: number }) {
     { taskId },
     {
       onData: (event) => {
-        setEvents((prev) => getEvents(prev, { ...event, ts: Date.now() }));
+        setEvents((prev) => getEvents(prev, event));
         if (event.type === 'approval.requested') {
           setPendingApprovalIds((prev) => [...prev, event.referenceId]);
         } else if (event.type === 'approval.decided') {

@@ -13,8 +13,8 @@ import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
 
 import { runWorkflow } from './workflow-runner.js';
-import type { TaskResult } from '@shared/agent';
 import type { TaskRecord } from '@shared/schema';
+import type { TaskResult } from './types';
 import type { RunCtx } from './runCtx';
 import { pendingRegistry } from '@main/services/approvals/state';
 

@@ -1,26 +1,4 @@
-
-// TODO: move to types file
-export type ChangeKind =
-  | 'modified'
-  | 'created'
-  | 'deleted'
-  | 'renamed'
-  | 'conflicted'
-  | 'untracked';
-
-export interface ChangedFile {
-  path: string;
-  originalPath?: string;
-  kind: ChangeKind;
-  section: 'staged' | 'working';
-}
-
-export interface ActiveChange {
-  path: string;
-  kind: ChangeKind;
-  originalPath?: string;
-  staged?: boolean;
-}
+import { ChangedFile, ChangeKind } from './types';
 
 export function mapStatusCode(code: string): ChangeKind | null {
   if (code === 'M') return 'modified';

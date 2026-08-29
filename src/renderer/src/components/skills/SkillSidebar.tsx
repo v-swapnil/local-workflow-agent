@@ -3,20 +3,20 @@ import { SidebarListItem } from '../ui/sidebar-list-item';
 
 type SkillSidebarProps = {
   skills: SkillRecord[];
-  focusedName: string | null;
-  onSelect: (name: string) => void;
+  selectedId: number | null;
+  onSelect: (id: number) => void;
 };
 
-export function SkillSidebar({ skills, focusedName, onSelect }: SkillSidebarProps) {
+export function SkillSidebar({ skills, selectedId, onSelect }: SkillSidebarProps) {
   return (
     <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden">
       <div className="flex-1 space-y-px overflow-y-auto pr-1">
         {skills.map((skill) => (
           <SidebarListItem
-            key={skill.name}
+            key={skill.id}
             title={skill.name}
-            isActive={focusedName === skill.name}
-            onSelect={() => onSelect(skill.name)}
+            isActive={selectedId === skill.id}
+            onSelect={() => onSelect(skill.id)}
             status={{ active: skill.enabled }}
             description={skill.description?.trim() || undefined}
           />

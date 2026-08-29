@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { join, basename } from 'node:path';
+import { join, basename, sep } from 'node:path';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { getDb } from '../../db/index.js';
@@ -10,6 +10,7 @@ import { getWorkspace } from '../workspaces/index.js';
 import { logger } from '../logger.js';
 import { parseSkill } from './skillParser.js';
 import type { SkillRecord } from '@shared/schema.js';
+import { SkillDetails } from './types.js';
 
 const log = logger.child({ mod: 'skills' });
 
@@ -39,7 +40,7 @@ async function skillSourceDirs(): Promise<{ dir: string; source: string }[]> {
   return dirs;
 }
 
-async function readSkillFolder(absDir: string, source: string): Promise<SkillRecord | null> {
+async function readSkillFolder(absDir: string, source: string): Promise<SkillDetails | null> {
   const id = basename(absDir);
   if (!ID_RE.test(id)) return null;
   const skillFile = join(absDir, 'SKILL.md');
@@ -63,7 +64,11 @@ async function readSkillFolder(absDir: string, source: string): Promise<SkillRec
     name: parsed.meta.name,
     path: absDir,
     description: parsed.meta.description,
+    whenToUse: parsed.meta.when_to_use ?? '',
+    allowedTools: parsed.meta.allowedTools ?? [],
+    body: parsed.body,
     enabled: true,
+    source,
     updatedAt: fileStat.mtimeMs,
   };
 }
@@ -133,13 +138,28 @@ export const syncSkills = async (): Promise<SkillRecord[]> => {
   return found.sort((a, b) => a.name.localeCompare(b.name));
 };
 
-/** Return all skills with their disk-loaded body. */
+/** Return all skills from the DB only — no disk I/O. Kept fresh by syncSkills() on app start / Skills page open. */
 export const listSkills = async (): Promise<SkillRecord[]> => {
-  return syncSkills();
+  const db = getDb();
+  return db
+    .select()
+    .from(skillsTable)
+    .all()
+    .sort((a, b) => a.name.localeCompare(b.name));
 };
 
-// TODO: move this to db call
-export const getSkillByName = async (name: string): Promise<SkillRecord | null> => {
-  const all = await syncSkills();
-  return all.find((skill) => skill.name === name) ?? null;
+/** Resolve which configured source directory a skill's absolute path was found under. */
+async function resolveSkillSource(path: string): Promise<string> {
+  const dirs = await skillSourceDirs();
+  return dirs.find(({ dir }) => path.startsWith(`${dir}${sep}`))?.source ?? 'workspace';
+}
+
+/** Load one skill's full details (body, when_to_use, allowed-tools) by reading its SKILL.md from disk. */
+export const getSkillById = async (id: number): Promise<SkillDetails | null> => {
+  const row = getDb().select().from(skillsTable).where(eq(skillsTable.id, id)).get();
+  if (!row) return null;
+  const source = await resolveSkillSource(row.path);
+  const details = await readSkillFolder(row.path, source);
+  if (!details) return null;
+  return { ...details, id: row.id, enabled: row.enabled };
 };

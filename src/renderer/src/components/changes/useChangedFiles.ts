@@ -1,26 +1,6 @@
 import { useMemo } from 'react';
 import { mapStatusCode, mapPathKind } from './changeUtils';
-import type { ChangedFile } from './changeUtils';
-
-// TODO: move to types file
-interface GitStatusFile {
-  path: string;
-  from?: string;
-  index: string;
-  working_dir: string;
-}
-
-interface GitStatus {
-  files?: GitStatusFile[];
-  clean?: boolean;
-  staged?: string[];
-  not_added?: string[];
-  modified?: string[];
-  created?: string[];
-  deleted?: string[];
-  conflicted?: string[];
-  renamed?: { from: string; to: string }[];
-}
+import type { ChangedFile, GitStatus } from './types';
 
 interface ChangedFiles {
   staged: ChangedFile[];
@@ -69,7 +49,12 @@ export function useChangedFiles(status: GitStatus | undefined): ChangedFiles {
 
       for (const path of stagedSet) {
         const mapped = mapPathKind(path, status);
-        staged.push({ path, kind: mapped.kind, originalPath: mapped.originalPath, section: 'staged' });
+        staged.push({
+          path,
+          kind: mapped.kind,
+          originalPath: mapped.originalPath,
+          section: 'staged',
+        });
       }
 
       for (const path of otherSet) {
@@ -79,7 +64,12 @@ export function useChangedFiles(status: GitStatus | undefined): ChangedFiles {
           others.push({ path, kind: 'untracked', section: 'working' });
           continue;
         }
-        others.push({ path, kind: mapped.kind, originalPath: mapped.originalPath, section: 'working' });
+        others.push({
+          path,
+          kind: mapped.kind,
+          originalPath: mapped.originalPath,
+          section: 'working',
+        });
       }
     }
 
