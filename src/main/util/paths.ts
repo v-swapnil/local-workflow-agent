@@ -12,6 +12,14 @@ export function dbPath(): string {
   return join(userDataDir(), 'ase.db');
 }
 
+export function migrationsDir(): string {
+  // Packaged: migrations are copied into the app's resources (see electron-builder.yml).
+  // Dev: they live in source next to the schema.
+  return app.isPackaged
+    ? join(process.resourcesPath, 'migrations')
+    : join(app.getAppPath(), 'src/main/db/migrations');
+}
+
 export function workspacesRoot(): string {
   const dir = join(userDataDir(), 'workspaces');
   mkdirSync(dir, { recursive: true });

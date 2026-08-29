@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
 
 export const workspaces = sqliteTable('workspaces', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   path: text('path').notNull(),
   createdAt: integer('created_at').notNull(),
@@ -10,10 +10,10 @@ export const workspaces = sqliteTable('workspaces', {
 export const sessions = sqliteTable(
   'sessions',
   {
-    id: text('id').primaryKey(),
-    workspaceId: text('workspace_id')
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    workspaceId: integer('workspace_id')
       .notNull()
-      .references(() => workspaces.id),
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     status: text('status').notNull().default('active'),
     createdAt: integer('created_at').notNull(),
@@ -25,11 +25,11 @@ export const sessions = sqliteTable(
 export const messages = sqliteTable(
   'messages',
   {
-    id: text('id').primaryKey(),
-    taskId: text('task_id')
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    taskId: integer('task_id')
       .notNull()
-      .references(() => tasks.id),
-    agentId: text('agent_id').references(() => agents.id),
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    agentId: integer('agent_id').references(() => agents.id, { onDelete: 'set null' }),
     role: text('role').notNull(),
     content: text('content').notNull(),
     thinking: text('thinking'),
@@ -47,12 +47,12 @@ export const messages = sqliteTable(
 export const tasks = sqliteTable(
   'tasks',
   {
-    id: text('id').primaryKey(),
-    sessionId: text('session_id')
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    sessionId: integer('session_id')
       .notNull()
-      .references(() => sessions.id),
-    agentId: text('agent_id').references(() => agents.id),
-    workflowId: text('workflow_id').references(() => workflows.id),
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    agentId: integer('agent_id').references(() => agents.id, { onDelete: 'set null' }),
+    workflowId: integer('workflow_id').references(() => workflows.id, { onDelete: 'set null' }),
     prompt: text('prompt').notNull(),
     result: text('result'),
     status: text('status').notNull().default('queued'),
@@ -68,11 +68,11 @@ export const tasks = sqliteTable(
 export const toolCalls = sqliteTable(
   'tool_calls',
   {
-    id: text('id').primaryKey(),
-    taskId: text('task_id')
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    taskId: integer('task_id')
       .notNull()
-      .references(() => tasks.id),
-    messageId: text('message_id').references(() => messages.id),
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    messageId: integer('message_id').references(() => messages.id, { onDelete: 'set null' }),
     toolName: text('tool_name').notNull(),
     toolCallId: text('tool_call_id'),
     arguments: text('arguments'),
@@ -87,20 +87,27 @@ export const toolCalls = sqliteTable(
   }),
 );
 
-export const approvals = sqliteTable('approvals', {
-  id: text('id').primaryKey(),
-  taskId: text('task_id')
-    .notNull()
-    .references(() => tasks.id),
-  toolCallId: text('tool_call_id').references(() => toolCalls.id),
-  toolName: text('tool_name').notNull(),
-  decision: text('decision').notNull().default('pending'),
-  createdAt: integer('created_at').notNull(),
-  decidedAt: integer('decided_at'),
-});
+export const approvals = sqliteTable(
+  'approvals',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    taskId: integer('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    toolCallId: integer('tool_call_id').references(() => toolCalls.id, { onDelete: 'set null' }),
+    toolName: text('tool_name').notNull(),
+    decision: text('decision').notNull().default('pending'),
+    createdAt: integer('created_at').notNull(),
+    decidedAt: integer('decided_at'),
+  },
+  (t) => ({
+    taskIdx: index('idx_approvals_task').on(t.taskId),
+    toolCallIdx: index('idx_approvals_tool_call').on(t.toolCallId),
+  }),
+);
 
 export const skills = sqliteTable('skills', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
   path: text('path').notNull(),
   description: text('description'),
@@ -111,11 +118,11 @@ export const skills = sqliteTable('skills', {
 export const worktrees = sqliteTable(
   'worktrees',
   {
-    id: text('id').primaryKey(),
-    workspaceId: text('workspace_id')
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    workspaceId: integer('workspace_id')
       .notNull()
-      .references(() => workspaces.id),
-    sessionId: text('session_id').references(() => sessions.id),
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    sessionId: integer('session_id').references(() => sessions.id, { onDelete: 'set null' }),
     branch: text('branch').notNull(),
     path: text('path').notNull(),
     baseBranch: text('base_branch').notNull(),
@@ -130,7 +137,7 @@ export const worktrees = sqliteTable(
 );
 
 export const agents = sqliteTable('agents', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
   description: text('description'),
   role: text('role').notNull(),
@@ -140,7 +147,7 @@ export const agents = sqliteTable('agents', {
 });
 
 export const workflows = sqliteTable('workflows', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),
   description: text('description'),
   nodes: text('nodes').notNull().default('[]'),
@@ -150,12 +157,12 @@ export const workflows = sqliteTable('workflows', {
 });
 
 export const schedules = sqliteTable('schedules', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   cron: text('cron').notNull(),
-  workspaceId: text('workspace_id')
+  workspaceId: integer('workspace_id')
     .notNull()
-    .references(() => workspaces.id),
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
   prompt: text('prompt').notNull(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   lastRunAt: integer('last_run_at'),
@@ -163,7 +170,7 @@ export const schedules = sqliteTable('schedules', {
 });
 
 export const notes = sqliteTable('notes', {
-  id: text('id').primaryKey(),
+  id: integer('id').primaryKey({ autoIncrement: true }),
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
   tags: text('tags').notNull().default(''),
@@ -175,11 +182,11 @@ export const taskEvents = sqliteTable(
   'task_events',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    taskId: text('task_id')
+    taskId: integer('task_id')
       .notNull()
-      .references(() => tasks.id),
+      .references(() => tasks.id, { onDelete: 'cascade' }),
     type: text('type').notNull(),
-    referenceId: text('reference_id'), // polymorphic FK: toolCalls.id | messages.id | approvals.id
+    referenceId: integer('reference_id'), // polymorphic FK: toolCalls.id | messages.id | approvals.id
     content: text('content'),
     status: text('status'),
     payloadJson: text('payload_json').notNull(),
@@ -199,9 +206,9 @@ export const memories = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     type: text('type').notNull(),
     content: text('content').notNull(),
-    sessionId: text('session_id').references(() => sessions.id),
-    taskId: text('task_id').references(() => tasks.id),
-    workspaceId: text('workspace_id').references(() => workspaces.id),
+    sessionId: integer('session_id').references(() => sessions.id, { onDelete: 'cascade' }),
+    taskId: integer('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+    workspaceId: integer('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({

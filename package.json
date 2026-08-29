@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
+    "db:generate": "drizzle-kit generate",
     "package": "electron-vite build && electron-builder --mac zip --arm64 --x64",
     "package:mac": "electron-vite build && electron-builder --mac zip --arm64 --x64",
     "postinstall": "electron-rebuild -f",

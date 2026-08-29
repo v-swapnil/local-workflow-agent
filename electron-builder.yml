@@ -5,6 +5,9 @@ directories:
 files:
   - out/**
   - package.json
+extraResources:
+  - from: src/main/db/migrations
+    to: migrations
 asar: true
 mac:
   category: public.app-category.developer-tools

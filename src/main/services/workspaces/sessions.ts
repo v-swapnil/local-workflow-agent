@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { SessionRecord } from '@shared/schema.js';
-import { memories, messages, sessions, tasks, toolCalls } from '@main/db/schema';
+import { sessions } from '@main/db/schema';
 import { getSetting, SETTING_KEYS } from '../settings';
 import { createWorktree, removeWorktreeBySession } from '../worktrees';
 import { getDb } from '@main/db';
@@ -53,13 +53,7 @@ export function deleteSession(id: string): void {
   removeWorktreeBySession(id).catch((err) => {
     console.warn('[store] worktree removal failed:', err);
   });
-  // cascade by hand
-  const taskRows = db.select().from(tasks).where(eq(tasks.sessionId, id)).all();
-  for (const task of taskRows) {
-    db.delete(toolCalls).where(eq(toolCalls.taskId, task.id)).run();
-    db.delete(messages).where(eq(messages.taskId, task.id)).run();
-  }
-  db.delete(tasks).where(eq(tasks.sessionId, id)).run();
-  db.delete(memories).where(eq(memories.sessionId, id)).run();
+  // Child rows (tasks → messages/tool_calls/approvals/task_events, memories)
+  // are removed by ON DELETE CASCADE foreign keys.
   db.delete(sessions).where(eq(sessions.id, id)).run();
 }
