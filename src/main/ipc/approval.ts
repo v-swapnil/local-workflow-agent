@@ -18,7 +18,7 @@ export const approvalRouter = router({
     .input(
       z.object({
         id: z.string().min(1),
-        decision: z.enum(['approve', 'deny']),
+        decision: z.enum(['pending', 'approved', 'denied']),
       }),
     )
     .mutation(({ input }) => ({ ok: decideApproval(input.id, input.decision) })),

@@ -4,8 +4,3 @@ export const DEFAULT_COPILOT_MODEL = 'claude-sonnet-4.5';
 export const OLLAMA_URL = 'http://127.0.0.1:11434';
 export const COPILOT_CLI_URL = 'localhost:49393';
 export const PROVIDERS = { COPILOT: 'copilot', OLLAMA: 'ollama' } as const;
-
-export const APPROVAL_DECISION = {
-  APPROVE: 'approve',
-  DENY: 'deny',
-} as const;

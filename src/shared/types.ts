@@ -1,7 +1,6 @@
 // Domain types shared across processes. Expanded in later phases.
 
 import { ToolName } from './agent';
-import { APPROVAL_DECISION, PROVIDERS } from './constants';
 
 export type TaskStatus =
   | 'queued'
@@ -11,9 +10,15 @@ export type TaskStatus =
   | 'failed'
   | 'cancelled';
 
-export type ProviderId = (typeof PROVIDERS)[keyof typeof PROVIDERS];
+export type ToolResultStatus = 'success' | 'error' | 'cancelled';
+
+export type ApprovalStatus = 'pending' | 'approved' | 'denied';
+
+export type ProviderId = 'copilot' | 'ollama';
 
 export type KanbanLane = 'todo' | 'in_progress' | 'done' | 'need_help';
+
+export type LogLevel = 'info' | 'error';
 
 export interface KanbanCard {
   sessionId: string;
@@ -43,8 +48,6 @@ export interface Note {
   updatedAt: number;
 }
 
-type ToolResultStatus = 'success' | 'error' | 'cancelled';
-
 export interface ToolResultV2 {
   status: ToolResultStatus;
   truncated: boolean;
@@ -58,8 +61,6 @@ export interface ToolExecutionResult extends ToolResultV2 {
   content: string;
   duration: number;
 }
-
-export type ApprovalDecision = (typeof APPROVAL_DECISION)[keyof typeof APPROVAL_DECISION];
 
 export interface FileNode {
   type: 'file' | 'directory';

@@ -56,11 +56,11 @@ export function deleteSession(id: string): void {
   });
   // cascade by hand
   const taskRows = db.select().from(tasks).where(eq(tasks.sessionId, id)).all();
-  for (const t of taskRows) {
-    db.delete(toolCalls).where(eq(toolCalls.taskId, t.id)).run();
+  for (const task of taskRows) {
+    db.delete(toolCalls).where(eq(toolCalls.taskId, task.id)).run();
+    db.delete(messages).where(eq(messages.taskId, task.id)).run();
   }
   db.delete(tasks).where(eq(tasks.sessionId, id)).run();
-  db.delete(messages).where(eq(messages.sessionId, id)).run();
   db.delete(memories).where(eq(memories.sessionId, id)).run();
   db.delete(sessions).where(eq(sessions.id, id)).run();
 }

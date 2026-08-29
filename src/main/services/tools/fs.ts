@@ -63,7 +63,7 @@ export const writeFileTool: Tool<{ path: string; content: string }, ToolResultV2
   },
 };
 
-export const listDirTool: Tool<{ path?: string; depth?: number }, ToolResultV2> = {
+export const listDirTool: Tool<{ path?: string }, ToolResultV2> = {
   name: 'list_dir',
   description:
     'Return a directory tree of the workspace (or a sub-path).\n' +

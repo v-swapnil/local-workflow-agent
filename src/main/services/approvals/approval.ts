@@ -8,8 +8,7 @@ import { updateTask } from '../workspaces/index.js';
 import { emitApprovalRequested, emitApprovalDecided } from '@main/orchestrator/eventEmitter.js';
 import { eq } from 'drizzle-orm';
 import { pendingApprovals, pendingUserInputs } from './state.js';
-import { APPROVAL_DECISION } from '@shared/constants.js';
-import { ApprovalDecision } from '@shared/types.js';
+import { ApprovalStatus } from '@shared/types.js';
 
 export async function isAutoApprove(): Promise<boolean> {
   return (await getSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS)) === 'true';
@@ -25,8 +24,8 @@ export async function requestApproval(
   args: Record<string, unknown>,
   signal?: AbortSignal,
   toolCallId?: string,
-): Promise<ApprovalDecision> {
-  if (await isAutoApprove()) return APPROVAL_DECISION.APPROVE;
+): Promise<ApprovalStatus> {
+  if (await isAutoApprove()) return 'approved';
 
   const req: ApprovalRequestRecord = {
     id: nanoid(10),
@@ -52,9 +51,9 @@ export async function requestApproval(
 
   updateTask(taskId, { status: 'awaiting_approval' });
 
-  return new Promise<ApprovalDecision>((resolve, reject) => {
+  return new Promise<ApprovalStatus>((resolve, reject) => {
     pendingApprovals.set(req.id, { request: req, resolve });
-    emitApprovalRequested(taskId, req.id, tool, args);
+    emitApprovalRequested(taskId, req.id);
 
     const onAbort = () => {
       pendingApprovals.delete(req.id);
@@ -67,7 +66,7 @@ export async function requestApproval(
   });
 }
 
-export function decideApproval(id: string, decision: ApprovalDecision): boolean {
+export function decideApproval(id: string, decision: ApprovalStatus): boolean {
   const p = pendingApprovals.get(id);
   if (!p) return false;
   pendingApprovals.delete(id);
@@ -102,7 +101,7 @@ export function clearTaskApprovals(taskId: string): void {
   for (const [id, p] of pendingApprovals) {
     if (p.request.taskId === taskId) {
       pendingApprovals.delete(id);
-      p.resolve(APPROVAL_DECISION.DENY);
+      p.resolve('denied');
     }
   }
   // Also clear pending user-input requests for this task

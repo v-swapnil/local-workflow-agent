@@ -5,7 +5,7 @@ import { GitStatusEntry, themeToTreeStyles } from '@pierre/trees';
 
 interface FileTreeProps {
   paths: string[];
-  gitStatus: GitStatusEntry[];
+  gitStatus?: GitStatusEntry[];
   activePath: string | null;
   onOpen: (path: string) => void;
 }

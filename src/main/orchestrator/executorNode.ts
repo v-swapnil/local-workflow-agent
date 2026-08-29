@@ -40,10 +40,9 @@ async function runExecutorLoop(
     const response = await llmChat(ctx, conv.getMessages(), temperature);
 
     const assistantMessage = addMessage(
-      ctx.sessionId,
+      ctx.taskId,
       'assistant',
       response.text,
-      ctx.taskId,
       response.thinking ?? null,
     );
 
@@ -51,7 +50,7 @@ async function runExecutorLoop(
 
     conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
 
-    const results = await executeToolCalls(ctx, 'executor', response.toolCalls, assistantMessage.id);
+    const results = await executeToolCalls(ctx, assistantMessage.id, response.toolCalls);
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i]!;
@@ -90,15 +89,13 @@ export async function executorNode(
     temperature = agent.temperature;
   }
 
-  const sequence = ctx.stepIdx.n++;
-  const { stepId } = emitStepStarted(ctx.taskId, sequence, 'executor');
   try {
+    emitStepStarted(ctx.taskId, ctx.agentId || 'executor');
     const newObs = await runExecutorLoop(ctx, systemPrompt, state, temperature);
-    emitStepFinished(ctx.taskId, stepId, true, { observations: newObs.length });
+    emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'succeeded');
     return { history: newObs };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    emitStepFinished(ctx.taskId, stepId, false, null, msg);
+    emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'failed');
     throw err;
   }
 }

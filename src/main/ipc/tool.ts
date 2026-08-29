@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, publicProcedure } from './trpc.js';
 import { invokeTool, listTools, listToolNames } from '../services/tools/registry.js';
-import type { ToolName } from '../services/tools/types.js';
+import { ToolName } from '@shared/agent.js';
 
 const TOOL_NAMES = listToolNames() as [ToolName, ...ToolName[]];
 

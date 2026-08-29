@@ -16,7 +16,7 @@ export function requestUserInput(
 
   return new Promise<string>((resolve, reject) => {
     pendingUserInputs.set(requestId, { taskId, resolve });
-    emitUserInputRequested(taskId, requestId, request.question, request.description, request.choices);
+    emitUserInputRequested(taskId, request.question);
 
     const onAbort = () => {
       pendingUserInputs.delete(requestId);
@@ -34,7 +34,7 @@ export function respondUserInput(id: string, answer: string): boolean {
   if (!p) return false;
   pendingUserInputs.delete(id);
 
-  emitUserInputResponded(p.taskId, id, answer);
+  emitUserInputResponded(p.taskId, answer);
 
   p.resolve(answer);
   return true;

@@ -1,39 +1,48 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
-import { sessions, messages, toolCalls } from '../db/schema.js';
+import { sessions, messages, tasks, toolCalls } from '../db/schema.js';
 import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
+import { getTask } from './workspaces/tasks.js';
 
 // ───────── Messages ─────────
 
 export function addMessage(
-  sessionId: string,
+  taskId: string,
   role: MessageRecord['role'],
   content: string,
-  taskId?: string,
   thinking?: string | null,
 ): MessageRecord {
-  const m: MessageRecord = {
+  const message: MessageRecord = {
     id: nanoid(10),
-    sessionId,
-    taskId: taskId ?? null,
+    taskId,
     role,
     content,
     thinking: thinking ?? null,
     createdAt: Date.now(),
   };
-  getDb().insert(messages).values(m).run();
-  getDb().update(sessions).set({ updatedAt: m.createdAt }).where(eq(sessions.id, sessionId)).run();
-  return m;
+  getDb().insert(messages).values(message).run();
+  // Bump the owning session's updatedAt via the message's task
+  const owningTask = getTask(taskId);
+  if (owningTask) {
+    getDb()
+      .update(sessions)
+      .set({ updatedAt: message.createdAt })
+      .where(eq(sessions.id, owningTask.sessionId))
+      .run();
+  }
+  return message;
 }
 
 export function listMessages(sessionId: string): MessageRecord[] {
   return getDb()
     .select()
     .from(messages)
-    .where(eq(messages.sessionId, sessionId))
+    .innerJoin(tasks, eq(messages.taskId, tasks.id))
+    .where(eq(tasks.sessionId, sessionId))
     .all()
-    .sort((a, b) => a.createdAt - b.createdAt) as MessageRecord[];
+    .map((row) => row.messages)
+    .sort((first, second) => first.createdAt - second.createdAt) as MessageRecord[];
 }
 
 // ───────── Tool Calls ─────────
@@ -55,3 +64,13 @@ export function listToolCalls(taskId: string): ToolCallRecord[] {
     .where(eq(toolCalls.taskId, taskId))
     .all() as ToolCallRecord[];
 }
+
+export const getToolCallByToolCallId = (
+  taskId: string,
+  toolCallId: string,
+): ToolCallRecord | null => {
+  const whereClause = toolCallId
+    ? and(eq(toolCalls.taskId, taskId), eq(toolCalls.toolCallId, toolCallId))
+    : eq(toolCalls.taskId, taskId);
+  return getDb().select().from(toolCalls).where(whereClause).get() as ToolCallRecord | null;
+};

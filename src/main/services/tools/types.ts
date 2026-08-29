@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { ToolName } from '@shared/agent';
-export type { ToolName };
 
 export interface ToolContext {
   workspaceId: string;

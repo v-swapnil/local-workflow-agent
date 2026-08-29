@@ -3,7 +3,7 @@ import { getWorkflow, type WorkflowDefinition, type WorkflowEdge } from '../serv
 import { requestApproval } from '../services/approvals/index.js';
 import { buildGraph } from './graph.js';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
-import { PROVIDERS, APPROVAL_DECISION } from '@shared/constants';
+import { PROVIDERS } from '@shared/constants';
 import type { AgentState } from './state.js';
 import { WorkflowStateAnnotation, type WorkflowState } from './workflow-state.js';
 import type { TaskResult } from '@shared/agent';
@@ -25,7 +25,7 @@ export async function runWorkflow(
     edges: workflowRecord.edges,
   };
 
-  emitLog(taskId, undefined, true, `[workflow] running "${workflowRecord.name}"`);
+  emitLog(taskId, 'info', `[workflow] running "${workflowRecord.name}"`);
 
   const startNode = definition.nodes.find((n) => n.type === 'start');
   const endNode = definition.nodes.find((n) => n.type === 'end');
@@ -47,7 +47,7 @@ export async function runWorkflow(
     if (node.type === 'agent') {
       const agentId = node.data.agentId as string;
       graph.addNode(node.id, async (state: WorkflowState) => {
-        emitLog(taskId, undefined, true, `[workflow] node "${node.id}" (agent)`);
+        emitLog(taskId, 'info', `[workflow] node "${node.id}" (agent)`);
         try {
           const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
           const agentCtx: RunCtx = { ...ctx, agentId };
@@ -70,9 +70,9 @@ export async function runWorkflow(
       });
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
-        emitLog(taskId, undefined, true, `[workflow] approval requested by node "${node.id}"`);
+        emitLog(taskId, 'info', `[workflow] approval requested by node "${node.id}"`);
         const decision = await requestApproval(taskId, 'ask_question', node.data, ctx.signal);
-        if (decision === APPROVAL_DECISION.DENY) {
+        if (decision === 'denied') {
           throw new Error(`Approval denied at node "${node.id}"`);
         }
         return { currentNodeId: node.id };

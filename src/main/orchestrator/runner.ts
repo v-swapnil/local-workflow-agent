@@ -81,11 +81,11 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       try {
         const branchName = `ase/${taskId}`;
         await createBranch(session.workspaceId, branchName);
-        emitLog(taskId, undefined, true, `[git] checked out branch ${branchName}`);
+        emitLog(taskId, 'info', `[git] checked out branch ${branchName}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         log.warn({ taskId, err: msg }, 'auto-branch failed');
-        emitLog(taskId, undefined, false, `[git] auto-branch failed: ${msg}`);
+        emitLog(taskId, 'error', `[git] auto-branch failed: ${msg}`);
       }
     }
 
@@ -101,7 +101,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
       workspacePath: session.workspacePath,
       model,
       signal: ctrl.signal,
-      stepIdx: { n: 0 },
       agentId: task.agentId ?? null,
       timeoutMs: taskTimeout,
     };
@@ -142,12 +141,7 @@ function finish(task: TaskRecord, result: TaskResult): TaskResult {
     if (v !== 'false') setSessionKanbanLane(task.sessionId, null);
   });
   clearTaskApprovals(task.id);
-  emitTaskFinished(
-    task.id,
-    result.status,
-    result,
-    result.status !== 'succeeded' ? result.reason : undefined,
-  );
+  emitTaskFinished(task.id, result.status, result);
   return result;
 }
 

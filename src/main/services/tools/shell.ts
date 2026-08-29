@@ -4,7 +4,6 @@ import { classifyCommand } from '../shell/safety.js';
 import { requestApproval } from '../approvals/index.js';
 import { logger } from '../logger.js';
 import type { Tool } from './types.js';
-import { APPROVAL_DECISION } from '@shared/constants.js';
 import { ToolResultV2 } from '@shared/types.js';
 
 const DESCRIPTION = `Execute a shell command in the workspace directory.
@@ -81,7 +80,7 @@ export const runShellTool: Tool<
         ctx.signal,
         ctx.toolCallId,
       );
-      if (decision === APPROVAL_DECISION.DENY) {
+      if (decision === 'denied') {
         throw new Error('ERROR: command denied by user');
       }
     }

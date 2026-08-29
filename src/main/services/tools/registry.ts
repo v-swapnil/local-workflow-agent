@@ -16,10 +16,10 @@ import { createMemoryTool } from './memory.js';
 import { createTaskTool, taskCompleteTool } from './task.js';
 import { outlineFileTool, findSymbolTool, findReferencesTool } from './codesearch.js';
 import { requestApproval } from '../approvals/index.js';
-import type { Tool, ToolName, ToolContext } from './types.js';
+import type { Tool, ToolContext } from './types.js';
 import type { ChatToolDef } from '../llm/provider.js';
 import { ToolResultV2 } from '@shared/types';
-import { APPROVAL_DECISION } from '@shared/constants';
+import { ToolName } from '@shared/agent';
 
 const REGISTRY = {
   read_file: readFileTool,
@@ -115,8 +115,14 @@ export async function invokeTool(
     const parsed = tool.schema.parse(rawArgs) as Record<string, unknown>;
 
     if (tool.needsApproval && opts.taskId) {
-      const decision = await requestApproval(opts.taskId, name, parsed, opts.signal, opts.toolCallId);
-      if (decision === APPROVAL_DECISION.DENY) {
+      const decision = await requestApproval(
+        opts.taskId,
+        name,
+        parsed,
+        opts.signal,
+        opts.toolCallId,
+      );
+      if (decision === 'denied') {
         return {
           status: 'cancelled',
           content: 'Tool execution denied by user.',

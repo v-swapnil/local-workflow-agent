@@ -79,13 +79,13 @@ export class OllamaProvider extends BaseLLMProvider {
       if (chunk.message?.thinking) {
         const text = chunk.message.content;
         thinking += text;
-        emitThinkingDelta(opts.taskId, 'ollama', text);
+        emitThinkingDelta(opts.taskId, text);
       }
 
       if (chunk.message?.content) {
         const text = chunk.message.content;
         content += text;
-        emitMessageDelta(opts.taskId, 'ollama', text);
+        emitMessageDelta(opts.taskId, text);
       }
 
       if (chunk.message?.tool_calls?.length) {

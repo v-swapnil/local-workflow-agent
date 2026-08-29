@@ -6,20 +6,6 @@ import {
   emitToolCallStarted,
 } from '@main/orchestrator/eventEmitter';
 import { ToolName } from '@shared/agent';
-import { listToolCalls } from '../store';
-
-export async function getToolCallById(taskId: string, toolCallId: string) {
-  const taskToolCalls = await listToolCalls(taskId);
-  const toolCall = taskToolCalls.find((c) => c.toolCallId === toolCallId);
-  if (toolCall) {
-    return {
-      id: toolCall.id,
-      toolName: toolCall.toolName,
-      arguments: toolCall.arguments ? JSON.parse(toolCall.arguments) : null,
-    };
-  }
-  return null;
-}
 
 /**
  * Map Copilot SDK events → ASE taskBus events for the live UI.
@@ -27,26 +13,25 @@ export async function getToolCallById(taskId: string, toolCallId: string) {
 export async function bridgeEvent(taskId: string, event: SessionEvent): Promise<void> {
   switch (event.type) {
     case 'assistant.message_delta':
-      emitMessageDelta(taskId, 'copilot', event.data.deltaContent);
+      emitMessageDelta(taskId, event.data.deltaContent);
       break;
 
     case 'assistant.reasoning_delta':
-      emitThinkingDelta(taskId, 'copilot', event.data.deltaContent);
+      emitThinkingDelta(taskId, event.data.deltaContent);
       break;
 
     case 'tool.execution_start': {
       const tool = event.data.toolName as ToolName;
-      emitToolCallStarted(taskId, 'copilot', tool, event.data.arguments, event.data.toolCallId);
+      emitToolCallStarted(taskId, null, event.data.toolCallId, tool, event.data.arguments || {});
       break;
     }
 
     case 'tool.execution_complete': {
-      const toolCall = await getToolCallById(taskId, event.data.toolCallId);
-      if (toolCall) {
-        const ok = !event.data.error;
-        const error = event.data.error?.message;
-        emitToolCallFinished(taskId, toolCall.id, ok, toolCall.toolName, {}, error);
-      }
+      emitToolCallFinished(taskId, event.data.toolCallId, {
+        status: event.data.success ? 'success' : 'error',
+        content: event.data.result?.content || event.data.error?.message || '',
+        truncated: false,
+      });
       break;
     }
   }

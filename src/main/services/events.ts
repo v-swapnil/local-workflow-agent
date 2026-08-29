@@ -10,23 +10,32 @@ class TaskBus {
     this.bus.setMaxListeners(0);
   }
 
-  emit(taskId: string, event: TaskEventRecord): void {
-    // Persist to SQLite (fire-and-forget, sync via better-sqlite3)
-    try {
-      getDb()
-        .insert(taskEvents)
-        .values({
-          taskId,
-          type: event.type,
-          payloadJson: JSON.stringify(event),
-          createdAt: event.ts,
-        })
-        .run();
-    } catch {
-      // Persistence failure should never break the task pipeline
-    }
+  createEvent(event: TaskEventRecord) {
+    return getDb()
+      .insert(taskEvents)
+      .values({
+        taskId: event.taskId,
+        type: event.type,
+        payloadJson: JSON.stringify(event),
+        createdAt: Date.now(),
+      })
+      .run();
+  }
 
-    this.bus.emit(taskId, event);
+  listTaskEvents(taskId: string): TaskEventRecord[] {
+    // @ts-expect-error - Fix this
+    return getDb()
+      .select()
+      .from(taskEvents)
+      .where(eq(taskEvents.taskId, taskId))
+      .orderBy(asc(taskEvents.id))
+      .all();
+  }
+
+  emit(event: TaskEventRecord): void {
+    this.createEvent(event);
+
+    this.bus.emit(event.taskId, event);
     this.bus.emit('*', event);
   }
 

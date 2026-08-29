@@ -9,7 +9,6 @@ export interface RunCtx {
   taskId: string;
   model: string;
   signal: AbortSignal;
-  stepIdx: { n: number };
   agentId: string | null;
   timeoutMs: number;
 }

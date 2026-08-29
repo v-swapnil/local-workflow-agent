@@ -1,9 +1,9 @@
 import { ApprovalRequestRecord } from '@shared/schema';
-import { ApprovalDecision } from '@shared/types';
+import { ApprovalStatus } from '@shared/types';
 
 export interface PendingApproval {
   request: ApprovalRequestRecord;
-  resolve: (d: ApprovalDecision) => void;
+  resolve: (d: ApprovalStatus) => void;
 }
 
 export interface PendingUserInput {

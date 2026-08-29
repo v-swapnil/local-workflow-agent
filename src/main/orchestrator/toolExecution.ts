@@ -1,25 +1,24 @@
 import { invokeTool, isReadOnlyTool } from '../services/tools/registry.js';
 import type { ToolCall } from '../services/llm/provider.js';
-import type { ToolName } from '../services/tools/types.js';
 import type { RunCtx } from './runCtx.js';
 import { emitToolCallStarted, emitToolCallFinished, emitLog } from './eventEmitter.js';
 import { ToolExecutionResult } from '@shared/types.js';
+import { ToolName } from '@shared/agent.js';
 
 /**
  * Execute a batch of tool calls. Read-only tools run in parallel;
  * write tools run sequentially to avoid conflicts.
  */
-export async function executeToolCalls(
+export const executeToolCalls = async (
   ctx: RunCtx,
-  agent: string,
+  messageId: string | null,
   toolCalls: ToolCall[],
-  messageId?: string | null,
-): Promise<ToolExecutionResult[]> {
+): Promise<ToolExecutionResult[]> => {
   const invokeOne = async (tc: ToolCall): Promise<ToolExecutionResult> => {
     const tool = tc.name as ToolName;
     const args = tc.arguments;
 
-    const { id: toolCallRowId } = emitToolCallStarted(ctx.taskId, agent, tool, args, tc.id, messageId);
+    emitToolCallStarted(ctx.taskId, messageId, tc.id, tool, args);
 
     const start = Date.now();
     const result = await invokeTool(tool, args, {
@@ -27,17 +26,11 @@ export async function executeToolCalls(
       workspacePath: ctx.workspacePath,
       sessionId: ctx.sessionId,
       taskId: ctx.taskId,
-      toolCallId: toolCallRowId,
+      toolCallId: tc.id,
       signal: ctx.signal,
     });
 
-    emitToolCallFinished(
-      ctx.taskId,
-      toolCallRowId,
-      result.status !== 'success',
-      tool,
-      result.content ?? null,
-    );
+    emitToolCallFinished(ctx.taskId, tc.id, result);
 
     return {
       toolCallId: tc.id,
@@ -60,4 +53,4 @@ export async function executeToolCalls(
   }
 
   return results;
-}
+};

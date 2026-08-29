@@ -2,9 +2,8 @@ import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
 import { summarizeToolCall, summarizeToolResult } from './toolSummary';
 import { Play, Square, StepForward } from 'lucide-react';
-import { APPROVAL_DECISION } from '@shared/constants';
 
-export function EventRow({ ev }: { ev: TaskEventRecord }) {
+export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
   const t = new Date(ev.ts).toLocaleTimeString([], {
     hour12: false,
     hour: '2-digit',
@@ -43,24 +42,25 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
     case 'step.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.agent}</span>
+          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.agentId}</span>
         </Line>
       );
     case 'step.finished':
       return (
-        <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
+        <Line ts={t} tone={ev.status === 'succeeded' ? 'ink' : 'rose'}>
           <span className="text-ink-500">←</span>{' '}
-          {ev.ok ? (
+          {ev.status === 'succeeded' ? (
             <span className="text-emerald-400">✓ done</span>
           ) : (
-            <span className="text-rose-400">✗ {(ev.error ?? 'failed').slice(0, 200)}</span>
+            <span className="text-rose-400">✗ {ev.status}</span>
           )}
         </Line>
       );
     case 'tool_call.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.tool}</span>
+          <span className="text-ink-500">→</span>{' '}
+          <span className="text-ink-400">{ev.toolCallId}</span>
           <span className="text-ink-600"> · </span>
           <span className="text-ink-300">
             {summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}
@@ -69,9 +69,9 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
       );
     case 'tool_call.finished':
       return (
-        <Line ts={t} tone={ev.ok ? 'ink' : 'rose'}>
+        <Line ts={t} tone={ev.status === 'success' ? 'ink' : 'rose'}>
           <span className="text-ink-500">←</span>{' '}
-          {ev.ok ? (
+          {ev.status === 'success' ? (
             <span className="text-emerald-400">
               ✓ {summarizeToolResult(ev.tool, true, ev.output)}
             </span>
@@ -83,9 +83,11 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
         </Line>
       );
     case 'log':
+    case 'log.info':
+    case 'log.error':
       return (
-        <Line ts={t} tone={ev.stream === 'stderr' ? 'rose' : 'ink'} dim>
-          {ev.text.replace(/\n+$/, '')}
+        <Line ts={t} tone={ev.type === 'log.error' ? 'rose' : 'ink'} dim>
+          {ev.content}
         </Line>
       );
     case 'approval.requested':
@@ -99,8 +101,8 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
       );
     case 'approval.decided':
       return (
-        <Line ts={t} tone={ev.decision === APPROVAL_DECISION.DENY ? 'rose' : 'emerald'}>
-          approval {ev.decision}
+        <Line ts={t} tone={ev.status === 'denied' ? 'rose' : 'emerald'}>
+          approval {ev.status}
         </Line>
       );
     case 'llm.delta':
@@ -118,13 +120,13 @@ export function EventRow({ ev }: { ev: TaskEventRecord }) {
     case 'user_input.requested':
       return (
         <Line ts={t} tone="sky">
-          ✋ {ev.question}
+          ✋ {ev.content}
         </Line>
       );
     case 'user_input.responded':
       return (
         <Line ts={t} tone="sky">
-          ✓ {ev.answer || '(skipped)'}
+          ✓ {ev.content || '(skipped)'}
         </Line>
       );
     default:

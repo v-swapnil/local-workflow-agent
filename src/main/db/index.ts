@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_ws ON sessions(workspace_id);
 CREATE TABLE IF NOT EXISTS messages (
-  id TEXT PRIMARY KEY, session_id TEXT NOT NULL, role TEXT NOT NULL,
-  content TEXT NOT NULL, created_at INTEGER NOT NULL
+  id TEXT PRIMARY KEY, task_id TEXT NOT NULL, role TEXT NOT NULL,
+  content TEXT NOT NULL, thinking TEXT, created_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_task ON messages(task_id);
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, prompt TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'queued',
@@ -69,6 +69,11 @@ CREATE TABLE IF NOT EXISTS task_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   task_id TEXT NOT NULL,
   type TEXT NOT NULL,
+  agent_id TEXT,
+  tool_call_id TEXT,
+  approval_id TEXT,
+  message_id TEXT,
+  status TEXT,
   payload_json TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
@@ -301,6 +306,60 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN step_id`); } catch { /* already dropped */ }
   try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN arguments`); } catch { /* already dropped */ }
   try { _sqlite.exec(`ALTER TABLE approvals DROP COLUMN description`); } catch { /* already dropped */ }
+  // Additive migration: task_events gains typed foreign-key columns + status
+  // (agent_id, tool_call_id, approval_id, message_id reference their owning rows;
+  // status holds TaskStatus | ToolResultStatus | ApprovalStatus per event type)
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN agent_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN tool_call_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN approval_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN message_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN status TEXT`); } catch { /* exists */ }
+  // Migration: messages now hang off tasks (sessions → tasks → messages).
+  // Backfill task_id from the owning task, then rebuild the table to make
+  // task_id NOT NULL and drop the now-redundant session_id column.
+  try {
+    const hasSessionId = _sqlite.prepare(
+      `SELECT COUNT(*) as c FROM pragma_table_info('messages') WHERE name = 'session_id'`,
+    ).get() as { c: number };
+    if (hasSessionId.c > 0) {
+      // Link each task-less message to the task with a matching prompt in the
+      // same session, choosing the closest one in time when several match.
+      // (Correlated refs live in WHERE, not ORDER BY — SQLite rejects outer
+      // column references inside a subquery's ORDER BY.)
+      _sqlite.exec(`
+        UPDATE messages
+        SET task_id = (
+          SELECT t.id FROM tasks t
+          WHERE t.session_id = messages.session_id AND t.prompt = messages.content
+            AND NOT EXISTS (
+              SELECT 1 FROM tasks t2
+              WHERE t2.session_id = messages.session_id AND t2.prompt = messages.content
+                AND ( ABS(t2.created_at - messages.created_at) < ABS(t.created_at - messages.created_at)
+                   OR (ABS(t2.created_at - messages.created_at) = ABS(t.created_at - messages.created_at) AND t2.id < t.id) )
+            )
+          LIMIT 1
+        )
+        WHERE task_id IS NULL
+      `);
+      // Drop any message that still has no owning task (nothing to attach to)
+      _sqlite.exec(`DELETE FROM messages WHERE task_id IS NULL`);
+      // Rebuild: task_id NOT NULL, session_id removed
+      _sqlite.exec(`CREATE TABLE messages_new (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        thinking TEXT,
+        created_at INTEGER NOT NULL
+      )`);
+      _sqlite.exec(`INSERT INTO messages_new (id, task_id, role, content, thinking, created_at)
+        SELECT id, task_id, role, content, thinking, created_at FROM messages`);
+      _sqlite.exec(`DROP TABLE messages`);
+      _sqlite.exec(`ALTER TABLE messages_new RENAME TO messages`);
+      _sqlite.exec(`DROP INDEX IF EXISTS idx_messages_session`);
+      _sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_messages_task ON messages(task_id)`);
+    }
+  } catch { /* already migrated */ }
   _db = drizzle(_sqlite, { schema });
   logger.info({ path }, 'db ready');
   return _db;

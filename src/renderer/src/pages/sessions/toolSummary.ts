@@ -1,69 +1,47 @@
-/** Human-readable summaries for tool calls and results shown in the event stream. */
+import { ToolName } from '@shared/agent';
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v : String(v ?? '');
-}
-
-function truncPath(p: string, maxLen = 40): string {
-  if (p.length <= maxLen) return p;
-  const parts = p.split('/');
-  if (parts.length <= 2) return '...' + p.slice(-maxLen);
-  return parts[0] + '/.../' + parts.slice(-2).join('/');
-}
-
-function truncStr(s: string, maxLen = 60): string {
-  return s.length <= maxLen ? s : s.slice(0, maxLen) + '...';
 }
 
 /**
  * Produce a short human-readable label for a tool invocation.
  * Used by tool_call.started and approval.requested rows.
  */
-export function summarizeToolCall(tool: string, args?: Record<string, unknown>): string {
-  const a = args ?? {};
-
-  switch (tool) {
-    case 'read_file': {
-      const p = truncPath(str(a.path));
-      const offset = a.offset ? ` from L${a.offset}` : '';
-      return `Reading ${p}${offset}`;
-    }
+export function summarizeToolCall(toolName: ToolName, args: Record<string, unknown> = {}): string {
+  switch (toolName) {
+    case 'read_file':
+      return `Reading ${str(args.path)}`;
     case 'write_file':
-      return `Writing ${truncPath(str(a.path))}`;
-    case 'edit_file': {
-      const p = truncPath(str(a.path));
-      const old = truncStr(str(a.oldString), 30);
-      return a.oldString ? `Editing ${p} — replacing "${old}"` : `Appending to ${p}`;
-    }
+      return `Writing ${str(args.path)}`;
+    case 'edit_file':
+      return `Editing ${str(args.path)}`;
     case 'apply_patch':
       return 'Applying patch';
-    case 'list_dir': {
-      const p = a.path ? truncPath(str(a.path)) : '.';
-      return `Listing ${p}`;
-    }
-    case 'grep': {
-      const pat = truncStr(str(a.pattern), 30);
-      const scope = a.path ? ` in ${truncPath(str(a.path))}` : '';
-      const inc = a.glob ? ` (${a.glob})` : '';
-      return `Searching /${pat}/${scope}${inc}`;
-    }
-    case 'glob': {
-      const pat = truncStr(str(a.pattern), 40);
-      return `Finding files ${pat}`;
-    }
-    case 'run_shell': {
-      const cmd = str(a.command);
-      const argv = Array.isArray(a.args) ? ' ' + (a.args as string[]).join(' ') : '';
-      return `Running \`${truncStr(cmd + argv, 50)}\``;
-    }
+    case 'list_dir':
+      return `Listing ${args.path ? str(args.path) : '.'}`;
+    case 'grep':
+      return `Searching ${str(args.pattern)}`;
+    case 'glob':
+      return `Finding files ${str(args.pattern)}`;
+    case 'run_shell':
+      return `Running ${str(args.command)}`;
     case 'ask_question':
-      return `Asking: ${truncStr(str(a.question), 50)}`;
+      return `Asking: ${str(args.question)}`;
     case 'create_memory':
-      return `Adding ${a.type ?? 'memory'}`;
+      return `Creating memory`;
     case 'task_complete':
-      return 'Marking task complete';
+      return 'Task Complete!';
+    case 'create_task':
+      return `Creating Task`;
+    case 'outline_file':
+      return `Outlining ${str(args.path)}`;
+    case 'find_symbol':
+      return `Finding Symbol ${str(args.symbol)}`;
+    case 'find_references':
+      return `Finding References to ${str(args.symbol)}`;
     default:
-      return tool;
+      return toolName;
   }
 }
 
@@ -72,18 +50,18 @@ export function summarizeToolCall(tool: string, args?: Record<string, unknown>):
  * Used by tool_call.finished rows.
  */
 export function summarizeToolResult(
-  tool: string,
+  toolName: ToolName,
   ok: boolean,
   output?: unknown,
   error?: string,
 ): string {
-  if (!ok) return error ? truncStr(error, 120) : 'unknown error';
+  if (!ok) return error ? error : 'unknown error';
 
   // Best-effort extraction from output
   const o = output as Record<string, unknown> | undefined;
   if (!o) return 'done';
 
-  switch (tool) {
+  switch (toolName) {
     case 'read_file': {
       const lines = Array.isArray(o.lines) ? o.lines.length : null;
       return lines != null ? `${lines} lines` : 'done';
@@ -93,7 +71,7 @@ export function summarizeToolResult(
     case 'edit_file':
       return typeof o.replacements === 'number' ? `${o.replacements} replacement(s)` : 'applied';
     case 'list_dir':
-      return typeof o === 'string' ? truncStr(o, 60) : 'done';
+      return typeof o === 'string' ? o : 'done';
     case 'grep': {
       const matches = Array.isArray(o.matches) ? o.matches.length : null;
       return matches != null ? `${matches} match(es)` : 'done';
@@ -109,6 +87,18 @@ export function summarizeToolResult(
       return 'answered';
     case 'task_complete':
       return 'complete';
+    case 'apply_patch':
+      return 'done';
+    case 'create_memory':
+      return 'done';
+    case 'create_task':
+      return 'done';
+    case 'outline_file':
+      return 'done';
+    case 'find_symbol':
+      return 'done';
+    case 'find_references':
+      return 'done';
     default:
       return 'done';
   }

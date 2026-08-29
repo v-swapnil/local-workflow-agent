@@ -12,7 +12,9 @@ export const sessions = sqliteTable(
   'sessions',
   {
     id: text('id').primaryKey(),
-    workspaceId: text('workspace_id').notNull(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
     title: text('title').notNull(),
     status: text('status').notNull().default('active'),
     kanbanLane: text('kanban_lane'),
@@ -26,15 +28,15 @@ export const messages = sqliteTable(
   'messages',
   {
     id: text('id').primaryKey(),
-    sessionId: text('session_id').notNull(),
-    taskId: text('task_id'),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id),
     role: text('role').notNull(),
     content: text('content').notNull(),
     thinking: text('thinking'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({
-    sIdx: index('idx_messages_session').on(t.sessionId),
     tIdx: index('idx_messages_task').on(t.taskId),
   }),
 );
@@ -43,14 +45,16 @@ export const tasks = sqliteTable(
   'tasks',
   {
     id: text('id').primaryKey(),
-    sessionId: text('session_id').notNull(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => sessions.id),
     prompt: text('prompt').notNull(),
     result: text('result'),
     status: text('status').notNull().default('queued'),
     provider: text('provider'),
     model: text('model'),
-    agentId: text('agent_id'),
-    workflowId: text('workflow_id'),
+    agentId: text('agent_id').references(() => agents.id),
+    workflowId: text('workflow_id').references(() => workflows.id),
     createdAt: integer('created_at').notNull(),
     startedAt: integer('started_at'),
     finishedAt: integer('finished_at'),
@@ -62,8 +66,10 @@ export const toolCalls = sqliteTable(
   'tool_calls',
   {
     id: text('id').primaryKey(),
-    taskId: text('task_id').notNull(),
-    messageId: text('message_id'),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id),
+    messageId: text('message_id').references(() => messages.id),
     toolName: text('tool_name').notNull(),
     toolCallId: text('tool_call_id'),
     arguments: text('arguments'),
@@ -80,8 +86,10 @@ export const toolCalls = sqliteTable(
 
 export const approvals = sqliteTable('approvals', {
   id: text('id').primaryKey(),
-  taskId: text('task_id').notNull(),
-  toolCallId: text('tool_call_id'),
+  taskId: text('task_id')
+    .notNull()
+    .references(() => tasks.id),
+  toolCallId: text('tool_call_id').references(() => toolCalls.id),
   toolName: text('tool_name').notNull(),
   decision: text('decision').notNull().default('pending'),
   createdAt: integer('created_at').notNull(),
@@ -101,8 +109,10 @@ export const worktrees = sqliteTable(
   'worktrees',
   {
     id: text('id').primaryKey(),
-    workspaceId: text('workspace_id').notNull(),
-    sessionId: text('session_id'),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspaces.id),
+    sessionId: text('session_id').references(() => sessions.id),
     branch: text('branch').notNull(),
     path: text('path').notNull(),
     baseBranch: text('base_branch').notNull(),
@@ -140,7 +150,9 @@ export const schedules = sqliteTable('schedules', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   cron: text('cron').notNull(),
-  workspaceId: text('workspace_id').notNull(),
+  workspaceId: text('workspace_id')
+    .notNull()
+    .references(() => workspaces.id),
   prompt: text('prompt').notNull(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
   lastRunAt: integer('last_run_at'),
@@ -160,12 +172,19 @@ export const taskEvents = sqliteTable(
   'task_events',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    taskId: text('task_id').notNull(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id),
     type: text('type').notNull(),
+    agentId: text('agent_id').references(() => agents.id),
+    toolCallId: text('tool_call_id').references(() => toolCalls.id),
+    approvalId: text('approval_id').references(() => approvals.id),
+    messageId: text('message_id').references(() => messages.id),
+    status: text('status'),
     payloadJson: text('payload_json').notNull(),
     createdAt: integer('created_at').notNull(),
   },
-  (t) => ({ tIdx: index('idx_task_events_task').on(t.taskId) }),
+  (table) => ({ tIdx: index('idx_task_events_task').on(table.taskId) }),
 );
 
 export const settings = sqliteTable('settings', {
@@ -179,9 +198,9 @@ export const memories = sqliteTable(
     id: integer('id').primaryKey({ autoIncrement: true }),
     type: text('type').notNull(),
     content: text('content').notNull(),
-    sessionId: text('session_id'),
-    taskId: text('task_id'),
-    workspaceId: text('workspace_id'),
+    sessionId: text('session_id').references(() => sessions.id),
+    taskId: text('task_id').references(() => tasks.id),
+    workspaceId: text('workspace_id').references(() => workspaces.id),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({

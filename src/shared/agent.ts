@@ -17,15 +17,7 @@ export type ToolName =
   | 'find_symbol'
   | 'find_references';
 
-/** ───────── Executor I/O ───────── */
 
-export interface ExecutorAction {
-  thought: string;
-  /** null = nothing more to do for this step */
-  action: { tool: ToolName; args: Record<string, unknown> } | null;
-  /** When true, the executor declares the task complete. */
-  done: boolean;
-}
 
 /** Observation appended to the executor's working memory after a tool call. */
 export interface Observation {

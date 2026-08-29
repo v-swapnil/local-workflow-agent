@@ -1,221 +1,98 @@
-import { addToolCall, updateToolCall } from '../services/store.js';
+import { addToolCall, getToolCallByToolCallId, updateToolCall } from '../services/store.js';
 import { taskBus } from '../services/events.js';
-import type { ToolName } from '../services/tools/types.js';
-import type { ApprovalDecision } from '@shared/types.js';
+import type { ApprovalStatus, LogLevel, TaskStatus, ToolResultV2 } from '@shared/types.js';
 import { updateTask } from '@main/services/workspaces';
-import { nanoid } from 'nanoid';
+import { TaskResult, ToolName } from '@shared/agent.js';
 
-export function emitStepStarted(
-  taskId: string,
-  sequence: number,
-  agent: string,
-): { stepId: string } {
-  const stepId = nanoid(10);
-  taskBus.emit(taskId, {
-    type: 'step.started',
-    taskId,
-    ts: Date.now(),
-    stepId,
-    agent,
-  });
-  return { stepId };
-}
+export const emitStepStarted = (taskId: string, agentId: string) => {
+  taskBus.emit({ type: 'step.started', taskId, agentId, status: 'running' });
+};
 
-export function emitStepFinished(
-  taskId: string,
-  stepId: string,
-  ok: boolean,
-  output: unknown,
-  error?: string,
-): void {
-  taskBus.emit(taskId, {
-    type: 'step.finished',
-    taskId,
-    ts: Date.now(),
-    stepId,
-    ok,
-    output,
-    error,
-  });
-}
+export const emitStepFinished = (taskId: string, agentId: string, status: TaskStatus) => {
+  taskBus.emit({ type: 'step.finished', taskId, agentId, status });
+};
 
-export function emitToolCallStarted(
+export const emitToolCallStarted = (
   taskId: string,
-  agent: string,
-  tool: ToolName,
-  args?: unknown,
-  toolCallId?: string,
-  messageId?: string | null,
-): { id: string } {
+  messageId: string | null,
+  toolCallId: string,
+  toolName: ToolName,
+  args: Record<string, unknown>,
+) => {
   const row = addToolCall({
     taskId,
-    messageId: messageId ?? null,
-    toolName: tool,
+    messageId,
     toolCallId,
+    toolName,
     arguments: args ? JSON.stringify(args) : null,
     result: null,
     status: 'running',
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit(taskId, {
-    type: 'tool_call.started',
-    taskId,
-    ts: Date.now(),
-    stepId: row.id,
-    agent,
-    tool,
-    input: args,
-  });
-  return { id: row.id };
-}
+  taskBus.emit({ type: 'tool_call.started', taskId, toolCallId: row.id, status: 'pending' });
+};
 
-// TODO: fix tool call storage
-export function emitToolCallFinished(
+export const emitToolCallFinished = (
   taskId: string,
-  id: string,
-  ok: boolean,
-  tool: string,
-  output: unknown,
-  error?: string,
-): void {
-  updateToolCall(id, {
-    result: output != null ? JSON.stringify(output) : null,
-    status: ok ? 'succeeded' : 'failed',
-    finishedAt: Date.now(),
-  });
-  taskBus.emit(taskId, {
-    type: 'tool_call.finished',
-    taskId,
-    ts: Date.now(),
-    stepId: id,
-    ok,
-    tool,
-    output,
-    error,
-  });
-}
+  toolCallId: string,
+  toolCallResult: ToolResultV2,
+) => {
+  const toolCall = getToolCallByToolCallId(taskId, toolCallId);
+  if (toolCall) {
+    updateToolCall(toolCall.id, {
+      result: toolCallResult.content != null ? JSON.stringify(toolCallResult.content) : null,
+      status: toolCallResult.status,
+      finishedAt: Date.now(),
+    });
+    taskBus.emit({
+      type: 'tool_call.finished',
+      taskId,
+      toolCallId: toolCall.id,
+      status: toolCallResult.status,
+    });
+  }
+};
 
-export function emitTaskStarted(taskId: string): void {
+export const emitTaskStarted = (taskId: string) => {
   updateTask(taskId, { status: 'running', startedAt: Date.now() });
-  taskBus.emit(taskId, {
-    type: 'task.started',
-    taskId,
-    ts: Date.now(),
-  });
-}
+  taskBus.emit({ type: 'task.started', taskId, status: 'running' });
+};
 
-export function emitTaskFinished(
-  taskId: string,
-  status: 'succeeded' | 'failed' | 'cancelled',
-  result?: unknown,
-  error?: string,
-): void {
+export const emitTaskFinished = (taskId: string, status: TaskStatus, result?: TaskResult) => {
   updateTask(taskId, {
     status,
-    finishedAt: Date.now(),
     result: result ? JSON.stringify(result) : null,
+    finishedAt: Date.now(),
   });
-  taskBus.emit(taskId, {
-    type: 'task.finished',
-    taskId,
-    ts: Date.now(),
-    status,
-    result,
-    error,
-  });
-}
+  taskBus.emit({ type: 'task.finished', taskId, status });
+};
 
-export function emitMessageDelta(taskId: string, agent: string, content: string): void {
-  taskBus.emit(taskId, {
-    type: 'llm.delta',
-    taskId,
-    ts: Date.now(),
-    agent,
-    content,
-  });
-}
+export const emitMessageDelta = (taskId: string, content: string) => {
+  taskBus.emit({ type: 'llm.delta', taskId, content });
+};
 
-export function emitThinkingDelta(taskId: string, agent: string, content: string): void {
-  taskBus.emit(taskId, {
-    type: 'llm.thinking_delta',
-    taskId,
-    ts: Date.now(),
-    agent,
-    content,
-  });
-}
+export const emitThinkingDelta = (taskId: string, content: string) => {
+  taskBus.emit({ type: 'llm.thinking_delta', taskId, content });
+};
 
-export function emitLog(
-  taskId: string,
-  stepId: string | undefined,
-  ok: boolean,
-  content: string,
-): void {
-  taskBus.emit(taskId, {
-    type: 'log',
-    taskId: taskId,
-    ts: Date.now(),
-    stream: ok ? 'stdout' : 'stderr',
-    text: content,
-    stepId,
-  });
-}
+export const emitLog = (taskId: string, logLevel: LogLevel, content: string) => {
+  const eventType = logLevel === 'error' ? 'log.error' : 'log.info';
+  taskBus.emit({ type: eventType, taskId, content });
+};
 
-export function emitApprovalRequested(
-  taskId: string,
-  approvalId: string,
-  tool: string,
-  args: Record<string, unknown>,
-): void {
-  taskBus.emit(taskId, {
-    type: 'approval.requested',
-    taskId,
-    ts: Date.now(),
-    approvalId,
-    tool,
-    args,
-  });
-}
+export const emitApprovalRequested = (taskId: string, approvalId: string) => {
+  taskBus.emit({ type: 'approval.requested', taskId, approvalId, status: 'pending' });
+};
 
-export function emitApprovalDecided(
-  taskId: string,
-  approvalId: string,
-  decision: ApprovalDecision,
-): void {
-  taskBus.emit(taskId, {
-    type: 'approval.decided',
-    taskId,
-    ts: Date.now(),
-    approvalId,
-    decision,
-  });
-}
+export const emitApprovalDecided = (taskId: string, approvalId: string, status: ApprovalStatus) => {
+  taskBus.emit({ type: 'approval.decided', taskId, approvalId, status });
+};
 
-export function emitUserInputRequested(
-  taskId: string,
-  requestId: string,
-  question: string,
-  description?: string,
-  choices?: string[],
-): void {
-  taskBus.emit(taskId, {
-    type: 'user_input.requested',
-    taskId,
-    ts: Date.now(),
-    requestId,
-    question,
-    description,
-    choices,
-  });
-}
+export const emitUserInputRequested = (taskId: string, question: string) => {
+  taskBus.emit({ type: 'user_input.requested', taskId, content: question });
+};
 
-export function emitUserInputResponded(taskId: string, requestId: string, answer: string): void {
-  taskBus.emit(taskId, {
-    type: 'user_input.responded',
-    taskId,
-    ts: Date.now(),
-    requestId,
-    answer,
-  });
-}
+export const emitUserInputResponded = (taskId: string, answer: string) => {
+  taskBus.emit({ type: 'user_input.responded', taskId, content: answer });
+};

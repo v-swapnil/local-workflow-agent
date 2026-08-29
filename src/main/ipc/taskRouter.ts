@@ -25,7 +25,7 @@ export const taskRouter = router({
         agentId: input.agentId,
         workflowId: input.workflowId,
       });
-      addMessage(input.sessionId, 'user', input.prompt, task.id);
+      addMessage(task.id, 'user', input.prompt);
       if (input.autostart !== false) enqueueTask(task.id);
       return task;
     }),
