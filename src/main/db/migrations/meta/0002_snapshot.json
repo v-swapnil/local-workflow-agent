@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "632f709b-dfe8-4046-af2d-e937129f3488",
+  "id": "2130d766-8f4a-4305-86b5-f1c6c0728b72",
   "prevId": "e265f58d-d4e1-4a3c-b9e5-38983d076907",
   "tables": {
     "agents": {
@@ -1097,6 +1097,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "choices": {
           "name": "choices",
           "type": "text",
@@ -1127,8 +1134,8 @@
         }
       },
       "indexes": {
-        "idx_approvals_task": {
-          "name": "idx_approvals_task",
+        "idx_user_inputs_task": {
+          "name": "idx_user_inputs_task",
           "columns": [
             "task_id"
           ],

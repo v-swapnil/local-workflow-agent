@@ -3,6 +3,7 @@ CREATE TABLE `user_inputs` (
 	`task_id` integer NOT NULL,
 	`tool_call_id` integer,
 	`question` text NOT NULL,
+	`description` text,
 	`choices` text,
 	`decision` text,
 	`created_at` integer NOT NULL,
@@ -11,4 +12,4 @@ CREATE TABLE `user_inputs` (
 	FOREIGN KEY (`tool_call_id`) REFERENCES `tool_calls`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE INDEX `idx_approvals_task` ON `user_inputs` (`task_id`);
+CREATE INDEX `idx_user_inputs_task` ON `user_inputs` (`task_id`);

@@ -121,7 +121,7 @@ export const userInputs = sqliteTable(
     createdAt: integer('created_at').notNull(),
     decidedAt: integer('decided_at'),
   },
-  (t) => ({ taskIdx: index('idx_approvals_task').on(t.taskId) }),
+  (t) => ({ taskIdx: index('idx_user_inputs_task').on(t.taskId) }),
 );
 
 export const skills = sqliteTable('skills', {
