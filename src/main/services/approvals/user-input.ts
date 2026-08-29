@@ -64,3 +64,18 @@ export function respondUserInput(id: number, answer: string): boolean {
 
   return true;
 }
+
+// Full detail for a single user-input request, with choices split into an array.
+export function getUserInput(id: number) {
+  const row = getDb().select().from(userInputs).where(eq(userInputs.id, id)).get();
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    taskId: row.taskId,
+    question: row.question,
+    description: row.description,
+    choices: row.choices ? row.choices.split(',') : [],
+    createdAt: row.createdAt,
+  };
+}

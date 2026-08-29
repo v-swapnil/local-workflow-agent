@@ -2,15 +2,15 @@ import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
 import { Play, Square, StepForward } from 'lucide-react';
 
-export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
-  const t = new Date(ev.ts).toLocaleTimeString([], {
+export function EventRow({ event }: { event: TaskEventRecord }) {
+  const t = new Date(event.timestamp).toLocaleTimeString([], {
     hour12: false,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   });
 
-  switch (ev.type) {
+  switch (event.type) {
     case 'task.started':
       return (
         <Line ts={t} tone="ink">
@@ -26,15 +26,15 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
           <span
             className={cn(
               'flex items-center gap-1.5 font-mono text-ui-2xs uppercase tracking-widest2',
-              ev.status === 'succeeded'
+              event.status === 'succeeded'
                 ? 'text-emerald-400'
-                : ev.status === 'cancelled'
+                : event.status === 'cancelled'
                   ? 'text-ink-500'
                   : 'text-rose-400',
             )}
           >
             <Square className="h-2 w-2" fill="currentColor" strokeWidth={0} />
-            task {ev.status}
+            task {event.status}
           </span>
         </Line>
       );
@@ -42,17 +42,17 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
       return (
         <Line ts={t} tone="ink">
           <span className="text-ink-500">→</span>{' '}
-          <span className="text-ink-400">{ev.referenceId}</span>
+          <span className="text-ink-400">{event.referenceId}</span>
         </Line>
       );
     case 'step.finished':
       return (
-        <Line ts={t} tone={ev.status === 'succeeded' ? 'ink' : 'rose'}>
+        <Line ts={t} tone={event.status === 'succeeded' ? 'ink' : 'rose'}>
           <span className="text-ink-500">←</span>{' '}
-          {ev.status === 'succeeded' ? (
+          {event.status === 'succeeded' ? (
             <span className="text-emerald-400">✓ done</span>
           ) : (
-            <span className="text-rose-400">✗ {ev.status}</span>
+            <span className="text-rose-400">✗ {event.status}</span>
           )}
         </Line>
       );
@@ -60,19 +60,19 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
       return (
         <Line ts={t} tone="ink">
           <span className="text-ink-500">→</span>{' '}
-          <span className="text-ink-400">{ev.referenceId}</span>
+          <span className="text-ink-400">{event.referenceId}</span>
           <span className="text-ink-600"> · </span>
-          <span className="text-ink-300">{ev.content}</span>
+          <span className="text-ink-300">{event.content}</span>
         </Line>
       );
     case 'tool_call.finished':
       return (
-        <Line ts={t} tone={ev.status === 'success' ? 'ink' : 'rose'}>
+        <Line ts={t} tone={event.status === 'success' ? 'ink' : 'rose'}>
           <span className="text-ink-500">←</span>{' '}
-          {ev.status === 'success' ? (
-            <span className="text-emerald-400">✓ {ev.content}</span>
+          {event.status === 'success' ? (
+            <span className="text-emerald-400">✓ {event.content}</span>
           ) : (
-            <span className="text-rose-400">✗ {ev.content}</span>
+            <span className="text-rose-400">✗ {event.content}</span>
           )}
         </Line>
       );
@@ -80,8 +80,8 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
     case 'log.info':
     case 'log.error':
       return (
-        <Line ts={t} tone={ev.type === 'log.error' ? 'rose' : 'ink'} dim>
-          {ev.content}
+        <Line ts={t} tone={event.type === 'log.error' ? 'rose' : 'ink'} dim>
+          {event.content}
         </Line>
       );
     case 'approval.requested':
@@ -95,32 +95,32 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
       );
     case 'approval.decided':
       return (
-        <Line ts={t} tone={ev.status === 'denied' ? 'rose' : 'emerald'}>
-          approval {ev.status}
+        <Line ts={t} tone={event.status === 'denied' ? 'rose' : 'emerald'}>
+          approval {event.status}
         </Line>
       );
     case 'llm.delta':
       return (
         <Line ts={t} tone="emerald" dim>
-          {ev.content}
+          {event.content}
         </Line>
       );
     case 'llm.thinking_delta':
       return (
         <Line ts={t} tone="purple" dim>
-          {ev.content}
+          {event.content}
         </Line>
       );
     case 'user_input.requested':
       return (
         <Line ts={t} tone="sky">
-          ✋ {ev.content}
+          ✋ {event.content}
         </Line>
       );
     case 'user_input.responded':
       return (
         <Line ts={t} tone="sky">
-          ✓ {ev.content || '(skipped)'}
+          ✓ {event.content || '(skipped)'}
         </Line>
       );
     default:

@@ -4,7 +4,6 @@ import { StatusPill } from './StatusPill';
 import { EventRow } from './EventStream';
 import { ApprovalModal } from './ApprovalModal';
 import { UserInputModal } from './UserInputModal';
-import type { ApprovalReq, UserInputReq } from './types';
 import type { TaskEventRecord } from '@shared/schema';
 import { Button } from '../../components/ui/button';
 
@@ -35,38 +34,26 @@ export function TaskView({ taskId }: { taskId: number }) {
   const respondInput = trpc.approval.respondUserInput.useMutation();
 
   const [events, setEvents] = useState<TaskEventRecord[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<ApprovalReq[]>([]);
-  const [pendingUserInputs, setPendingUserInputs] = useState<UserInputReq[]>([]);
+  const [pendingApprovalIds, setPendingApprovalIds] = useState<number[]>([]);
+  const [pendingUserInputIds, setPendingUserInputIds] = useState<number[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
   trpc.task.events.useSubscription(
     { taskId },
     {
       onData: (event) => {
-        setEvents((prev) => getEvents(prev, event));
+        setEvents((prev) => getEvents(prev, { ...event, ts: Date.now() }));
         if (event.type === 'approval.requested') {
-          setPendingApprovals((prev) => [
-            ...prev,
-            { id: event.referenceId, tool: event.tool, args: event.args, ts: event.createdAt },
-          ]);
+          setPendingApprovalIds((prev) => [...prev, event.referenceId]);
         } else if (event.type === 'approval.decided') {
-          setPendingApprovals((prev) => prev.filter((a) => a.id !== event.referenceId));
+          setPendingApprovalIds((prev) => prev.filter((id) => id !== event.referenceId));
         } else if (event.type === 'user_input.requested') {
-          setPendingUserInputs((prev) => [
-            ...prev,
-            {
-              id: event.referenceId,
-              question: event.question,
-              description: event.description,
-              choices: event.choices,
-              ts: event.createdAt,
-            },
-          ]);
+          setPendingUserInputIds((prev) => [...prev, event.referenceId]);
         } else if (event.type === 'user_input.responded') {
-          setPendingUserInputs((prev) => prev.filter((r) => r.id !== event.referenceId));
+          setPendingUserInputIds((prev) => prev.filter((id) => id !== event.referenceId));
         } else if (event.type === 'task.finished') {
-          setPendingApprovals([]);
-          setPendingUserInputs([]);
+          setPendingApprovalIds([]);
+          setPendingUserInputIds([]);
         }
       },
     },
@@ -82,8 +69,8 @@ export function TaskView({ taskId }: { taskId: number }) {
 
   useEffect(() => {
     if (finished) {
-      setPendingApprovals([]);
-      setPendingUserInputs([]);
+      setPendingApprovalIds([]);
+      setPendingUserInputIds([]);
     }
   }, [finished]);
 
@@ -128,23 +115,23 @@ export function TaskView({ taskId }: { taskId: number }) {
               waiting for events…
             </div>
           )}
-          {events.map((ev, i) => (
-            <EventRow key={i} ev={ev} />
+          {events.map((event, i) => (
+            <EventRow key={`${event.type}_${i}`} event={event} />
           ))}
         </div>
       </div>
 
-      {pendingApprovals.length > 0 && pendingApprovals[0] && (
+      {pendingApprovalIds.length > 0 && pendingApprovalIds[0] != null && (
         <ApprovalModal
-          request={pendingApprovals[0]}
-          onDecide={(d) => {
-            const aid = pendingApprovals[0]!.id;
+          id={pendingApprovalIds[0]}
+          onDecide={(decision) => {
+            const approvalId = pendingApprovalIds[0]!;
             decide.mutate(
-              { id: aid, decision: d },
+              { id: approvalId, decision },
               {
                 onSuccess: (res) => {
                   if (!res.ok) {
-                    setPendingApprovals((prev) => prev.filter((a) => a.id !== aid));
+                    setPendingApprovalIds((prev) => prev.filter((id) => id !== approvalId));
                   }
                 },
               },
@@ -153,29 +140,29 @@ export function TaskView({ taskId }: { taskId: number }) {
         />
       )}
 
-      {pendingUserInputs.length > 0 && pendingUserInputs[0] && (
+      {pendingUserInputIds.length > 0 && pendingUserInputIds[0] != null && (
         <UserInputModal
-          request={pendingUserInputs[0]}
+          id={pendingUserInputIds[0]}
           onSubmit={(answer) => {
-            const rid = pendingUserInputs[0]!.id;
+            const inputId = pendingUserInputIds[0]!;
             respondInput.mutate(
-              { id: rid, answer },
+              { id: inputId, answer },
               {
                 onSuccess: (res) => {
                   if (!res.ok) {
-                    setPendingUserInputs((prev) => prev.filter((r) => r.id !== rid));
+                    setPendingUserInputIds((prev) => prev.filter((id) => id !== inputId));
                   }
                 },
               },
             );
           }}
           onDismiss={() => {
-            const rid = pendingUserInputs[0]!.id;
+            const inputId = pendingUserInputIds[0]!;
             respondInput.mutate(
-              { id: rid, answer: '' },
+              { id: inputId, answer: '' },
               {
                 onSuccess: () => {
-                  setPendingUserInputs((prev) => prev.filter((r) => r.id !== rid));
+                  setPendingUserInputIds((prev) => prev.filter((id) => id !== inputId));
                 },
               },
             );

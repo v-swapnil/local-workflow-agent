@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ApprovalReq } from './types';
+import { trpc } from '../../trpc';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,18 +14,23 @@ import { buttonVariants } from '../../components/ui/button';
 import { ApprovalStatus } from '@shared/types';
 
 interface ApprovalModalProps {
-  request: ApprovalReq;
+  id: number;
   onDecide: (decision: ApprovalStatus) => void;
 }
 
-export function ApprovalModal({ request, onDecide }: ApprovalModalProps) {
+export function ApprovalModal({ id, onDecide }: ApprovalModalProps) {
+  const approval = trpc.approval.get.useQuery({ id });
+
   const argsPretty = useMemo(() => {
+    const args = approval.data?.args;
     try {
-      return JSON.stringify(request.args, null, 2);
+      return JSON.stringify(args, null, 2);
     } catch {
-      return String(request.args);
+      return String(args);
     }
-  }, [request.args]);
+  }, [approval.data?.args]);
+
+  if (!approval.data) return null;
 
   return (
     <AlertDialog open>

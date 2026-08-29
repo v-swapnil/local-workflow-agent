@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { UserInputReq } from './types';
+import { trpc } from '../../trpc';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
@@ -9,13 +9,15 @@ import { Label } from '../../components/ui/label';
 import { cn } from '../../lib/utils';
 
 interface UserInputModalProps {
-  request: UserInputReq;
+  id: number;
   onSubmit: (answer: string) => void;
   onDismiss: () => void;
 }
 
-export function UserInputModal({ request, onSubmit, onDismiss }: UserInputModalProps) {
-  const hasChoices = request.choices && request.choices.length > 0;
+export function UserInputModal({ id, onSubmit, onDismiss }: UserInputModalProps) {
+  const userInput = trpc.approval.getUserInput.useQuery({ id });
+  const choices = userInput.data?.choices ?? [];
+  const hasChoices = choices.length > 0;
 
   const [answer, setAnswer] = useState('');
   const [mode, setMode] = useState<'choices' | 'freeform'>(hasChoices ? 'choices' : 'freeform');
@@ -26,6 +28,8 @@ export function UserInputModal({ request, onSubmit, onDismiss }: UserInputModalP
     if (!canSubmit) return;
     onSubmit(answer);
   };
+
+  if (!userInput.data) return null;
 
   return (
     <Dialog open onOpenChange={() => onDismiss()}>
@@ -42,18 +46,18 @@ export function UserInputModal({ request, onSubmit, onDismiss }: UserInputModalP
               </Badge>
             </div>
             <div className="mt-1 font-mono text-ui-base font-medium text-ink-50">
-              {request.question}
+              {userInput.data.question}
             </div>
           </div>
           <div className="shrink-0 font-mono text-ui-2xs tabular-nums text-ink-600">
-            {new Date(request.ts).toLocaleTimeString([], { hour12: false })}
+            {new Date(userInput.data.createdAt).toLocaleTimeString([], { hour12: false })}
           </div>
         </div>
 
         {/* Context */}
-        {request.description && (
+        {userInput.data.description && (
           <div className="border-b border-ink-800/60 px-5 py-2 font-mono text-ui-xs text-ink-400">
-            {request.description}
+            {userInput.data.description}
           </div>
         )}
 
@@ -68,7 +72,7 @@ export function UserInputModal({ request, onSubmit, onDismiss }: UserInputModalP
           {hasChoices && mode === 'choices' ? (
             <div className="space-y-1.5">
               <RadioGroup value={answer} onValueChange={setAnswer} className="space-y-1.5">
-                {request.choices!.map((choice) => (
+                {choices.map((choice) => (
                   <Label
                     key={choice}
                     className={cn(

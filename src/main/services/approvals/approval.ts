@@ -1,7 +1,7 @@
 import { ToolName } from '@shared/agent.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
 import { getDb } from '@main/db/index.js';
-import { approvals } from '@main/db/schema.js';
+import { approvals, toolCalls } from '@main/db/schema.js';
 import { updateTask } from '../workspaces/index.js';
 import { emitApprovalRequested, emitApprovalDecided } from '@main/orchestrator/eventEmitter.js';
 import { eq, and } from 'drizzle-orm';
@@ -96,6 +96,24 @@ export function listPendingForTask(taskId: number): ApprovalRecord[] {
     .from(approvals)
     .where(and(eq(approvals.decision, 'pending'), eq(approvals.taskId, taskId)))
     .all();
+}
+
+// Full detail for a single approval, including the requested tool's arguments.
+export function getApproval(id: number) {
+  const approval = getDb().select().from(approvals).where(eq(approvals.id, id)).get();
+  if (!approval) return null;
+
+  const toolCall = approval.toolCallId
+    ? getDb().select().from(toolCalls).where(eq(toolCalls.id, approval.toolCallId)).get()
+    : null;
+
+  return {
+    id: approval.id,
+    taskId: approval.taskId,
+    toolName: approval.toolName,
+    args: toolCall?.arguments ? JSON.parse(toolCall.arguments) : null,
+    createdAt: approval.createdAt,
+  };
 }
 
 /**

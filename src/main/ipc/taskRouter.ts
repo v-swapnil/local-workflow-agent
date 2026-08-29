@@ -4,7 +4,7 @@ import { router, publicProcedure } from './trpc.js';
 import { taskQueue } from '../orchestrator/queue.js';
 import { taskBus } from '../services/events.js';
 import { createTask, getTask, listTasks, updateTask } from '@main/services/workspaces';
-import { type TaskEventRecord } from '@main/db/types.js';
+import { type TaskEventRecord } from '@shared/schema.js';
 
 export const taskRouter = router({
   create: publicProcedure

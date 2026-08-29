@@ -4,6 +4,7 @@ export {
   decideApproval,
   listPending,
   listPendingForTask,
+  getApproval,
   clearStaleApprovals,
 } from './approval.js';
-export { requestUserInput, respondUserInput } from './user-input.js';
+export { requestUserInput, respondUserInput, getUserInput } from './user-input.js';

@@ -16,23 +16,23 @@ class TaskBus {
       .values({
         taskId: event.taskId,
         type: event.type,
-        payloadJson: JSON.stringify(event),
+        payloadJson: JSON.stringify(event), // TODO: Remove this
         status: 'status' in event ? event.status : null,
         content: 'content' in event ? event.content : null,
-        referenceId: 'referenceId' in event ? event.referenceId : null,
-        createdAt: Date.now(),
+        referenceId: event.referenceId,
+        createdAt: event.timestamp,
       })
       .run();
   }
 
   listTaskEvents(taskId: number): TaskEventRecord[] {
-    // @ts-expect-error - Fix this
     return getDb()
       .select()
       .from(taskEvents)
       .where(eq(taskEvents.taskId, taskId))
       .orderBy(asc(taskEvents.id))
-      .all();
+      .all()
+      .map((item) => ({ ...item, timestamp: item.createdAt }) as TaskEventRecord);
   }
 
   emit(event: TaskEventRecord): void {
