@@ -8,7 +8,7 @@ import { pendingUserInputs } from './state';
  * Similar to `requestApproval` but returns a string answer.
  */
 export function requestUserInput(
-  taskId: string,
+  taskId: number,
   request: UserInputRequest,
   signal?: AbortSignal,
 ): Promise<string> {

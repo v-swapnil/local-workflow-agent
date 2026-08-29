@@ -1,7 +1,5 @@
 import { ToolName } from '@shared/agent.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
-import { ApprovalRequestRecord } from '@shared/schema';
-import { nanoid } from 'nanoid';
 import { getDb } from '@main/db/index.js';
 import { approvals } from '@main/db/schema.js';
 import { updateTask } from '../workspaces/index.js';
@@ -9,54 +7,57 @@ import { emitApprovalRequested, emitApprovalDecided } from '@main/orchestrator/e
 import { eq } from 'drizzle-orm';
 import { pendingApprovals, pendingUserInputs } from './state.js';
 import { ApprovalStatus } from '@shared/types.js';
+import { ApprovalRecord } from '@shared/schema.js';
 
-export async function isAutoApprove(): Promise<boolean> {
+export const isAutoApprove = async (): Promise<boolean> => {
   return (await getSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS)) === 'true';
-}
+};
+
+const createPendingApproval = (taskId: number, toolCallId: number, toolName: string) => {
+  return getDb()
+    .insert(approvals)
+    .values({
+      taskId,
+      toolCallId,
+      toolName,
+      decision: 'pending',
+      createdAt: Date.now(),
+      decidedAt: null,
+    })
+    .returning()
+    .get();
+};
+
+const updateApprovalDecision = (id: number, decision: ApprovalStatus) => {
+  getDb()
+    .update(approvals)
+    .set({ decision, decidedAt: Date.now() })
+    .where(eq(approvals.id, id))
+    .run();
+};
 
 /**
  * Block until the user approves (or denies) a tool call.
  * Persists the request so the UI can show pending approvals across reloads.
  */
-export async function requestApproval(
-  taskId: string,
-  tool: ToolName,
-  args: Record<string, unknown>,
+export const requestApproval = async (
+  taskId: number,
+  toolCallId: number,
+  toolName: ToolName,
   signal?: AbortSignal,
-  toolCallId?: string,
-): Promise<ApprovalStatus> {
+): Promise<ApprovalStatus> => {
   if (await isAutoApprove()) return 'approved';
 
-  const req: ApprovalRequestRecord = {
-    id: nanoid(10),
-    taskId,
-    tool,
-    args,
-    toolCallId,
-    createdAt: Date.now(),
-  };
-
-  getDb()
-    .insert(approvals)
-    .values({
-      id: req.id,
-      taskId,
-      toolCallId: toolCallId ?? null,
-      toolName: tool,
-      decision: 'pending',
-      createdAt: req.createdAt,
-      decidedAt: null,
-    })
-    .run();
+  const result = createPendingApproval(taskId, toolCallId, toolName);
 
   updateTask(taskId, { status: 'awaiting_approval' });
 
   return new Promise<ApprovalStatus>((resolve, reject) => {
-    pendingApprovals.set(req.id, { request: req, resolve });
-    emitApprovalRequested(taskId, req.id);
+    pendingApprovals.set(result.id, { request: result, resolve });
+    emitApprovalRequested(taskId, result.id);
 
     const onAbort = () => {
-      pendingApprovals.delete(req.id);
+      pendingApprovals.delete(result.id);
       reject(new Error('aborted'));
     };
     if (signal) {
@@ -64,18 +65,14 @@ export async function requestApproval(
       signal.addEventListener('abort', onAbort, { once: true });
     }
   });
-}
+};
 
-export function decideApproval(id: string, decision: ApprovalStatus): boolean {
+export function decideApproval(id: number, decision: ApprovalStatus): boolean {
   const p = pendingApprovals.get(id);
   if (!p) return false;
   pendingApprovals.delete(id);
 
-  getDb()
-    .update(approvals)
-    .set({ decision, decidedAt: Date.now() })
-    .where(eq(approvals.id, id))
-    .run();
+  updateApprovalDecision(id, decision);
 
   updateTask(p.request.taskId, { status: 'running' });
 
@@ -86,18 +83,18 @@ export function decideApproval(id: string, decision: ApprovalStatus): boolean {
   return true;
 }
 
-export function listPending(): ApprovalRequestRecord[] {
+export function listPending(): ApprovalRecord[] {
   return Array.from(pendingApprovals.values()).map((p) => p.request);
 }
 
-export function listPendingForTask(taskId: string): ApprovalRequestRecord[] {
+export function listPendingForTask(taskId: number): ApprovalRecord[] {
   return Array.from(pendingApprovals.values())
     .filter((p) => p.request.taskId === taskId)
     .map((p) => p.request);
 }
 
 /** Called when a task ends — clear any in-memory state for it. */
-export function clearTaskApprovals(taskId: string): void {
+export function clearTaskApprovals(taskId: number): void {
   for (const [id, p] of pendingApprovals) {
     if (p.request.taskId === taskId) {
       pendingApprovals.delete(id);

@@ -1,57 +1,26 @@
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { agents } from '../db/schema.js';
 import type { AgentRecord } from '@shared/schema.js';
 
-export function listAgents(): AgentRecord[] {
-  return getDb().select().from(agents).all() as AgentRecord[];
-}
+export const listAgents = (): AgentRecord[] => {
+  return getDb().select().from(agents).all();
+};
 
-export function getAgent(id: string): AgentRecord {
+export const getAgent = (id: number): AgentRecord => {
   const row = getDb().select().from(agents).where(eq(agents.id, id)).get();
   if (!row) throw new Error(`agent not found: ${id}`);
-  return row as AgentRecord;
-}
+  return row;
+};
 
-export function getAgentOrNull(id: string): AgentRecord | null {
-  const row = getDb().select().from(agents).where(eq(agents.id, id)).get();
-  return (row as AgentRecord) ?? null;
-}
+export const createAgent = (input: Omit<AgentRecord, 'id'>) => {
+  return getDb().insert(agents).values(input).returning().get();
+};
 
-interface UpsertAgentInput {
-  id?: string;
-  name: string;
-  role: string;
-  systemPrompt: string;
-  tools?: string | null;
-  temperature: number;
-  description?: string;
-}
+export const updateAgent = (id: number, input: Partial<AgentRecord>): AgentRecord => {
+  return getDb().update(agents).set(input).where(eq(agents.id, id)).returning().get();
+};
 
-export function upsertAgent(input: UpsertAgentInput): AgentRecord {
-  const now = Date.now();
-  const id = input.id ?? nanoid(10);
-
-  const row = {
-    id,
-    name: input.name,
-    role: input.role,
-    systemPrompt: input.systemPrompt,
-    tools: input.tools ?? null,
-    temperature: input.temperature,
-    description: input.description ?? null,
-  };
-
-  getDb()
-    .insert(agents)
-    .values({ ...row })
-    .onConflictDoUpdate({ target: agents.id, set: { ...row } })
-    .run();
-
-  return getAgent(id);
-}
-
-export function deleteAgent(id: string): void {
+export const deleteAgent = (id: number) => {
   getDb().delete(agents).where(eq(agents.id, id)).run();
-}
+};

@@ -17,7 +17,7 @@ function deriveKanbanLane(taskStatuses: TaskStatus[]): KanbanLane {
   return 'todo';
 }
 
-export function buildKanbanBoard(workspaceId: string) {
+export function buildKanbanBoard(workspaceId: number) {
   const allSessions = listSessions(workspaceId);
   return allSessions.map((session) => {
     const tasks = listTasks(session.id);

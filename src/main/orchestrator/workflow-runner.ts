@@ -15,8 +15,8 @@ import { getTask } from '@main/services/workspaces';
 const log = logger.child({ mod: 'workflow-runner' });
 
 export async function runWorkflow(
-  taskId: string,
-  workflowId: string,
+  taskId: number,
+  workflowId: number,
   ctx: RunCtx,
 ): Promise<TaskResult> {
   const workflowRecord = getWorkflow(workflowId);
@@ -45,7 +45,7 @@ export async function runWorkflow(
     if (node.type === 'start' || node.type === 'end') continue;
 
     if (node.type === 'agent') {
-      const agentId = node.data.agentId as string;
+      const agentId = node.data.agentId as number;
       graph.addNode(node.id, async (state: WorkflowState) => {
         emitLog(taskId, 'info', `[workflow] node "${node.id}" (agent)`);
         try {
@@ -72,7 +72,7 @@ export async function runWorkflow(
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
         emitLog(taskId, 'info', `[workflow] approval requested by node "${node.id}"`);
-        const decision = await requestApproval(taskId, 'ask_question', node.data, ctx.signal);
+        const decision = await requestApproval(taskId, ctx.toolCallId, 'ask_question', ctx.signal);
         if (decision === 'denied') {
           throw new Error(`Approval denied at node "${node.id}"`);
         }

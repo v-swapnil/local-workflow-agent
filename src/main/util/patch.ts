@@ -8,6 +8,7 @@ import { parsePatch, applyPatch } from 'diff';
 import { safeJoin } from './safePath';
 import { readSourceFile } from '@main/services/workspaces';
 
+// move to types file
 export interface PatchedFile {
   path: string;
   content: string;

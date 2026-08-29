@@ -6,7 +6,7 @@ export const notesRouter = router({
   list: publicProcedure.query(() => notesService.listNotes()),
 
   get: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .query(({ input }) => notesService.getNote(input.id)),
 
   create: publicProcedure
@@ -23,15 +23,17 @@ export const notesRouter = router({
   update: publicProcedure
     .input(
       z.object({
-        id: z.string().min(1),
+        id: z.number(),
         title: z.string().optional(),
         content: z.string().optional(),
         tags: z.array(z.string()).optional(),
       }),
     )
-    .mutation(({ input }) => notesService.updateNote(input.id, input)),
+    .mutation(({ input }) =>
+      notesService.updateNote(input.id, { ...input, tags: input.tags?.join(',') }),
+    ),
 
-  delete: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+  delete: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
     notesService.deleteNote(input.id);
     return { ok: true as const };
   }),

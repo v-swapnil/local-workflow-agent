@@ -6,7 +6,7 @@ import { ChevronDown, Square, SquareCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface UnifiedDiffPanelProps {
-  workspaceId: string;
+  workspaceId: number;
   worktreeId?: string;
   staged?: boolean;
   activePath: string;

@@ -10,7 +10,7 @@ import { ToolName } from '@shared/agent';
 /**
  * Map Copilot SDK events → ASE taskBus events for the live UI.
  */
-export async function bridgeEvent(taskId: string, event: SessionEvent): Promise<void> {
+export async function bridgeEvent(taskId: number, event: SessionEvent): Promise<void> {
   switch (event.type) {
     case 'assistant.message_delta':
       emitMessageDelta(taskId, event.data.deltaContent);

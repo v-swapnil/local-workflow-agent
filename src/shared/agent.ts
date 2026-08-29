@@ -17,10 +17,7 @@ export type ToolName =
   | 'find_symbol'
   | 'find_references';
 
-
-
-/** ───────── Final task result ───────── */
-
+// TODO: remove this
 export interface TaskResult {
   status: 'succeeded' | 'failed' | 'cancelled';
   reason?: string;

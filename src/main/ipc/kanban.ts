@@ -5,8 +5,8 @@ import { KanbanCard } from '@shared/types.js';
 
 export const kanbanRouter = router({
   board: publicProcedure
-    .input(z.object({ workspaceId: z.string().optional() }).optional())
-    .query(({ input }): KanbanCard[] => buildKanbanBoard(input?.workspaceId ?? '')),
+    .input(z.object({ workspaceId: z.number().optional() }).optional())
+    .query(({ input }): KanbanCard[] => buildKanbanBoard(input?.workspaceId || 0)),
 
   listIssues: publicProcedure.query(() => listIssues()),
 });

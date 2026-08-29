@@ -23,9 +23,9 @@ import { getSetting, setSetting, SETTING_KEYS } from '../services/settings.js';
 import { getWorkspace } from '../services/workspaces';
 import { getWorktree } from '../services/worktrees.js';
 
-const workspaceIn = z.object({ workspaceId: z.string().min(1), worktreeId: z.string().optional() });
+const workspaceIn = z.object({ workspaceId: z.number(), worktreeId: z.number().optional() });
 
-async function resolveGitPath(workspaceId: string, worktreeId?: string): Promise<string> {
+async function resolveGitPath(workspaceId: number, worktreeId?: number): Promise<string> {
   const ws = await getWorkspace(workspaceId);
   if (!worktreeId) return ws.path;
   const wt = getWorktree(worktreeId);

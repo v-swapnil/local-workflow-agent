@@ -8,7 +8,7 @@ export async function resolvePermissionRequest({
   request,
   signal,
 }: {
-  taskId: string;
+  taskId: number;
   request: PermissionRequest;
   signal?: AbortSignal;
 }): Promise<PermissionRequestResult> {
@@ -16,13 +16,7 @@ export async function resolvePermissionRequest({
     ? await getToolCallByToolCallId(taskId, request.toolCallId)
     : null;
   const toolName = (toolCall?.toolName ?? request.kind) as ToolName;
-  const decision = await requestApproval(
-    taskId,
-    toolName,
-    toolCall?.arguments ? JSON.parse(toolCall.arguments) : null,
-    signal,
-    toolCall?.id,
-  );
+  const decision = await requestApproval(taskId, toolCall?.id, toolName, signal);
 
   if (decision === 'approved') {
     return { kind: 'approve-once' };

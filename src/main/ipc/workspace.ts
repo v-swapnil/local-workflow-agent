@@ -20,7 +20,7 @@ import { glob } from '../services/glob.js';
 export const workspaceRouter = router({
   list: publicProcedure.query(() => listWorkspaces()),
   get: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.number() }))
     .query(({ input }) => getWorkspace(input.id)),
   openExisting: publicProcedure.mutation(async () => {
     const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
@@ -37,18 +37,18 @@ export const workspaceRouter = router({
     return attachExistingWorkspace(res.filePaths[0]);
   }),
   delete: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.number() }))
     .mutation(({ input }) => deleteWorkspace(input.id)),
   active: publicProcedure.query(async () => {
     const id = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
-    return id ?? null;
+    return id ? Number(id) : null;
   }),
-  setActive: publicProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
-    await setSetting(SETTING_KEYS.ACTIVE_WORKSPACE, input.id);
+  setActive: publicProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+    await setSetting(SETTING_KEYS.ACTIVE_WORKSPACE, String(input.id));
     return { ok: true };
   }),
   memories: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
+    .input(z.object({ workspaceId: z.number() }))
     .query(({ input }) => listWorkspaceMemories(input.workspaceId)),
   deleteMemory: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
     deleteMemory(input.id);
@@ -57,7 +57,7 @@ export const workspaceRouter = router({
   searchFiles: publicProcedure
     .input(
       z.object({
-        workspaceId: z.string(),
+        workspaceId: z.number(),
         query: z.string().min(1),
         limit: z.number().int().min(1).max(200).optional(),
       }),
@@ -69,7 +69,7 @@ export const workspaceRouter = router({
   searchContent: publicProcedure
     .input(
       z.object({
-        workspaceId: z.string(),
+        workspaceId: z.number(),
         query: z.string().min(1),
         limit: z.number().int().min(1).max(500).optional(),
       }),
@@ -86,25 +86,25 @@ export const workspaceRouter = router({
 
 export const fileRouter = router({
   files: publicProcedure
-    .input(z.object({ workspaceId: z.string() }))
+    .input(z.object({ workspaceId: z.number() }))
     .query(({ input }) => listWorkspaceFiles({ workspaceId: input.workspaceId })),
   read: publicProcedure
-    .input(z.object({ workspaceId: z.string(), path: z.string() }))
+    .input(z.object({ workspaceId: z.number(), path: z.string() }))
     .query(({ input }) => readWorkspaceFile(input.workspaceId, input.path)),
   write: publicProcedure
-    .input(z.object({ workspaceId: z.string(), path: z.string(), content: z.string() }))
+    .input(z.object({ workspaceId: z.number(), path: z.string(), content: z.string() }))
     .mutation(async ({ input }) => {
       await writeWorkspaceFile(input.workspaceId, input.path, input.content);
       return { ok: true, savedAt: Date.now() };
     }),
   rename: publicProcedure
-    .input(z.object({ workspaceId: z.string(), from: z.string(), to: z.string() }))
+    .input(z.object({ workspaceId: z.number(), from: z.string(), to: z.string() }))
     .mutation(async ({ input }) => {
       await renameWorkspaceFile(input.workspaceId, input.from, input.to);
       return { ok: true };
     }),
   delete: publicProcedure
-    .input(z.object({ workspaceId: z.string(), path: z.string() }))
+    .input(z.object({ workspaceId: z.number(), path: z.string() }))
     .mutation(async ({ input }) => {
       await deleteWorkspacePath(input.workspaceId, input.path);
       return { ok: true };

@@ -8,7 +8,7 @@ const log = logger.child({ mod: 'queue' });
 const DEFAULT_CONCURRENCY = 1;
 const MAX_CONCURRENCY = 8;
 
-const queue: string[] = [];
+const queue: number[] = [];
 let running = false;
 
 async function getConcurrency(): Promise<number> {
@@ -19,13 +19,13 @@ async function getConcurrency(): Promise<number> {
   return Math.min(n, MAX_CONCURRENCY);
 }
 
-export function enqueueTask(taskId: string): void {
+export function enqueueTask(taskId: number): void {
   if (queue.includes(taskId) || isRunning(taskId)) return;
   queue.push(taskId);
   drain().catch((err) => log.error({ err }, 'queue drain failed'));
 }
 
-export function cancelQueuedOrRunning(taskId: string): boolean {
+export function cancelQueuedOrRunning(taskId: number): boolean {
   const idx = queue.indexOf(taskId);
   if (idx >= 0) {
     queue.splice(idx, 1);

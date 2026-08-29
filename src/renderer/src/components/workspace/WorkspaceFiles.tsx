@@ -17,7 +17,7 @@ export function WorkspaceFiles({
   activePath,
   setActivePath,
 }: {
-  workspaceId: string;
+  workspaceId: number;
   activePath: string | null;
   setActivePath: (p: string | null) => void;
 }) {

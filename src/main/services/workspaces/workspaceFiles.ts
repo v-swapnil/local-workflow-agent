@@ -9,7 +9,7 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
 const MAX_LINE_LENGTH = 2000;
 
 export async function readWorkspaceDirectory(
-  workspaceId: string,
+  workspaceId: number,
   relativePath?: string,
 ): Promise<FileNode[]> {
   const ws = await getWorkspace(workspaceId);
@@ -28,7 +28,7 @@ export async function readWorkspaceDirectory(
   return results;
 }
 
-export async function listWorkspaceFiles({ workspaceId }: { workspaceId: string }) {
+export async function listWorkspaceFiles({ workspaceId }: { workspaceId: number }) {
   const workspace = await getWorkspace(workspaceId);
   const git = gitFor(workspace.path);
   const result = await git.raw(['ls-files', '--cached', '--others', '--exclude-standard']);
@@ -63,7 +63,7 @@ export async function readSourceFile(filePath: string): Promise<string> {
 }
 
 export async function readWorkspaceFile(
-  workspaceId: string,
+  workspaceId: number,
   relativePath: string,
   options?: { offset?: number; limit?: number; prefixLineNumber?: boolean },
 ): Promise<string> {
@@ -96,7 +96,7 @@ export async function readWorkspaceFile(
 }
 
 export async function writeWorkspaceFile(
-  workspaceId: string,
+  workspaceId: number,
   relPath: string,
   content: string,
 ): Promise<void> {
@@ -107,7 +107,7 @@ export async function writeWorkspaceFile(
 }
 
 export async function renameWorkspaceFile(
-  workspaceId: string,
+  workspaceId: number,
   fromRel: string,
   toRel: string,
 ): Promise<void> {
@@ -118,7 +118,7 @@ export async function renameWorkspaceFile(
   await rename(fromAbs, toAbs);
 }
 
-export async function deleteWorkspacePath(workspaceId: string, relPath: string): Promise<void> {
+export async function deleteWorkspacePath(workspaceId: number, relPath: string): Promise<void> {
   const ws = await getWorkspace(workspaceId);
   const abs = safeJoin(ws.path, relPath);
   await rm(abs, { recursive: true, force: true });

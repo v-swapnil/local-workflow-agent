@@ -25,11 +25,11 @@ export function SessionTreeNode({
   session: { id: string; title: string; updatedAt: number };
   isActive: boolean;
   isExpanded: boolean;
-  focusedTaskId: string | null;
+  focusedTaskId: number | null;
   onSelect: () => void;
   onToggle: () => void;
   onDelete: () => void;
-  onTaskSelect: (taskId: string) => void;
+  onTaskSelect: (taskId: number) => void;
 }) {
   const tasks = trpc.task.list.useQuery(
     { sessionId: session.id },

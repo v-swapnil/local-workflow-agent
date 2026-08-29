@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { nanoid } from 'nanoid';
 import { eq, and } from 'drizzle-orm';
 import { simpleGit } from 'simple-git';
 import { getDb } from '../db/index.js';
@@ -13,10 +12,10 @@ import type { WorktreeRecord } from '@shared/schema.js';
 
 const log = logger.child({ mod: 'worktrees' });
 
-export async function createWorktree(
-  workspaceId: string,
-  sessionId: string,
-): Promise<WorktreeRecord | null> {
+export const createWorktree = async (
+  workspaceId: number,
+  sessionId: number,
+): Promise<WorktreeRecord | null> => {
   const ws = await getWorkspace(workspaceId);
 
   // Check if workspace is a git repo
@@ -26,7 +25,7 @@ export async function createWorktree(
     return null;
   }
 
-  const worktreePath = join(worktreesRoot(), workspaceId, sessionId);
+  const worktreePath = join(worktreesRoot(), String(workspaceId), String(sessionId));
   const branch = `ase/session/${sessionId}`;
 
   const g = simpleGit({
@@ -57,26 +56,24 @@ export async function createWorktree(
     return null;
   }
 
-  const record: WorktreeRecord = {
-    id: nanoid(10),
-    workspaceId,
-    sessionId,
-    branch,
-    path: worktreePath,
-    baseBranch,
-    baseCommit,
-    status: 'active',
-    createdAt: Date.now(),
-  };
+  return getDb()
+    .insert(worktrees)
+    .values({
+      workspaceId,
+      sessionId,
+      branch,
+      path: worktreePath,
+      baseBranch,
+      baseCommit,
+      status: 'active',
+      createdAt: Date.now(),
+    })
+    .returning()
+    .get();
+};
 
-  getDb().insert(worktrees).values(record).run();
-  return record;
-}
-
-export async function removeWorktree(worktreeId: string): Promise<void> {
-  const record = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get() as
-    | WorktreeRecord
-    | undefined;
+export const removeWorktree = async (worktreeId: number): Promise<void> => {
+  const record = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get();
 
   if (!record) {
     log.warn({ worktreeId }, 'worktree record not found');
@@ -104,42 +101,39 @@ export async function removeWorktree(worktreeId: string): Promise<void> {
   }
 
   getDb().update(worktrees).set({ status: 'removed' }).where(eq(worktrees.id, worktreeId)).run();
-}
+};
 
-export async function removeWorktreeBySession(sessionId: string): Promise<void> {
+export const removeWorktreeBySession = async (sessionId: number): Promise<void> => {
   const record = getDb()
     .select()
     .from(worktrees)
     .where(and(eq(worktrees.sessionId, sessionId), eq(worktrees.status, 'active')))
-    .get() as WorktreeRecord | undefined;
+    .get();
 
   if (!record) return;
   await removeWorktree(record.id);
-}
+};
 
-export function getWorktreeForSession(sessionId: string): WorktreeRecord | null {
+export const getWorktreeForSession = (sessionId: number): WorktreeRecord | undefined => {
   const row = getDb()
     .select()
     .from(worktrees)
     .where(and(eq(worktrees.sessionId, sessionId), eq(worktrees.status, 'active')))
     .get();
-  return (row as WorktreeRecord | undefined) ?? null;
-}
+  return row;
+};
 
-export function listWorktrees(workspaceId: string): WorktreeRecord[] {
-  return getDb()
-    .select()
-    .from(worktrees)
-    .where(eq(worktrees.workspaceId, workspaceId))
-    .all() as WorktreeRecord[];
-}
+export const listWorktrees = (workspaceId: number): WorktreeRecord[] => {
+  return getDb().select().from(worktrees).where(eq(worktrees.workspaceId, workspaceId)).all();
+};
 
-export async function deleteWorktreeRecord(worktreeId: string): Promise<void> {
+export const deleteWorktreeRecord = async (worktreeId: number): Promise<void> => {
   await removeWorktree(worktreeId);
   getDb().delete(worktrees).where(eq(worktrees.id, worktreeId)).run();
-}
+};
 
-export function getWorktree(worktreeId: string): WorktreeRecord | null {
+export const getWorktree = (worktreeId: number): WorktreeRecord => {
   const row = getDb().select().from(worktrees).where(eq(worktrees.id, worktreeId)).get();
-  return (row as WorktreeRecord | undefined) ?? null;
-}
+  if (!row) throw new Error(`Worktree with id ${worktreeId} not found`);
+  return row;
+};

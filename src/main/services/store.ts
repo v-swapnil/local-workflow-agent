@@ -1,50 +1,24 @@
 import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { sessions, messages, tasks, toolCalls } from '../db/schema.js';
 import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
 import { getTask } from './workspaces/tasks.js';
 
-// ───────── Messages ─────────
+export function addMessage(input: Omit<MessageRecord, 'id'>) {
+  getDb().insert(messages).values(input).run();
 
-export interface AddMessageInput {
-  taskId: string;
-  role: MessageRecord['role'];
-  content: string;
-  thinking?: string | null;
-  toolCallId?: string | null;
-  toolName?: string | null;
-  agentId?: string | null;
-  toolCalls?: string | null;
-}
-
-export function addMessage(input: AddMessageInput): MessageRecord {
-  const message: MessageRecord = {
-    id: nanoid(10),
-    taskId: input.taskId,
-    role: input.role,
-    content: input.content,
-    thinking: input.thinking ?? null,
-    toolCallId: input.toolCallId ?? null,
-    toolName: input.toolName ?? null,
-    agentId: input.agentId ?? null,
-    toolCalls: input.toolCalls ?? null,
-    createdAt: Date.now(),
-  };
-  getDb().insert(messages).values(message).run();
   // Bump the owning session's updatedAt via the message's task
   const owningTask = getTask(input.taskId);
   if (owningTask) {
     getDb()
       .update(sessions)
-      .set({ updatedAt: message.createdAt })
+      .set({ updatedAt: input.createdAt })
       .where(eq(sessions.id, owningTask.sessionId))
       .run();
   }
-  return message;
 }
 
-export function listMessages(sessionId: string): MessageRecord[] {
+export function listMessages(sessionId: number): MessageRecord[] {
   return getDb()
     .select()
     .from(messages)
@@ -55,28 +29,20 @@ export function listMessages(sessionId: string): MessageRecord[] {
     .sort((first, second) => first.createdAt - second.createdAt) as MessageRecord[];
 }
 
-// ───────── Tool Calls ─────────
-
 export function addToolCall(input: Omit<ToolCallRecord, 'id'>): ToolCallRecord {
-  const row = { id: nanoid(10), ...input };
-  getDb().insert(toolCalls).values(row).run();
-  return row;
+  return getDb().insert(toolCalls).values(input).returning().get();
 }
 
-export function updateToolCall(id: string, patch: Partial<ToolCallRecord>): void {
+export function updateToolCall(id: number, patch: Partial<ToolCallRecord>) {
   getDb().update(toolCalls).set(patch).where(eq(toolCalls.id, id)).run();
 }
 
-export function listToolCalls(taskId: string): ToolCallRecord[] {
-  return getDb()
-    .select()
-    .from(toolCalls)
-    .where(eq(toolCalls.taskId, taskId))
-    .all() as ToolCallRecord[];
+export function listToolCalls(taskId: number): ToolCallRecord[] {
+  return getDb().select().from(toolCalls).where(eq(toolCalls.taskId, taskId)).all();
 }
 
 export const getToolCallByToolCallId = (
-  taskId: string,
+  taskId: number,
   toolCallId: string,
 ): ToolCallRecord | null => {
   const whereClause = toolCallId

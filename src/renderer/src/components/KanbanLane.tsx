@@ -35,7 +35,7 @@ const LANE_META: Record<
 interface KanbanLaneProps {
   lane: KanbanLaneType;
   cards: KanbanCardData[];
-  onCardClick?: (sessionId: string) => void;
+  onCardClick?: (sessionId: number) => void;
 }
 
 export function KanbanLane({ lane, cards, onCardClick }: KanbanLaneProps) {

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
-import { addMessage } from '../services/store.js';
 import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
 import { taskBus } from '../services/events.js';
 import type { TaskEventRecord } from '@shared/schema.js';
@@ -11,12 +10,12 @@ export const taskRouter = router({
   create: publicProcedure
     .input(
       z.object({
-        sessionId: z.string().min(1),
+        sessionId: z.number(),
         prompt: z.string().min(1),
         autostart: z.boolean().optional(),
         model: z.string().optional(),
-        agentId: z.string().optional(),
-        workflowId: z.string().optional(),
+        agentId: z.number().optional(),
+        workflowId: z.number().optional(),
       }),
     )
     .mutation(({ input }) => {
@@ -25,29 +24,28 @@ export const taskRouter = router({
         agentId: input.agentId,
         workflowId: input.workflowId,
       });
-      addMessage({ taskId: task.id, role: 'user', content: input.prompt });
       if (input.autostart !== false) enqueueTask(task.id);
       return task;
     }),
 
   get: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .query(({ input }) => getTask(input.id)),
 
   list: publicProcedure
-    .input(z.object({ sessionId: z.string().min(1) }))
+    .input(z.object({ sessionId: z.number() }))
     .query(({ input }) => listTasks(input.sessionId)),
 
-  start: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+  start: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
     enqueueTask(input.id);
     return { ok: true as const };
   }),
 
   cancel: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .mutation(({ input }) => ({ ok: cancelQueuedOrRunning(input.id) })),
 
-  retry: publicProcedure.input(z.object({ id: z.string().min(1) })).mutation(({ input }) => {
+  retry: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
     const orig = getTask(input.id);
     // Reset the same task and re-enqueue instead of creating a new one
     updateTask(orig.id, {
@@ -61,7 +59,7 @@ export const taskRouter = router({
   }),
 
   events: publicProcedure
-    .input(z.object({ taskId: z.string().min(1) }))
+    .input(z.object({ taskId: z.number() }))
     .subscription(({ input }) => {
       return observable<TaskEventRecord>((emit) => {
         // Replay persisted events so late subscribers see full history

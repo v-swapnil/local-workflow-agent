@@ -16,30 +16,30 @@ export const worktreeRouter = router({
     const wsId = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
     if (!wsId) return [];
     try {
-      await getWorkspace(wsId); // validate it still exists
+      await getWorkspace(Number(wsId)); // validate it still exists
     } catch {
       return [];
     }
-    return listWorktrees(wsId);
+    return listWorktrees(Number(wsId));
   }),
 
   get: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .query(({ input }) => getWorktree(input.id)),
 
   getForSession: publicProcedure
-    .input(z.object({ sessionId: z.string().min(1) }))
+    .input(z.object({ sessionId: z.number() }))
     .query(({ input }) => getWorktreeForSession(input.sessionId)),
 
   remove: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await removeWorktree(input.id);
       return { ok: true as const };
     }),
 
   delete: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       await deleteWorktreeRecord(input.id);
       return { ok: true as const };

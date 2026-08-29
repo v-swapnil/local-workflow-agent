@@ -1,59 +1,60 @@
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { SessionRecord } from '@shared/schema.js';
 import { sessions } from '@main/db/schema';
 import { getSetting, SETTING_KEYS } from '../settings';
 import { createWorktree, removeWorktreeBySession } from '../worktrees';
 import { getDb } from '@main/db';
 
-export async function createSession(workspaceId: string, title: string): Promise<SessionRecord> {
+export const createSession = async (workspaceId: number, title: string): Promise<SessionRecord> => {
   const now = Date.now();
-  const row = {
-    id: nanoid(10),
-    workspaceId,
-    title,
-    status: 'active' as const,
-    createdAt: now,
-    updatedAt: now,
-  };
-  getDb().insert(sessions).values(row).run();
+
+  const result = getDb()
+    .insert(sessions)
+    .values({
+      workspaceId,
+      title,
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+
   // Create worktree synchronously so it's ready before any task runs
   const useWt = await getSetting(SETTING_KEYS.USE_WORKTREES);
   if (useWt === '1') {
     try {
-      await createWorktree(workspaceId, row.id);
+      await createWorktree(workspaceId, result.id);
     } catch (err) {
       console.warn('[store] worktree creation failed:', err);
     }
   }
-  return row;
-}
+  return result;
+};
 
-export function listSessions(workspaceId?: string): SessionRecord[] {
-  const db = getDb();
-  const q = workspaceId
-    ? db.select().from(sessions).where(eq(sessions.workspaceId, workspaceId))
-    : db.select().from(sessions);
-  return (q.all() as SessionRecord[]).sort((a, b) => b.updatedAt - a.updatedAt);
-}
+export const listSessions = (workspaceId?: number): SessionRecord[] => {
+  const query = workspaceId
+    ? getDb().select().from(sessions).where(eq(sessions.workspaceId, workspaceId))
+    : getDb().select().from(sessions);
+  return query.all().sort((a, b) => b.updatedAt - a.updatedAt);
+};
 
-export function getSession(id: string): SessionRecord {
+export const getSession = (id: number): SessionRecord => {
   const row = getDb().select().from(sessions).where(eq(sessions.id, id)).get();
   if (!row) throw new Error(`session not found: ${id}`);
   return row as SessionRecord;
-}
+};
 
-export function renameSession(id: string, title: string): void {
+export const renameSession = (id: number, title: string): void => {
   getDb().update(sessions).set({ title, updatedAt: Date.now() }).where(eq(sessions.id, id)).run();
-}
+};
 
-export function deleteSession(id: string): void {
-  const db = getDb();
+export const deleteSession = (id: number): void => {
   // Remove worktree first (best-effort, async)
   removeWorktreeBySession(id).catch((err) => {
     console.warn('[store] worktree removal failed:', err);
   });
   // Child rows (tasks → messages/tool_calls/approvals/task_events, memories)
   // are removed by ON DELETE CASCADE foreign keys.
-  db.delete(sessions).where(eq(sessions.id, id)).run();
-}
+  getDb().delete(sessions).where(eq(sessions.id, id)).run();
+};

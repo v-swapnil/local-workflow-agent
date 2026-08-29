@@ -11,16 +11,11 @@ import { setSetting, SETTING_KEYS } from '@main/services/settings.js';
 
 export const approvalRouter = router({
   pending: publicProcedure
-    .input(z.object({ taskId: z.string().optional() }).optional())
+    .input(z.object({ taskId: z.number().optional() }).optional())
     .query(({ input }) => (input?.taskId ? listPendingForTask(input.taskId) : listPending())),
 
   decide: publicProcedure
-    .input(
-      z.object({
-        id: z.string().min(1),
-        decision: z.enum(['pending', 'approved', 'denied']),
-      }),
-    )
+    .input(z.object({ id: z.number(), decision: z.enum(['pending', 'approved', 'denied']) }))
     .mutation(({ input }) => ({ ok: decideApproval(input.id, input.decision) })),
 
   autoApprove: publicProcedure.query(() => isAutoApprove()),
@@ -33,6 +28,6 @@ export const approvalRouter = router({
     }),
 
   respondUserInput: publicProcedure
-    .input(z.object({ id: z.string().min(1), answer: z.string() }))
+    .input(z.object({ id: z.string(), answer: z.string() }))
     .mutation(({ input }) => ({ ok: respondUserInput(input.id, input.answer) })),
 });

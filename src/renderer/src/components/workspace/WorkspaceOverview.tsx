@@ -2,7 +2,7 @@ import { trpc } from '../../trpc';
 import { UniversalSearch } from './UniversalSearch';
 
 interface WorkspaceOverviewProps {
-  workspaceId: string;
+  workspaceId: number;
   onOpenFile: (path: string) => void;
 }
 

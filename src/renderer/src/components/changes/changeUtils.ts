@@ -1,3 +1,5 @@
+
+// TODO: move to types file
 export type ChangeKind =
   | 'modified'
   | 'created'

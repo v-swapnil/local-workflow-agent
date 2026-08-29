@@ -21,9 +21,9 @@ export type KanbanLane = 'todo' | 'in_progress' | 'done' | 'need_help';
 export type LogLevel = 'info' | 'error';
 
 export interface KanbanCard {
-  sessionId: string;
+  sessionId: number;
   title: string;
-  workspaceId: string;
+  workspaceId: number;
   lane: KanbanLane;
   taskSummary: {
     total: number;
@@ -36,15 +36,6 @@ export interface KanbanCard {
   };
   lastActivity: number;
   createdAt: number;
-}
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: number;
-  updatedAt: number;
 }
 
 export interface ToolResultV2 {

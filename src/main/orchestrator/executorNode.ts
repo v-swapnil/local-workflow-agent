@@ -6,7 +6,7 @@ import { llmChat } from './llmChat.js';
 import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
-import { getAgentOrNull } from '../services/agents.js';
+import { getAgent } from '../services/agents.js';
 import { addMessage } from '../services/store.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
@@ -83,7 +83,7 @@ export async function executorNode(
   config?: RunnableConfig,
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const agent = ctx.agentId ? getAgentOrNull(ctx.agentId) : null;
+  const agent = ctx.agentId ? getAgent(ctx.agentId) : null;
 
   let systemPrompt = EXECUTOR_SYSTEM;
   let temperature: number | undefined;

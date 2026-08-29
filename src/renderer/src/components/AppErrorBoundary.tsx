@@ -1,15 +1,13 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Button } from './ui/button';
 
-interface State {
-  hasError: boolean;
-  message: string;
-}
+export class AppErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; message: string }
+> {
+  state = { hasError: false, message: '' };
 
-export class AppErrorBoundary extends Component<{ children: ReactNode }, State> {
-  state: State = { hasError: false, message: '' };
-
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, message: error.message || 'Unexpected UI error' };
   }
 

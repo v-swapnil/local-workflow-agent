@@ -22,7 +22,7 @@ class TaskBus {
       .run();
   }
 
-  listTaskEvents(taskId: string): TaskEventRecord[] {
+  listTaskEvents(taskId: number): TaskEventRecord[] {
     // @ts-expect-error - Fix this
     return getDb()
       .select()
@@ -35,13 +35,13 @@ class TaskBus {
   emit(event: TaskEventRecord): void {
     this.createEvent(event);
 
-    this.bus.emit(event.taskId, event);
+    this.bus.emit(String(event.taskId), event);
     this.bus.emit('*', event);
   }
 
-  on(taskId: string, listener: (e: TaskEventRecord) => void): () => void {
-    this.bus.on(taskId, listener);
-    return () => this.bus.off(taskId, listener);
+  on(taskId: number, listener: (e: TaskEventRecord) => void): () => void {
+    this.bus.on(String(taskId), listener);
+    return () => this.bus.off(String(taskId), listener);
   }
 
   onAny(listener: (e: TaskEventRecord) => void): () => void {
@@ -49,8 +49,9 @@ class TaskBus {
     return () => this.bus.off('*', listener);
   }
 
+  // TODO: drop this and use listTaskEvents instead
   /** Read all persisted events for a task from the database. */
-  replayEvents(taskId: string): TaskEventRecord[] {
+  replayEvents(taskId: number): TaskEventRecord[] {
     try {
       const rows = getDb()
         .select({ payloadJson: taskEvents.payloadJson })

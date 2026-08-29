@@ -6,7 +6,7 @@ import { trpc } from '../trpc';
  * if none is active and at least one exists.
  */
 export function useActiveWorkspace(): {
-  workspaceId: string | null;
+  workspaceId: number | null;
   isLoading: boolean;
   setActive: (id: string) => Promise<void>;
 } {

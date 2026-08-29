@@ -33,7 +33,7 @@ export interface ChatToolDef {
 }
 
 export interface ChatOptions {
-  taskId: string;
+  taskId: number;
   workingDirectory?: string;
   model: string;
   messages: ChatMessage[];

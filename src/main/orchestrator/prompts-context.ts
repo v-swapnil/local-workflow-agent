@@ -1,6 +1,7 @@
-import { listSessionMemories, listWorkspaceMemories, MemoryRecord } from '@main/services/memories';
+import { listSessionMemories, listWorkspaceMemories } from '@main/services/memories';
 import { RunCtx } from './runCtx';
 import { EnvironmentContext, getEnvironmentContext } from '@main/services/env';
+import { MemoryRecord } from '@shared/schema';
 
 function formatEnvContext(env: EnvironmentContext): string {
   const lines = [

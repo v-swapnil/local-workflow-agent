@@ -4,7 +4,7 @@ import { useUI } from '../store/ui';
 import { File } from '@pierre/diffs/react';
 
 interface FilePreviewProps {
-  workspaceId: string;
+  workspaceId: number;
   path: string;
 }
 

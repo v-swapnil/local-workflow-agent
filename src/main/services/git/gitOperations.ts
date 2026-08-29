@@ -8,7 +8,7 @@ const execFileAsync = promisify(execFile);
 // ───────── Branch ─────────
 
 export async function createBranch(
-  workspaceId: string,
+  workspaceId: number,
   name: string,
 ): Promise<{ branch: string }> {
   const workspace = await getWorkspace(workspaceId);
@@ -23,7 +23,7 @@ export async function createBranch(
 }
 
 export async function commitAll(
-  workspaceId: string,
+  workspaceId: number,
   message: string,
 ): Promise<{ committed: boolean; sha?: string; reason?: string }> {
   const workspace = await getWorkspace(workspaceId);
@@ -35,7 +35,7 @@ export async function commitAll(
   return { committed: true, sha: commitResult.commit };
 }
 
-export async function currentBranch(workspaceId: string): Promise<string | null> {
+export async function currentBranch(workspaceId: number): Promise<string | null> {
   const workspace = await getWorkspace(workspaceId);
   const git = gitFor(workspace.path);
   try {

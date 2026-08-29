@@ -11,7 +11,7 @@ export async function resolveUserInputRequest({
   request,
   signal,
 }: {
-  taskId: string;
+  taskId: number;
   request: UserInputRequest;
   signal?: AbortSignal;
 }): Promise<UserInputResponse> {

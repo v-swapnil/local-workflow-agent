@@ -24,7 +24,7 @@ const edgeSchema = z.object({
 });
 
 const workflowSchema = z.object({
-  id: z.string().optional(),
+  id: z.number().optional(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   nodes: z.array(nodeSchema),
@@ -35,7 +35,7 @@ export const workflowRouter = router({
   list: publicProcedure.query(() => listWorkflows()),
 
   get: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.number() }))
     .query(({ input }) => getWorkflow(input.id)),
 
   upsert: publicProcedure
@@ -43,7 +43,7 @@ export const workflowRouter = router({
     .mutation(({ input }) => upsertWorkflow(input)),
 
   delete: publicProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.number() }))
     .mutation(({ input }) => {
       deleteWorkflow(input.id);
       return { ok: true as const };

@@ -3,7 +3,7 @@ import { trpc } from '../../trpc';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 
-export function WorktreeSection({ workspaceId }: { workspaceId: string }) {
+export function WorktreeSection({ workspaceId }: { workspaceId: number }) {
   void workspaceId; // worktree.list is scoped to the active workspace server-side
   const navigate = useNavigate();
   const utils = trpc.useUtils();

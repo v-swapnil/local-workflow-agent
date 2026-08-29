@@ -1,3 +1,4 @@
+// TODO: remove this
 export interface ApprovalReq {
   id: string;
   tool: string;

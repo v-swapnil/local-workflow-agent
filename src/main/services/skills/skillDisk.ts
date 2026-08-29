@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { join, basename } from 'node:path';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -16,24 +15,18 @@ const log = logger.child({ mod: 'skills' });
 
 const ID_RE = /^[a-z0-9][a-z0-9-_]*$/i;
 
-type SkillSource = SkillRecord['source'];
-
-function userSkillsDir(): string {
-  return join(userDataDir(), 'skills');
-}
-
 /**
  * Directories to scan for skills, in precedence order (earlier wins on name clash).
  * Userspace first, then the active workspace's conventional skill folders.
  */
-async function skillSourceDirs(): Promise<{ dir: string; source: SkillSource }[]> {
-  const dirs: { dir: string; source: SkillSource }[] = [
-    { dir: userSkillsDir(), source: 'user' },
+async function skillSourceDirs(): Promise<{ dir: string; source: string }[]> {
+  const dirs: { dir: string; source: string }[] = [
+    { dir: join(userDataDir(), 'skills'), source: 'user' },
   ];
   const workspaceId = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
   if (workspaceId) {
     try {
-      const ws = await getWorkspace(workspaceId);
+      const ws = await getWorkspace(Number(workspaceId));
       dirs.push(
         { dir: join(ws.path, 'skills'), source: 'workspace' },
         { dir: join(ws.path, '.claude', 'skills'), source: 'workspace' },
@@ -46,7 +39,7 @@ async function skillSourceDirs(): Promise<{ dir: string; source: SkillSource }[]
   return dirs;
 }
 
-async function readSkillFolder(absDir: string, source: SkillSource): Promise<SkillRecord | null> {
+async function readSkillFolder(absDir: string, source: string): Promise<SkillRecord | null> {
   const id = basename(absDir);
   if (!ID_RE.test(id)) return null;
   const skillFile = join(absDir, 'SKILL.md');
@@ -66,15 +59,11 @@ async function readSkillFolder(absDir: string, source: SkillSource): Promise<Ski
   }
   const fileStat = await stat(skillFile);
   return {
-    id,
+    id: 0,
     name: parsed.meta.name,
     path: absDir,
     description: parsed.meta.description,
-    whenToUse: parsed.meta.when_to_use ?? '',
-    allowedTools: parsed.meta.allowedTools ?? [],
-    body: parsed.body,
     enabled: true,
-    source,
     updatedAt: fileStat.mtimeMs,
   };
 }
@@ -83,7 +72,7 @@ async function readSkillFolder(absDir: string, source: SkillSource): Promise<Ski
  * Discover skills from disk (userspace + active workspace) and reconcile with the DB.
  * Skills are read-only on disk; the DB only persists the user's `enabled` toggle.
  */
-export async function syncSkills(): Promise<SkillRecord[]> {
+export const syncSkills = async (): Promise<SkillRecord[]> => {
   const found: SkillRecord[] = [];
   const seenNames = new Set<string>();
   for (const { dir, source } of await skillSourceDirs()) {
@@ -124,7 +113,6 @@ export async function syncSkills(): Promise<SkillRecord[]> {
     } else {
       db.insert(skillsTable)
         .values({
-          id: nanoid(10),
           name: skill.name,
           path: skill.path,
           description: skill.description,
@@ -143,14 +131,15 @@ export async function syncSkills(): Promise<SkillRecord[]> {
   }
 
   return found.sort((a, b) => a.name.localeCompare(b.name));
-}
+};
 
 /** Return all skills with their disk-loaded body. */
-export async function listSkills(): Promise<SkillRecord[]> {
+export const listSkills = async (): Promise<SkillRecord[]> => {
   return syncSkills();
-}
+};
 
-export async function getSkillByName(name: string): Promise<SkillRecord | null> {
+// TODO: move this to db call
+export const getSkillByName = async (name: string): Promise<SkillRecord | null> => {
   const all = await syncSkills();
   return all.find((skill) => skill.name === name) ?? null;
-}
+};

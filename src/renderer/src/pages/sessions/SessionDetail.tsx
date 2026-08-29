@@ -18,7 +18,7 @@ export function SessionDetail({
   focusedTaskId,
   onTaskFocus,
 }: {
-  sessionId: string;
+  sessionId: number;
   focusedTaskId: string | null;
   onTaskFocus: (id: string | null) => void;
 }) {

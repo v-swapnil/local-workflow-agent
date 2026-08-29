@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { GitStatus } from '@pierre/trees';
 
 interface ChangesSidebarProps {
-  workspaceId: string;
+  workspaceId: number;
   worktreeId: string;
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;

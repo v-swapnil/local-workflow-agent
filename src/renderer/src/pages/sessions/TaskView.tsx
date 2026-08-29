@@ -22,7 +22,7 @@ const getEvents = (previousEvents: TaskEventRecord[], currentEvent: TaskEventRec
   return previousEvents.concat(currentEvent);
 };
 
-export function TaskView({ taskId }: { taskId: string }) {
+export function TaskView({ taskId }: { taskId: number }) {
   const utils = trpc.useUtils();
   const task = trpc.task.get.useQuery({ id: taskId }, { refetchInterval: 1500 });
   const cancel = trpc.task.cancel.useMutation({

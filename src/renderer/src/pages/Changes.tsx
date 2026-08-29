@@ -21,7 +21,7 @@ function DiffPanel({
   active,
   setActive,
 }: {
-  workspaceId: string;
+  workspaceId: number;
   worktreeId?: string;
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;

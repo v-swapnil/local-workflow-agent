@@ -7,15 +7,10 @@ import { Textarea } from '../ui/textarea';
 import { MultiSelect } from '../ui/multi-select';
 import { Separator } from '../ui/separator';
 
-interface ToolDef {
-  name: string;
-  description: string;
-}
-
 interface AgentFormPanelProps {
   form: AgentFormState;
   setForm: React.Dispatch<React.SetStateAction<AgentFormState>>;
-  availableTools: ToolDef[];
+  availableTools: Array<{ name: string; description: string }>;
   onSave: () => void;
   onDelete: () => void;
   isSaving: boolean;

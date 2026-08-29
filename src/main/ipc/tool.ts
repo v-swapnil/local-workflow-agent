@@ -3,16 +3,14 @@ import { router, publicProcedure } from './trpc.js';
 import { invokeTool, listTools, listToolNames } from '../services/tools/registry.js';
 import { ToolName } from '@shared/agent.js';
 
-const TOOL_NAMES = listToolNames() as [ToolName, ...ToolName[]];
-
 export const toolRouter = router({
   list: publicProcedure.query(() => listTools()),
 
   invoke: publicProcedure
     .input(
       z.object({
-        workspaceId: z.string().min(1),
-        name: z.enum(TOOL_NAMES),
+        workspaceId: z.number(),
+        name: z.enum(listToolNames() as [ToolName, ...ToolName[]]),
         args: z.record(z.unknown()),
       }),
     )

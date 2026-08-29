@@ -48,7 +48,7 @@ export function KanbanBoard() {
     return map;
   }, [kanbanQ.data]);
 
-  function handleCardClick(sessionId: string) {
+  function handleCardClick(sessionId: number) {
     navigate(`/sessions?id=${sessionId}`);
   }
 

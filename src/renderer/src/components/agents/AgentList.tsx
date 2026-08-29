@@ -1,20 +1,14 @@
 import { Button } from '../ui/button';
 import { Plus, Bot, X } from 'lucide-react';
 import { SidebarListItem } from '../ui/sidebar-list-item';
-
-interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  description?: string | null;
-}
+import { type AgentRecord } from '@shared/schema';
 
 interface AgentListProps {
-  agents: Agent[];
-  selected: string | null;
-  onSelect: (id: string) => void;
+  agents: AgentRecord[];
+  selected: number | null;
+  onSelect: (id: number) => void;
   onNew: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }
 
 export function AgentList({ agents, selected, onSelect, onNew, onDelete }: AgentListProps) {
@@ -35,7 +29,9 @@ export function AgentList({ agents, selected, onSelect, onNew, onDelete }: Agent
                 title={a.name}
                 isActive={selected === a.id}
                 onSelect={() => onSelect(a.id)}
-                description={[a.role, a.description?.trim()].filter(Boolean).join(' · ') || undefined}
+                description={
+                  [a.role, a.description?.trim()].filter(Boolean).join(' · ') || undefined
+                }
                 actions={
                   <Button
                     variant="ghost"

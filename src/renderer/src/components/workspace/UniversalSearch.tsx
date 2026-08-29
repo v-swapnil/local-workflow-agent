@@ -15,7 +15,7 @@ import { FileCode, FileText, Search } from 'lucide-react';
 const MAX_CONTENT_RESULTS = 4;
 
 interface UniversalSearchProps {
-  workspaceId: string;
+  workspaceId: number;
   onOpenFile: (path: string) => void;
 }
 

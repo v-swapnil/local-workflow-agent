@@ -1,64 +1,41 @@
 import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { getDb } from '../db/index.js';
 import { notes } from '../db/schema.js';
-import type { Note } from '@shared/types';
+import { NoteRecord } from '@shared/schema.js';
 
-function toNote(row: typeof notes.$inferSelect): Note {
-  return {
-    id: row.id,
-    title: row.title,
-    content: row.content,
-    tags: row.tags.split(',') ?? [],
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
+export const listNotes = (): NoteRecord[] => {
+  return getDb()
+    .select()
+    .from(notes)
+    .all()
+    .sort((a, b) => b.createdAt - a.createdAt);
+};
 
-// --- notes ---
+export const getNote = (id: number): NoteRecord | undefined => {
+  return getDb().select().from(notes).where(eq(notes.id, id)).get();
+};
 
-export function listNotes(): Note[] {
-  const rows = getDb().select().from(notes).all();
-  return rows.map(toNote).sort((a, b) => b.createdAt - a.createdAt);
-}
-
-export function getNote(id: string): Note | undefined {
-  const [row] = getDb().select().from(notes).where(eq(notes.id, id)).all();
-  return row ? toNote(row) : undefined;
-}
-
-export function createNote(input?: { title?: string; tags?: string[] }): Note {
-  const db = getDb();
+export const createNote = (input?: { title?: string; tags?: string[] }): NoteRecord => {
   const now = Date.now();
-  const row = {
-    id: nanoid(10),
-    title: input?.title?.trim() || 'Untitled',
-    content: '',
-    tags: (input?.tags ?? []).join(','),
-    createdAt: now,
-    updatedAt: now,
-  };
-  db.insert(notes).values(row).run();
-  return toNote(row);
-}
+  return getDb()
+    .insert(notes)
+    .values({
+      title: input?.title?.trim() || 'Untitled',
+      content: '',
+      tags: (input?.tags ?? []).join(','),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning()
+    .get();
+};
 
-export function updateNote(
-  id: string,
-  patch: { title?: string; content?: string; tags?: string[] },
-): Note {
-  const db = getDb();
+export const updateNote = (id: number, patch: Partial<NoteRecord>): NoteRecord => {
   const existing = getNote(id);
   if (!existing) throw new Error(`note not found: ${id}`);
-  const update: Partial<typeof notes.$inferInsert> = { updatedAt: Date.now() };
-  if (patch.title !== undefined) update.title = patch.title;
-  if (patch.content !== undefined) update.content = patch.content;
-  if (patch.tags !== undefined) update.tags = patch.tags.join(',');
-  db.update(notes).set(update).where(eq(notes.id, id)).run();
-  const updated = getNote(id);
-  if (!updated) throw new Error(`note not found after update: ${id}`);
-  return updated;
-}
+  return getDb().update(notes).set(patch).where(eq(notes.id, id)).returning().get();
+};
 
-export function deleteNote(id: string): void {
+export const deleteNote = (id: number): void => {
   getDb().delete(notes).where(eq(notes.id, id)).run();
-}
+};

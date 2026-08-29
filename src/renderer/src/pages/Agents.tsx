@@ -28,19 +28,19 @@ function createAgentFormState(agent: AgentRecord): AgentFormState {
 
 export function Agents() {
   const utils = trpc.useUtils();
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [form, setForm] = useState<AgentFormState>(BLANK);
   const [showNewModal, setShowNewModal] = useState(false);
 
   const { data: agents = [] } = trpc.agent.list.useQuery();
   const { data: toolsList = [] } = trpc.tool.list.useQuery();
 
-  const upsert = trpc.agent.upsert.useMutation({
+  const updateAgent = trpc.agent.update.useMutation({
     onSuccess: async () => {
       await utils.agent.list.invalidate();
     },
   });
-  const createAgent = trpc.agent.upsert.useMutation({
+  const createAgent = trpc.agent.create.useMutation({
     onSuccess: async (agent) => {
       await utils.agent.list.invalidate();
       setShowNewModal(false);
@@ -56,7 +56,7 @@ export function Agents() {
     },
   });
 
-  function selectAgent(id: string) {
+  function selectAgent(id: number) {
     const agent = agents.find((candidate) => candidate.id === id);
     if (!agent) return;
     setSelected(id);
@@ -77,7 +77,7 @@ export function Agents() {
   }
 
   function save() {
-    upsert.mutate({
+    updateAgent.mutate({
       id: form.id,
       name: form.name,
       role: form.role,
@@ -121,9 +121,9 @@ export function Agents() {
           availableTools={toolsList}
           onSave={save}
           onDelete={() => form.id && del.mutate({ id: form.id })}
-          isSaving={upsert.isPending}
+          isSaving={updateAgent.isPending}
           isDeleting={del.isPending}
-          saveError={upsert.error?.message}
+          saveError={updateAgent.error?.message}
         />
       )}
       {showNewModal && (
@@ -133,6 +133,8 @@ export function Agents() {
           onCreate={({ name, role, systemPrompt }) =>
             createAgent.mutate({
               name,
+              description: '',
+              tools: null,
               role,
               systemPrompt: systemPrompt ?? '',
               temperature: BLANK.temperature,

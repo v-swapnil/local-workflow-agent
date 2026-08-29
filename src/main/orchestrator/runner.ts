@@ -24,25 +24,25 @@ import type { RunCtx } from './runCtx';
 const log = logger.child({ mod: 'runner' });
 
 interface RunHandle {
-  taskId: string;
+  taskId: number;
   ctrl: AbortController;
   promise: Promise<TaskResult>;
 }
 
-const inflight = new Map<string, RunHandle>();
+const inflight = new Map<number, RunHandle>();
 
-export function isRunning(taskId: string): boolean {
+export function isRunning(taskId: number): boolean {
   return inflight.has(taskId);
 }
 
-export function cancelTask(taskId: string): boolean {
+export function cancelTask(taskId: number): boolean {
   const h = inflight.get(taskId);
   if (!h) return false;
   h.ctrl.abort();
   return true;
 }
 
-export async function runTask(taskId: string): Promise<TaskResult> {
+export async function runTask(taskId: number): Promise<TaskResult> {
   const existing = inflight.get(taskId);
   if (existing) return existing.promise;
 
@@ -54,7 +54,7 @@ export async function runTask(taskId: string): Promise<TaskResult> {
   return promise;
 }
 
-async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskResult> {
+async function doRunInner(taskId: number, ctrl: AbortController): Promise<TaskResult> {
   const task = getTask(taskId);
   const session = await loadSessionWorkspace(task);
 

@@ -1,7 +1,6 @@
-import type { AgentRecord } from '@shared/schema';
-
+// TODO: replace with agent schema from shared
 export interface AgentFormState {
-  id?: string;
+  id?: number;
   name: string;
   role: string;
   systemPrompt: string;

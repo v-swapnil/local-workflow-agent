@@ -19,7 +19,7 @@ const EMPTY_STATUS: GitStatus = {
   clean: true,
 };
 
-export async function workspaceStatus(workspaceId: string): Promise<GitStatus> {
+export async function workspaceStatus(workspaceId: number): Promise<GitStatus> {
   return workspaceStatusAtPath((await getWorkspace(workspaceId)).path);
 }
 

@@ -5,14 +5,9 @@ import { useChangedFiles } from '../../components/changes/useChangedFiles';
 import { changeMeta, splitPath, summarizeWorking } from '../../components/changes/changeUtils';
 import type { ChangedFile } from '../../components/changes/changeUtils';
 import { ChevronRight, FileDiff } from 'lucide-react';
+import { GitFileStat } from '@main/services/git/gitDiff';
 
-interface FileStat {
-  additions: number;
-  deletions: number;
-  binary: boolean;
-}
-
-function FileRow({ file, stat }: { file: ChangedFile; stat?: FileStat }) {
+function FileRow({ file, stat }: { file: ChangedFile; stat?: GitFileStat }) {
   const meta = changeMeta(file.kind);
   const parts = splitPath(file.path);
   const title =
@@ -59,14 +54,11 @@ export function SessionChanges({
   workspaceId,
   worktreeId,
 }: {
-  workspaceId: string;
+  workspaceId: number;
   worktreeId?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const status = trpc.git.status.useQuery(
-    { workspaceId, worktreeId },
-    { refetchInterval: 5000 },
-  );
+  const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });
   const changeStats = trpc.git.changeStats.useQuery(
     { workspaceId, worktreeId },
     { refetchInterval: 5000 },
@@ -76,13 +68,9 @@ export function SessionChanges({
   const total = staged.length + others.length;
   const summary = summarizeWorking([...staged, ...others]);
 
-  const statBy = new Map<string, FileStat>();
+  const statBy = new Map<string, GitFileStat>();
   for (const s of changeStats.data ?? []) {
-    statBy.set(`${s.section}:${s.path}`, {
-      additions: s.additions,
-      deletions: s.deletions,
-      binary: s.binary,
-    });
+    statBy.set(`${s.section}:${s.path}`, s);
   }
   const totalAdd = (changeStats.data ?? []).reduce((acc, s) => acc + s.additions, 0);
   const totalDel = (changeStats.data ?? []).reduce((acc, s) => acc + s.deletions, 0);

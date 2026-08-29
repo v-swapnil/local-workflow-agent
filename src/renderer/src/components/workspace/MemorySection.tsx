@@ -11,7 +11,7 @@ const TYPE_COLORS: Record<string, string> = {
   observation: 'bg-ink-800/50 text-ink-400',
 };
 
-export function MemorySection({ workspaceId }: { workspaceId: string }) {
+export function MemorySection({ workspaceId }: { workspaceId: number }) {
   const utils = trpc.useUtils();
   const memories = trpc.workspace.memories.useQuery({ workspaceId });
   const deleteMemory = trpc.workspace.deleteMemory.useMutation({

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { mapStatusCode, mapPathKind } from './changeUtils';
 import type { ChangedFile } from './changeUtils';
 
+// TODO: move to types file
 interface GitStatusFile {
   path: string;
   from?: string;

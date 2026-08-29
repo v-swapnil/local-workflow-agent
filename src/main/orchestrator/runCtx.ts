@@ -3,13 +3,13 @@ import type { RunnableConfig } from '@langchain/core/runnables';
 /* ───────── Run context (passed via RunnableConfig.configurable) ───────── */
 
 export interface RunCtx {
-  workspaceId: string;
+  workspaceId: number;
   workspacePath: string;
-  sessionId: string;
-  taskId: string;
+  sessionId: number;
+  taskId: number;
   model: string;
   signal: AbortSignal;
-  agentId: string | null;
+  agentId: number | null;
   timeoutMs: number;
 }
 

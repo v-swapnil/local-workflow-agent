@@ -4,7 +4,7 @@ import { Conversation } from './conversation.js';
 import { llmChat } from './llmChat.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { buildPromptContext } from './prompts-context.js';
-import { getAgentOrNull } from '../services/agents.js';
+import { getAgent } from '../services/agents.js';
 import { addMessage } from '../services/store.js';
 import { ctxOf } from './runCtx.js';
 import type { AgentState } from './state.js';
@@ -18,7 +18,7 @@ export async function copilotExecutorNode(
   config?: RunnableConfig,
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
-  const agent = ctx.agentId ? getAgentOrNull(ctx.agentId) : null;
+  const agent = ctx.agentId ? getAgent(ctx.agentId) : null;
 
   let systemPrompt = COPILOT_EXECUTOR_SYSTEM;
   if (agent) {
