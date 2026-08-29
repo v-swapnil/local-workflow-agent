@@ -84,7 +84,7 @@ export function WorkspaceSwitcher() {
                     </span>
                   </span>
                   <span className="shrink-0 font-mono text-ui-2xs uppercase tracking-widest2 text-ink-500">
-                    {isSelected ? 'active' : workspace.managed ? 'managed' : 'linked'}
+                    {isSelected ? 'active' : 'workspace'}
                   </span>
                 </div>
                 <div className="truncate font-mono text-ui-xs text-ink-500">{workspace.path}</div>

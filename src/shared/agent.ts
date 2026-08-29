@@ -19,17 +19,6 @@ export type ToolName =
 
 
 
-/** Observation appended to the executor's working memory after a tool call. */
-export interface Observation {
-  tool: ToolName;
-  args: Record<string, unknown>;
-  ok: boolean;
-  /** Stringified output (truncated). */
-  output: string;
-  error?: string;
-  durationMs: number;
-}
-
 /** ───────── Final task result ───────── */
 
 export interface TaskResult {

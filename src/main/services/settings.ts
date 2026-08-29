@@ -14,7 +14,6 @@ export const SETTING_KEYS = {
   QUEUE_CONCURRENCY: 'queueConcurrency',
   UI_TEXT_SIZE: 'uiTextSize',
   UI_ACCENT: 'uiAccent',
-  KANBAN_AUTO_CLEAR: 'kanban.autoClearOverride',
   KANBAN_DEFAULT_VIEW: 'kanban.defaultView',
   USE_WORKTREES: 'use_worktrees',
   SHELL_PATH: 'shell.path',

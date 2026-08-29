@@ -1,7 +1,5 @@
-import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { KanbanCard as KanbanCardData, KanbanLane as KanbanLaneType } from '@shared/types';
-import { SortableCard } from './KanbanCard';
+import { KanbanCardView } from './KanbanCard';
 import { cn } from '../lib/utils';
 
 const LANE_META: Record<
@@ -38,22 +36,16 @@ interface KanbanLaneProps {
   lane: KanbanLaneType;
   cards: KanbanCardData[];
   onCardClick?: (sessionId: string) => void;
-  onResetLane?: (sessionId: string) => void;
 }
 
-export function KanbanLane({ lane, cards, onCardClick, onResetLane }: KanbanLaneProps) {
+export function KanbanLane({ lane, cards, onCardClick }: KanbanLaneProps) {
   const meta = LANE_META[lane];
-  const { setNodeRef, isOver } = useDroppable({
-    id: `lane-${lane}`,
-    data: { lane },
-  });
 
   return (
     <div
       className={cn(
         'flex min-w-[260px] flex-1 flex-col rounded-lg border bg-ink-900/20',
         lane === 'need_help' && cards.length > 0 ? 'border-signal-err/20' : 'border-ink-800/60',
-        isOver && 'border-amber/30 bg-amber/[0.03]',
       )}
     >
       {/* Lane header */}
@@ -81,22 +73,16 @@ export function KanbanLane({ lane, cards, onCardClick, onResetLane }: KanbanLane
       </div>
 
       {/* Cards area */}
-      <div ref={setNodeRef} className="flex-1 overflow-y-auto p-2">
-        <SortableContext
-          items={cards.map((c) => c.sessionId)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="flex flex-col gap-2">
-            {cards.map((card) => (
-              <SortableCard
-                key={card.sessionId}
-                card={card}
-                onClick={() => onCardClick?.(card.sessionId)}
-                onResetLane={() => onResetLane?.(card.sessionId)}
-              />
-            ))}
-          </div>
-        </SortableContext>
+      <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex flex-col gap-2">
+          {cards.map((card) => (
+            <KanbanCardView
+              key={card.sessionId}
+              card={card}
+              onClick={() => onCardClick?.(card.sessionId)}
+            />
+          ))}
+        </div>
 
         {cards.length === 0 && (
           <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-ink-800 font-mono text-ui-xs text-ink-500">

@@ -12,18 +12,19 @@ let _sqlite: Database.Database | null = null;
 const BOOTSTRAP_SQL = `
 CREATE TABLE IF NOT EXISTS workspaces (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, path TEXT NOT NULL,
-  managed INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, title TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'active',
-  kanban_lane TEXT DEFAULT NULL,
   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_ws ON sessions(workspace_id);
 CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY, task_id TEXT NOT NULL, role TEXT NOT NULL,
-  content TEXT NOT NULL, thinking TEXT, created_at INTEGER NOT NULL
+  content TEXT NOT NULL, thinking TEXT, tool_call_id TEXT, tool_name TEXT,
+  agent_id TEXT, tool_calls TEXT,
+  created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_task ON messages(task_id);
 CREATE TABLE IF NOT EXISTS tasks (
@@ -69,10 +70,8 @@ CREATE TABLE IF NOT EXISTS task_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   task_id TEXT NOT NULL,
   type TEXT NOT NULL,
-  agent_id TEXT,
-  tool_call_id TEXT,
-  approval_id TEXT,
-  message_id TEXT,
+  reference_id TEXT,
+  content TEXT,
   status TEXT,
   payload_json TEXT NOT NULL,
   created_at INTEGER NOT NULL
@@ -122,12 +121,6 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   _sqlite.pragma('journal_mode = WAL');
   _sqlite.pragma('foreign_keys = ON');
   _sqlite.exec(BOOTSTRAP_SQL);
-  // Additive migration: add kanban_lane to sessions if missing
-  try {
-    _sqlite.exec(`ALTER TABLE sessions ADD COLUMN kanban_lane TEXT DEFAULT NULL`);
-  } catch {
-    // Column already exists — ignore
-  }
   // Additive migration: add provider to tasks if missing
   try {
     _sqlite.exec(`ALTER TABLE tasks ADD COLUMN provider TEXT`);
@@ -288,6 +281,13 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE tasks DROP COLUMN plan`); } catch { /* already dropped */ }
   // Additive migration: messages become the durable conversation log — add thinking column
   try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN thinking TEXT`); } catch { /* exists */ }
+  // Additive migration: messages gains tool_call_id + tool_name for persisted tool-result rows
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN tool_call_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN tool_name TEXT`); } catch { /* exists */ }
+  // Additive migration: messages gains agent_id (which agent produced it) + tool_calls
+  // (JSON — mirrors the in-memory Conversation's assistant ToolCall[] shape)
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN agent_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE messages ADD COLUMN tool_calls TEXT`); } catch { /* exists */ }
   // Drop migration: remove dead steps table (superseded by ephemeral step.* events only)
   try { _sqlite.exec(`DROP TABLE IF EXISTS steps`); } catch { /* already dropped */ }
   // Drop migration: remove unused skills.builtin column
@@ -314,6 +314,15 @@ export function initDb(): BetterSQLite3Database<typeof schema> {
   try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN approval_id TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN message_id TEXT`); } catch { /* exists */ }
   try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN status TEXT`); } catch { /* exists */ }
+  // Slim migration: task_events replaces the four typed FK columns with a single
+  // polymorphic reference_id (points at whichever entity the event relates to),
+  // plus a content column for freeform event text.
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN reference_id TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events ADD COLUMN content TEXT`); } catch { /* exists */ }
+  try { _sqlite.exec(`ALTER TABLE task_events DROP COLUMN agent_id`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE task_events DROP COLUMN tool_call_id`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE task_events DROP COLUMN approval_id`); } catch { /* already dropped */ }
+  try { _sqlite.exec(`ALTER TABLE task_events DROP COLUMN message_id`); } catch { /* already dropped */ }
   // Migration: messages now hang off tasks (sessions → tasks → messages).
   // Backfill task_id from the owning task, then rebuild the table to make
   // task_id NOT NULL and drop the now-redundant session_id column.

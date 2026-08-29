@@ -27,8 +27,7 @@ export function buildKanbanBoard(workspaceId: string) {
       sessionId: session.id,
       title: session.title,
       workspaceId: session.workspaceId,
-      lane: (session.kanbanLane as KanbanLane) ?? autoLane,
-      manualLane: (session.kanbanLane as KanbanLane) ?? null,
+      lane: autoLane,
       taskSummary: {
         total: tasks.length,
         queued: statuses.filter((st) => st === 'queued').length,

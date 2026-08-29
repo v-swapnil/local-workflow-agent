@@ -3,7 +3,6 @@ import {
   getTask,
   getTaskTimeout,
   getWorkspace,
-  setSessionKanbanLane,
   updateTask,
 } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
@@ -135,11 +134,6 @@ async function doRunInner(taskId: string, ctrl: AbortController): Promise<TaskRe
 }
 
 function finish(task: TaskRecord, result: TaskResult): TaskResult {
-  // Reset manual kanban lane so card auto-derives from new task status
-  // Respects kanban.autoClearOverride setting (default: true)
-  getSetting(SETTING_KEYS.KANBAN_AUTO_CLEAR).then((v) => {
-    if (v !== 'false') setSessionKanbanLane(task.sessionId, null);
-  });
   clearTaskApprovals(task.id);
   emitTaskFinished(task.id, result.status, result);
   return result;

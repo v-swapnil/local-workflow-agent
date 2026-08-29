@@ -4,7 +4,6 @@ import { router, publicProcedure } from './trpc.js';
 import {
   listWorkspaces,
   getWorkspace,
-  createManagedWorkspace,
   attachExistingWorkspace,
   deleteWorkspace,
   readWorkspaceFile,
@@ -23,9 +22,6 @@ export const workspaceRouter = router({
   get: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ input }) => getWorkspace(input.id)),
-  create: publicProcedure
-    .input(z.object({ name: z.string().min(1).max(64) }))
-    .mutation(({ input }) => createManagedWorkspace(input.name)),
   openExisting: publicProcedure.mutation(async () => {
     const parent = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
     const res = await (parent
@@ -41,8 +37,8 @@ export const workspaceRouter = router({
     return attachExistingWorkspace(res.filePaths[0]);
   }),
   delete: publicProcedure
-    .input(z.object({ id: z.string(), deleteFiles: z.boolean().default(false) }))
-    .mutation(({ input }) => deleteWorkspace(input.id, input.deleteFiles)),
+    .input(z.object({ id: z.string() }))
+    .mutation(({ input }) => deleteWorkspace(input.id)),
   active: publicProcedure.query(async () => {
     const id = await getSetting(SETTING_KEYS.ACTIVE_WORKSPACE);
     return id ?? null;

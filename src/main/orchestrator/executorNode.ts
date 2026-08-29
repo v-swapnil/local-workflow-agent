@@ -10,14 +10,13 @@ import { getAgentOrNull } from '../services/agents.js';
 import { addMessage } from '../services/store.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
-import type { Observation } from '@shared/agent';
 import { buildPromptContext } from './prompts-context.js';
 
 const log = logger.child({ mod: 'orchestrator' });
 
 /**
  * Shared executor loop logic. Creates a Conversation and drives it to
- * completion, returning accumulated Observations for state/UI display.
+ * completion, returning the final assistant text.
  * The agent analyzes the codebase itself — no pre-made plan is provided.
  */
 async function runExecutorLoop(
@@ -25,26 +24,30 @@ async function runExecutorLoop(
   systemPrompt: string,
   state: AgentState,
   temperature?: number,
-): Promise<Observation[]> {
+): Promise<string> {
   const conv = new Conversation({ system: systemPrompt });
+  addMessage({ taskId: ctx.taskId, role: 'system', content: systemPrompt, agentId: ctx.agentId });
 
   const promptContext = await buildPromptContext(ctx);
   const goalLine = `**GOAL**: ${state.prompt}`;
   conv.addUserMessage([promptContext, goalLine].join('\n'));
 
-  const newObs: Observation[] = [];
+  let finalText = '';
 
   while (true) {
     if (ctx.signal.aborted) throw new Error('aborted');
 
     const response = await llmChat(ctx, conv.getMessages(), temperature);
+    finalText = response.text;
 
-    const assistantMessage = addMessage(
-      ctx.taskId,
-      'assistant',
-      response.text,
-      response.thinking ?? null,
-    );
+    const assistantMessage = addMessage({
+      taskId: ctx.taskId,
+      role: 'assistant',
+      content: response.text,
+      thinking: response.thinking ?? null,
+      agentId: ctx.agentId,
+      toolCalls: response.toolCalls?.length ? JSON.stringify(response.toolCalls) : null,
+    });
 
     if (response.done || !response.toolCalls?.length) break;
 
@@ -56,12 +59,13 @@ async function runExecutorLoop(
       const r = results[i]!;
       const tc = response.toolCalls[i]!;
       conv.addToolResult(tc.id, r.toolName, r.content);
-      newObs.push({
-        tool: r.toolName,
-        args: r.arguments,
-        ok: r.status === 'success',
-        output: r.content,
-        durationMs: r.duration,
+      addMessage({
+        taskId: ctx.taskId,
+        role: 'tool',
+        content: r.content,
+        toolCallId: tc.id,
+        toolName: r.toolName,
+        agentId: ctx.agentId,
       });
     }
 
@@ -71,7 +75,7 @@ async function runExecutorLoop(
     }
   }
 
-  return newObs;
+  return finalText;
 }
 
 export async function executorNode(
@@ -91,9 +95,9 @@ export async function executorNode(
 
   try {
     emitStepStarted(ctx.taskId, ctx.agentId || 'executor');
-    const newObs = await runExecutorLoop(ctx, systemPrompt, state, temperature);
+    const result = await runExecutorLoop(ctx, systemPrompt, state, temperature);
     emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'succeeded');
-    return { history: newObs };
+    return { result };
   } catch (err) {
     emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'failed');
     throw err;

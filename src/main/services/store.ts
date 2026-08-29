@@ -7,23 +7,33 @@ import { getTask } from './workspaces/tasks.js';
 
 // ───────── Messages ─────────
 
-export function addMessage(
-  taskId: string,
-  role: MessageRecord['role'],
-  content: string,
-  thinking?: string | null,
-): MessageRecord {
+export interface AddMessageInput {
+  taskId: string;
+  role: MessageRecord['role'];
+  content: string;
+  thinking?: string | null;
+  toolCallId?: string | null;
+  toolName?: string | null;
+  agentId?: string | null;
+  toolCalls?: string | null;
+}
+
+export function addMessage(input: AddMessageInput): MessageRecord {
   const message: MessageRecord = {
     id: nanoid(10),
-    taskId,
-    role,
-    content,
-    thinking: thinking ?? null,
+    taskId: input.taskId,
+    role: input.role,
+    content: input.content,
+    thinking: input.thinking ?? null,
+    toolCallId: input.toolCallId ?? null,
+    toolName: input.toolName ?? null,
+    agentId: input.agentId ?? null,
+    toolCalls: input.toolCalls ?? null,
     createdAt: Date.now(),
   };
   getDb().insert(messages).values(message).run();
   // Bump the owning session's updatedAt via the message's task
-  const owningTask = getTask(taskId);
+  const owningTask = getTask(input.taskId);
   if (owningTask) {
     getDb()
       .update(sessions)

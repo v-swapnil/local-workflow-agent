@@ -52,20 +52,21 @@ export async function runWorkflow(
           const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
           const agentCtx: RunCtx = { ...ctx, agentId };
           const agentGraph = buildGraph(provider);
-          const initial: Partial<AgentState> = { prompt: state.prompt };
-          await agentGraph.invoke(initial, {
+          // Chain the previous agent node's output into this node's prompt; the
+          // first node in the workflow falls back to the original task prompt.
+          const inputPrompt = state.result || state.prompt;
+          const initial: Partial<AgentState> = { prompt: inputPrompt };
+          const output = await agentGraph.invoke(initial, {
             configurable: { runCtx: agentCtx },
             signal: ctx.signal,
             timeout: ctx.timeoutMs,
           });
           return {
-            currentNodeId: node.id,
-            agentOutputs: { [node.id]: { done: true } },
-            iteration: state.iteration + 1,
+            result: output.result,
           };
         } catch (err) {
           log.warn({ nodeId: node.id, err }, 'workflow agent node failed');
-          return { currentNodeId: node.id };
+          throw err;
         }
       });
     } else if (node.type === 'approval') {
@@ -75,7 +76,7 @@ export async function runWorkflow(
         if (decision === 'denied') {
           throw new Error(`Approval denied at node "${node.id}"`);
         }
-        return { currentNodeId: node.id };
+        return {};
       });
     }
   }

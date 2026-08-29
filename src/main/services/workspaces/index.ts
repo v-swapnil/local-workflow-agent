@@ -1,7 +1,6 @@
 export {
   listWorkspaces,
   getWorkspace,
-  createManagedWorkspace,
   attachExistingWorkspace,
   deleteWorkspace,
 } from './workspace.js';
@@ -18,6 +17,5 @@ export {
   getSession,
   renameSession,
   deleteSession,
-  setSessionKanbanLane,
 } from './sessions.js';
 export { createTask, getTask, listTasks, updateTask, getTaskTimeout } from './tasks.js';

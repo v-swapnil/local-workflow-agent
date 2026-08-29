@@ -1,8 +1,5 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import type { KanbanCard as KanbanCardData, KanbanLane } from '@shared/types';
 import { cn, relativeTime } from '../lib/utils';
-import { Button } from './ui/button';
 
 const LANE_STYLES: Record<KanbanLane, { border: string; icon: string }> = {
   todo: { border: 'border-l-ink-600', icon: '○' },
@@ -13,19 +10,10 @@ const LANE_STYLES: Record<KanbanLane, { border: string; icon: string }> = {
 
 interface KanbanCardProps {
   card: KanbanCardData;
-  isDragging?: boolean;
-  isOverlay?: boolean;
   onClick?: () => void;
-  onResetLane?: () => void;
 }
 
-export function KanbanCardView({
-  card,
-  isDragging,
-  isOverlay,
-  onClick,
-  onResetLane,
-}: KanbanCardProps) {
+export function KanbanCardView({ card, onClick }: KanbanCardProps) {
   const style = LANE_STYLES[card.lane];
   const { total, succeeded, running, failed, awaitingApproval } = card.taskSummary;
   const pct = total > 0 ? Math.round((succeeded / total) * 100) : 0;
@@ -37,8 +25,6 @@ export function KanbanCardView({
         'group relative cursor-pointer rounded-lg border border-l-[3px] bg-ink-900/60 p-3.5 transition-all',
         style.border,
         'border-ink-800/60 hover:border-ink-700 hover:shadow-sm hover:shadow-ink-950/20',
-        isDragging && 'rotate-[2deg] opacity-60 ring-2 ring-amber/40',
-        isOverlay && 'rotate-[2deg] shadow-float ring-2 ring-amber/40',
       )}
     >
       {/* Header */}
@@ -46,20 +32,6 @@ export function KanbanCardView({
         <h3 className="min-w-0 truncate font-mono text-ui-sm font-medium leading-snug text-ink-50">
           {card.title}
         </h3>
-        {card.manualLane && onResetLane && (
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              onResetLane();
-            }}
-            className="invisible shrink-0 font-mono uppercase tracking-widest2 text-ink-500 hover:bg-transparent hover:text-amber group-hover:visible"
-            title="Reset to auto lane"
-          >
-            reset
-          </Button>
-        )}
       </div>
 
       {/* Task summary chips */}
@@ -106,36 +78,6 @@ export function KanbanCardView({
           />
         </div>
       )}
-    </div>
-  );
-}
-
-export function SortableCard({
-  card,
-  onClick,
-  onResetLane,
-}: {
-  card: KanbanCardData;
-  onClick?: () => void;
-  onResetLane?: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: card.sessionId,
-    data: { lane: card.lane, card },
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <KanbanCardView
-        card={card}
-        isDragging={isDragging}
-        onClick={onClick}
-        onResetLane={onResetLane}
-      />
     </div>
   );
 }

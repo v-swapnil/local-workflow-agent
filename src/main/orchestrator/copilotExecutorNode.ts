@@ -29,16 +29,23 @@ export async function copilotExecutorNode(
     emitStepStarted(ctx.taskId, ctx.agentId || 'copilot-executor');
 
     const conv = new Conversation({ system: systemPrompt });
+    addMessage({ taskId: ctx.taskId, role: 'system', content: systemPrompt, agentId: ctx.agentId });
     const promptContext = await buildPromptContext(ctx);
     conv.addUserMessage([promptContext, state.prompt].join('\n'));
 
     // CopilotProvider.chat() handles the full agentic session (tools, permissions, events).
     // It returns done:true since toolCalls is always [] (SDK manages tools internally).
     const response = await llmChat(ctx, conv.getMessages(), agent?.temperature);
-    addMessage(ctx.taskId, 'assistant', response.text, response.thinking ?? null);
+    addMessage({
+      taskId: ctx.taskId,
+      role: 'assistant',
+      content: response.text,
+      thinking: response.thinking ?? null,
+      agentId: ctx.agentId,
+    });
 
     emitStepFinished(ctx.taskId, ctx.agentId || 'copilot-executor', 'succeeded');
-    return { history: [] };
+    return { result: response.text };
   } catch (err) {
     emitStepFinished(ctx.taskId, ctx.agentId || 'copilot-executor', 'failed');
     throw err;

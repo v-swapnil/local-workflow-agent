@@ -61,18 +61,6 @@ export const settingsRouter = router({
     return { ok: true as const, path: dir };
   }),
 
-  kanbanAutoClear: publicProcedure.query(async () => {
-    const saved = await getSetting(SETTING_KEYS.KANBAN_AUTO_CLEAR);
-    return saved !== 'false'; // default true
-  }),
-
-  setKanbanAutoClear: publicProcedure
-    .input(z.object({ value: z.boolean() }))
-    .mutation(async ({ input }) => {
-      await setSetting(SETTING_KEYS.KANBAN_AUTO_CLEAR, String(input.value));
-      return { ok: true as const };
-    }),
-
   kanbanDefaultView: publicProcedure.query(async () => {
     const saved = await getSetting(SETTING_KEYS.KANBAN_DEFAULT_VIEW);
     return (saved === 'list' ? 'list' : 'board') as 'board' | 'list';

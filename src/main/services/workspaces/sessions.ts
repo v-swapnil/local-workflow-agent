@@ -13,7 +13,6 @@ export async function createSession(workspaceId: string, title: string): Promise
     workspaceId,
     title,
     status: 'active' as const,
-    kanbanLane: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -63,12 +62,4 @@ export function deleteSession(id: string): void {
   db.delete(tasks).where(eq(tasks.sessionId, id)).run();
   db.delete(memories).where(eq(memories.sessionId, id)).run();
   db.delete(sessions).where(eq(sessions.id, id)).run();
-}
-
-export function setSessionKanbanLane(sessionId: string, lane: string | null): void {
-  getDb()
-    .update(sessions)
-    .set({ kanbanLane: lane, updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId))
-    .run();
 }

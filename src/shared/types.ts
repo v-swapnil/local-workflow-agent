@@ -25,7 +25,6 @@ export interface KanbanCard {
   title: string;
   workspaceId: string;
   lane: KanbanLane;
-  manualLane: KanbanLane | null;
   taskSummary: {
     total: number;
     queued: number;

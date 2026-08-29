@@ -4,7 +4,6 @@ export const workspaces = sqliteTable('workspaces', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   path: text('path').notNull(),
-  managed: integer('managed', { mode: 'boolean' }).notNull().default(true),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -17,7 +16,6 @@ export const sessions = sqliteTable(
       .references(() => workspaces.id),
     title: text('title').notNull(),
     status: text('status').notNull().default('active'),
-    kanbanLane: text('kanban_lane'),
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
@@ -31,9 +29,14 @@ export const messages = sqliteTable(
     taskId: text('task_id')
       .notNull()
       .references(() => tasks.id),
+    agentId: text('agent_id').references(() => agents.id),
     role: text('role').notNull(),
     content: text('content').notNull(),
     thinking: text('thinking'),
+    toolCalls: text('tool_calls'),
+    // Tool Results
+    toolCallId: text('tool_call_id'),
+    toolName: text('tool_name'),
     createdAt: integer('created_at').notNull(),
   },
   (t) => ({
@@ -48,13 +51,13 @@ export const tasks = sqliteTable(
     sessionId: text('session_id')
       .notNull()
       .references(() => sessions.id),
+    agentId: text('agent_id').references(() => agents.id),
+    workflowId: text('workflow_id').references(() => workflows.id),
     prompt: text('prompt').notNull(),
     result: text('result'),
     status: text('status').notNull().default('queued'),
     provider: text('provider'),
     model: text('model'),
-    agentId: text('agent_id').references(() => agents.id),
-    workflowId: text('workflow_id').references(() => workflows.id),
     createdAt: integer('created_at').notNull(),
     startedAt: integer('started_at'),
     finishedAt: integer('finished_at'),
@@ -129,11 +132,11 @@ export const worktrees = sqliteTable(
 export const agents = sqliteTable('agents', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
+  description: text('description'),
   role: text('role').notNull(),
   systemPrompt: text('system_prompt').notNull(),
   tools: text('tools'),
   temperature: real('temperature').notNull().default(0.2),
-  description: text('description'),
 });
 
 export const workflows = sqliteTable('workflows', {
@@ -176,10 +179,8 @@ export const taskEvents = sqliteTable(
       .notNull()
       .references(() => tasks.id),
     type: text('type').notNull(),
-    agentId: text('agent_id').references(() => agents.id),
-    toolCallId: text('tool_call_id').references(() => toolCalls.id),
-    approvalId: text('approval_id').references(() => approvals.id),
-    messageId: text('message_id').references(() => messages.id),
+    referenceId: text('reference_id'), // polymorphic FK: toolCalls.id | messages.id | approvals.id
+    content: text('content'),
     status: text('status'),
     payloadJson: text('payload_json').notNull(),
     createdAt: integer('created_at').notNull(),

@@ -1,19 +1,9 @@
 import { Annotation } from '@langchain/langgraph';
-import type { Observation } from '@shared/agent';
 
 export const WorkflowStateAnnotation = Annotation.Root({
   prompt: Annotation<string>(),
-  currentNodeId: Annotation<string>({ reducer: (_, n) => n, default: () => '' }),
-  history: Annotation<Observation[]>({ reducer: (a, b) => a.concat(b), default: () => [] }),
-  agentOutputs: Annotation<Record<string, unknown>>({
-    reducer: (a, b) => ({ ...a, ...b }),
-    default: () => ({}),
-  }),
-  iteration: Annotation<number>({ reducer: (_, n) => n, default: () => 0 }),
-  loopCounts: Annotation<Record<string, number>>({
-    reducer: (a, b) => ({ ...a, ...b }),
-    default: () => ({}),
-  }),
+  /** Most recent agent node's output — becomes the next agent node's prompt. */
+  result: Annotation<string>({ reducer: (_, next) => next, default: () => '' }),
 });
 
 export type WorkflowState = typeof WorkflowStateAnnotation.State;

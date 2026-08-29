@@ -1,21 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
-} from '@dnd-kit/core';
 import { useNavigate } from 'react-router-dom';
 import type { KanbanCard, KanbanLane as KanbanLaneType } from '@shared/types';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
 import { KanbanLane } from '../components/KanbanLane';
-import { KanbanCardView } from '../components/KanbanCard';
 import { relativeTime } from '@renderer/lib/utils';
 
 const LANES: KanbanLaneType[] = ['todo', 'in_progress', 'done', 'need_help'];
@@ -31,7 +19,6 @@ type KanbanView = 'board' | 'list';
 export function KanbanBoard() {
   const { workspaceId } = useActiveWorkspace();
   const navigate = useNavigate();
-  const utils = trpc.useUtils();
   const defaultView = trpc.settings.kanbanDefaultView.useQuery();
   const [view, setView] = useState<KanbanView>('board');
 
@@ -43,12 +30,6 @@ export function KanbanBoard() {
     { workspaceId: workspaceId ?? undefined },
     { enabled: !!workspaceId, refetchInterval: 3000 },
   );
-
-  const setLane = trpc.kanban.setLane.useMutation({
-    onSuccess: () => utils.kanban.board.invalidate(),
-  });
-
-  const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
 
   const cardsByLane = useMemo(() => {
     const map: Record<KanbanLaneType, KanbanCard[]> = {
@@ -67,41 +48,8 @@ export function KanbanBoard() {
     return map;
   }, [kanbanQ.data]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
-
-  function handleDragStart(event: DragStartEvent) {
-    const card = (event.active.data.current as { card: KanbanCard } | undefined)?.card ?? null;
-    setActiveCard(card);
-  }
-
-  function handleDragOver(_event: DragOverEvent) {
-    // Could add live preview here — keeping it simple for now
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setActiveCard(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    // Determine target lane from the droppable
-    const targetLane = (over.data.current as { lane?: KanbanLaneType } | undefined)?.lane;
-    if (!targetLane) return;
-
-    const sourceCard = (active.data.current as { card: KanbanCard } | undefined)?.card;
-    if (!sourceCard) return;
-
-    // Only mutate if lane actually changed
-    if (sourceCard.lane !== targetLane) {
-      setLane.mutate({ sessionId: active.id as string, lane: targetLane });
-    }
-  }
-
   function handleCardClick(sessionId: string) {
     navigate(`/sessions?id=${sessionId}`);
-  }
-
-  function handleResetLane(sessionId: string) {
-    setLane.mutate({ sessionId, lane: null });
   }
 
   const totalCards = kanbanQ.data?.length ?? 0;
@@ -167,29 +115,16 @@ export function KanbanBoard() {
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-x-auto">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="flex h-full gap-3">
-              {LANES.map((lane) => (
-                <KanbanLane
-                  key={lane}
-                  lane={lane}
-                  cards={cardsByLane[lane]}
-                  onCardClick={handleCardClick}
-                  onResetLane={handleResetLane}
-                />
-              ))}
-            </div>
-
-            <DragOverlay dropAnimation={null}>
-              {activeCard && <KanbanCardView card={activeCard} isOverlay />}
-            </DragOverlay>
-          </DndContext>
+          <div className="flex h-full gap-3">
+            {LANES.map((lane) => (
+              <KanbanLane
+                key={lane}
+                lane={lane}
+                cards={cardsByLane[lane]}
+                onCardClick={handleCardClick}
+              />
+            ))}
+          </div>
         </div>
       )}
 

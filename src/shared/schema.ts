@@ -5,7 +5,6 @@ export interface WorkspaceRecord {
   id: string;
   name: string;
   path: string;
-  managed: boolean;
   createdAt: number;
 }
 
@@ -14,7 +13,6 @@ export interface SessionRecord {
   workspaceId: string;
   title: string;
   status: string;
-  kanbanLane: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -22,9 +20,13 @@ export interface SessionRecord {
 export interface MessageRecord {
   id: string;
   taskId: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   thinking?: string | null;
+  toolCallId?: string | null; // set only when role === 'tool'
+  toolName?: string | null; // set only when role === 'tool'
+  agentId?: string | null; // which agent produced this message
+  toolCalls?: string | null; // JSON-serialized ToolCall[] — set only for assistant messages with native tool calls
   createdAt: number;
 }
 

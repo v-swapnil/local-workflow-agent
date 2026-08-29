@@ -65,10 +65,6 @@ export function Settings() {
   const setTaskTimeout = trpc.settings.setTaskTimeout.useMutation({
     onSuccess: () => utils.settings.taskTimeout.invalidate(),
   });
-  const kanbanAutoClear = trpc.settings.kanbanAutoClear.useQuery();
-  const setKanbanAutoClear = trpc.settings.setKanbanAutoClear.useMutation({
-    onSuccess: () => utils.settings.kanbanAutoClear.invalidate(),
-  });
   const kanbanDefaultView = trpc.settings.kanbanDefaultView.useQuery();
   const setKanbanDefaultView = trpc.settings.setKanbanDefaultView.useMutation({
     onSuccess: () => utils.settings.kanbanDefaultView.invalidate(),
@@ -336,43 +332,34 @@ export function Settings() {
 
           <div className="mt-8">
             <SectionTitle index="06" title="Kanban" />
-            <ToggleCard
-              checked={kanbanAutoClear.data ?? true}
-              disabled={setKanbanAutoClear.isPending}
-              onChange={(v) => setKanbanAutoClear.mutate({ value: v })}
-              title="auto-clear manual lanes"
-              description="When a task finishes, sessions return to their automatic lane unless this is turned off."
-            />
-            <div className="mt-2">
-              <SettingCard
-                title="default board view"
-                description="Choose whether the Kanban page opens as draggable lanes or a compact table."
+            <SettingCard
+              title="default board view"
+              description="Choose whether the Kanban page opens as lanes or a compact table."
+            >
+              <ToggleGroup
+                type="single"
+                value={kanbanDefaultView.data ?? 'board'}
+                onValueChange={(value) => {
+                  if (value === 'board' || value === 'list') {
+                    setKanbanDefaultView.mutate({ value });
+                  }
+                }}
+                disabled={setKanbanDefaultView.isPending}
+                className="justify-start gap-1"
               >
-                <ToggleGroup
-                  type="single"
-                  value={kanbanDefaultView.data ?? 'board'}
-                  onValueChange={(value) => {
-                    if (value === 'board' || value === 'list') {
-                      setKanbanDefaultView.mutate({ value });
-                    }
-                  }}
-                  disabled={setKanbanDefaultView.isPending}
-                  className="justify-start gap-1"
-                >
-                  {(['board', 'list'] as const).map((view) => (
-                    <ToggleGroupItem
-                      key={view}
-                      value={view}
-                      size="sm"
-                      variant="outline"
-                      className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
-                    >
-                      {view}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </SettingCard>
-            </div>
+                {(['board', 'list'] as const).map((view) => (
+                  <ToggleGroupItem
+                    key={view}
+                    value={view}
+                    size="sm"
+                    variant="outline"
+                    className="font-mono uppercase tracking-widest2 data-[state=on]:border-amber/30 data-[state=on]:bg-amber/8 data-[state=on]:text-amber"
+                  >
+                    {view}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </SettingCard>
             <div className="mt-2">
               <SettingCard
                 title="linear integration"
