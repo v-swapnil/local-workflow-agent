@@ -17,5 +17,6 @@ export {
   getSession,
   renameSession,
   deleteSession,
+  resolveSessionWorkspace,
 } from './sessions.js';
 export { createTask, getTask, listTasks, updateTask, getTaskTimeout } from './tasks.js';

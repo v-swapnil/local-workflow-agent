@@ -15,6 +15,7 @@ export type {
   AgentRecord,
   WorkflowRecord,
   WorktreeRecord,
+  UserInputRecord,
 } from '@main/db/types';
 
 export type TaskEventRecord =
@@ -47,12 +48,14 @@ export type TaskEventRecord =
       taskId: number;
       status: 'pending';
       referenceId: number; // toolCallId
+      content: string;
     }
   | {
       type: 'tool_call.finished';
       taskId: number;
       status: ToolResultStatus;
       referenceId: number; // toolCallId
+      content: string;
     }
   | { type: 'log' | 'log.info' | 'log.error'; taskId: number; content: string }
   | { type: 'llm.prompt'; taskId: number; content: string }
@@ -70,5 +73,15 @@ export type TaskEventRecord =
       status: ApprovalStatus;
       referenceId: number; // approvalId
     }
-  | { type: 'user_input.requested'; taskId: number; content: string }
-  | { type: 'user_input.responded'; taskId: number; content: string };
+  | {
+      type: 'user_input.requested';
+      taskId: number;
+      content: string;
+      referenceId: number; // userInputId
+    }
+  | {
+      type: 'user_input.responded';
+      taskId: number;
+      content: string;
+      referenceId: number; // userInputId
+    };

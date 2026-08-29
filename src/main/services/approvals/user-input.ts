@@ -1,7 +1,18 @@
-import { nanoid } from 'nanoid';
 import { UserInputRequest } from './types';
 import { emitUserInputRequested, emitUserInputResponded } from '@main/orchestrator/eventEmitter';
-import { pendingUserInputs } from './state';
+import { pendingRegistry } from './state';
+import { getDb } from '@main/db';
+import { userInputs } from '@main/db/schema';
+import { UserInputRecord } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+const createUserInput = (input: Omit<UserInputRecord, 'id'>) => {
+  return getDb().insert(userInputs).values(input).returning().get();
+};
+
+const updateUserInput = (id: number, input: Partial<UserInputRecord>) => {
+  return getDb().update(userInputs).set(input).where(eq(userInputs.id, id)).returning().get();
+};
 
 /**
  * Block until the user provides a text response.
@@ -12,14 +23,28 @@ export function requestUserInput(
   request: UserInputRequest,
   signal?: AbortSignal,
 ): Promise<string> {
-  const requestId = nanoid(10);
+  const result = createUserInput({
+    taskId,
+    question: request.question,
+    description: request.description ?? null,
+    choices: request.choices?.join(',') ?? null,
+    toolCallId: null,
+    decision: null,
+    createdAt: Date.now(),
+    decidedAt: null,
+  });
 
   return new Promise<string>((resolve, reject) => {
-    pendingUserInputs.set(requestId, { taskId, resolve });
-    emitUserInputRequested(taskId, request.question);
+    pendingRegistry.add({
+      type: 'user_input',
+      taskId,
+      referenceId: result.id,
+      resolve: (value) => resolve(value ?? ''),
+    });
+    emitUserInputRequested(taskId, result.id, request.question);
 
     const onAbort = () => {
-      pendingUserInputs.delete(requestId);
+      pendingRegistry.remove('user_input', result.id);
       reject(new Error('aborted'));
     };
     if (signal) {
@@ -29,13 +54,13 @@ export function requestUserInput(
   });
 }
 
-export function respondUserInput(id: string, answer: string): boolean {
-  const p = pendingUserInputs.get(id);
-  if (!p) return false;
-  pendingUserInputs.delete(id);
+export function respondUserInput(id: number, answer: string): boolean {
+  const resolved = pendingRegistry.resolve('user_input', id, answer);
+  if (!resolved) return false;
 
-  emitUserInputResponded(p.taskId, answer);
+  const row = updateUserInput(id, { decision: answer, decidedAt: Date.now() });
 
-  p.resolve(answer);
+  emitUserInputResponded(row.taskId, id, answer);
+
   return true;
 }

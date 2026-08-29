@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { observable } from '@trpc/server/observable';
 import { router, publicProcedure } from './trpc.js';
-import { enqueueTask, cancelQueuedOrRunning } from '../orchestrator/queue.js';
+import { taskQueue } from '../orchestrator/queue.js';
 import { taskBus } from '../services/events.js';
-import type { TaskEventRecord } from '@shared/schema.js';
 import { createTask, getTask, listTasks, updateTask } from '@main/services/workspaces';
+import { type TaskEventRecord } from '@main/db/types.js';
 
 export const taskRouter = router({
   create: publicProcedure
@@ -24,26 +24,24 @@ export const taskRouter = router({
         agentId: input.agentId,
         workflowId: input.workflowId,
       });
-      if (input.autostart !== false) enqueueTask(task.id);
+      if (input.autostart !== false) taskQueue.enqueue(task.id);
       return task;
     }),
 
-  get: publicProcedure
-    .input(z.object({ id: z.number() }))
-    .query(({ input }) => getTask(input.id)),
+  get: publicProcedure.input(z.object({ id: z.number() })).query(({ input }) => getTask(input.id)),
 
   list: publicProcedure
     .input(z.object({ sessionId: z.number() }))
     .query(({ input }) => listTasks(input.sessionId)),
 
   start: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
-    enqueueTask(input.id);
+    taskQueue.enqueue(input.id);
     return { ok: true as const };
   }),
 
   cancel: publicProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(({ input }) => ({ ok: cancelQueuedOrRunning(input.id) })),
+    .mutation(({ input }) => ({ ok: taskQueue.cancel(input.id) })),
 
   retry: publicProcedure.input(z.object({ id: z.number() })).mutation(({ input }) => {
     const orig = getTask(input.id);
@@ -54,21 +52,19 @@ export const taskRouter = router({
       startedAt: null,
       finishedAt: null,
     });
-    enqueueTask(orig.id);
+    taskQueue.enqueue(orig.id);
     return orig;
   }),
 
-  events: publicProcedure
-    .input(z.object({ taskId: z.number() }))
-    .subscription(({ input }) => {
-      return observable<TaskEventRecord>((emit) => {
-        // Replay persisted events so late subscribers see full history
-        const past = taskBus.replayEvents(input.taskId);
-        for (const e of past) emit.next(e);
+  events: publicProcedure.input(z.object({ taskId: z.number() })).subscription(({ input }) => {
+    return observable<TaskEventRecord>((emit) => {
+      // Replay persisted events so late subscribers see full history
+      const past = taskBus.replayEvents(input.taskId);
+      for (const e of past) emit.next(e as TaskEventRecord);
 
-        // Then attach live listener for new events
-        const off = taskBus.on(input.taskId, (e) => emit.next(e));
-        return () => off();
-      });
-    }),
+      // Then attach live listener for new events
+      const off = taskBus.on(input.taskId, (e) => emit.next(e as TaskEventRecord));
+      return () => off();
+    });
+  }),
 });

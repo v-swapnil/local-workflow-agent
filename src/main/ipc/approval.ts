@@ -28,6 +28,6 @@ export const approvalRouter = router({
     }),
 
   respondUserInput: publicProcedure
-    .input(z.object({ id: z.string(), answer: z.string() }))
+    .input(z.object({ id: z.number(), answer: z.string() }))
     .mutation(({ input }) => ({ ok: respondUserInput(input.id, input.answer) })),
 });

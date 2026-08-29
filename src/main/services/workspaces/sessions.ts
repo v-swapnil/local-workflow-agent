@@ -1,8 +1,10 @@
 import { eq } from 'drizzle-orm';
+import { existsSync } from 'node:fs';
 import type { SessionRecord } from '@shared/schema.js';
 import { sessions } from '@main/db/schema';
 import { getSetting, SETTING_KEYS } from '../settings';
-import { createWorktree, removeWorktreeBySession } from '../worktrees';
+import { createWorktree, removeWorktreeBySession, getWorktreeForSession } from '../worktrees';
+import { getWorkspace } from './workspace';
 import { getDb } from '@main/db';
 
 export const createSession = async (workspaceId: number, title: string): Promise<SessionRecord> => {
@@ -57,4 +59,17 @@ export const deleteSession = (id: number): void => {
   // Child rows (tasks → messages/tool_calls/approvals/task_events, memories)
   // are removed by ON DELETE CASCADE foreign keys.
   getDb().delete(sessions).where(eq(sessions.id, id)).run();
+};
+
+// Resolve the workspace path a session runs against, preferring its worktree when present.
+export const resolveSessionWorkspace = async (sessionId: number) => {
+  const session = getSession(sessionId);
+  const workspace = await getWorkspace(session.workspaceId);
+
+  const worktree = getWorktreeForSession(sessionId);
+  if (worktree && existsSync(worktree.path)) {
+    return { workspaceId: workspace.id, workspacePath: worktree.path, hasWorktree: true };
+  }
+
+  return { workspaceId: workspace.id, workspacePath: workspace.path, hasWorktree: false };
 };

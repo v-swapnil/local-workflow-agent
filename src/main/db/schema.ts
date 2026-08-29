@@ -106,6 +106,24 @@ export const approvals = sqliteTable(
   }),
 );
 
+export const userInputs = sqliteTable(
+  'user_inputs',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    taskId: integer('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    toolCallId: integer('tool_call_id').references(() => toolCalls.id, { onDelete: 'set null' }),
+    question: text('question').notNull(),
+    description: text('description'),
+    choices: text('choices'), // comma separated values
+    decision: text('decision'),
+    createdAt: integer('created_at').notNull(),
+    decidedAt: integer('decided_at'),
+  },
+  (t) => ({ taskIdx: index('idx_approvals_task').on(t.taskId) }),
+);
+
 export const skills = sqliteTable('skills', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull().unique(),

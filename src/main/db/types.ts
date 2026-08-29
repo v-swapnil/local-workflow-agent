@@ -11,6 +11,7 @@ import {
   taskEvents,
   tasks,
   toolCalls,
+  userInputs,
   workflows,
   workspaces,
   worktrees,
@@ -31,3 +32,4 @@ export type SkillRecord = typeof skills.$inferSelect;
 export type AgentRecord = typeof agents.$inferSelect;
 export type WorkflowRecord = typeof workflows.$inferSelect;
 export type WorktreeRecord = typeof worktrees.$inferSelect;
+export type UserInputRecord = typeof userInputs.$inferSelect;

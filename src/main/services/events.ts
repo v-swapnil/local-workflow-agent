@@ -17,6 +17,9 @@ class TaskBus {
         taskId: event.taskId,
         type: event.type,
         payloadJson: JSON.stringify(event),
+        status: 'status' in event ? event.status : null,
+        content: 'content' in event ? event.content : null,
+        referenceId: 'referenceId' in event ? event.referenceId : null,
         createdAt: Date.now(),
       })
       .run();

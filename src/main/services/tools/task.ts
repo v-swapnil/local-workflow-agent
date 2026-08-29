@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createTask } from '../workspaces';
-import { enqueueTask } from '../../orchestrator/queue.js';
+import { taskQueue } from '../../orchestrator/queue.js';
 import type { Tool } from './types.js';
 import { ToolResultV2 } from '@shared/types';
 
@@ -22,7 +22,7 @@ export const createTaskTool: Tool<{ prompt: string }, ToolResultV2> = {
   run: async ({ prompt }, ctx) => {
     if (!ctx.sessionId) throw new Error('create_task requires a session context');
     const task = createTask(ctx.sessionId, prompt);
-    enqueueTask(task.id);
+    taskQueue.enqueue(task.id);
     return { status: 'success', content: `Task created successfully`, truncated: false };
   },
 };

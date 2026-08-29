@@ -1,4 +1,5 @@
 import { ToolName } from '@shared/agent';
+import { ToolResultV2 } from '@shared/types';
 
 function str(v: unknown): string {
   return typeof v === 'string' ? v : String(v ?? '');
@@ -49,57 +50,39 @@ export function summarizeToolCall(toolName: ToolName, args: Record<string, unkno
  * Produce a short human-readable label for a tool result.
  * Used by tool_call.finished rows.
  */
-export function summarizeToolResult(
-  toolName: ToolName,
-  ok: boolean,
-  output?: unknown,
-  error?: string,
-): string {
-  if (!ok) return error ? error : 'unknown error';
-
-  // Best-effort extraction from output
-  const o = output as Record<string, unknown> | undefined;
-  if (!o) return 'done';
-
+export function summarizeToolResult(toolName: ToolName): string {
   switch (toolName) {
-    case 'read_file': {
-      const lines = Array.isArray(o.lines) ? o.lines.length : null;
-      return lines != null ? `${lines} lines` : 'done';
-    }
+    case 'read_file':
+      return 'Read';
     case 'write_file':
       return 'written';
     case 'edit_file':
-      return typeof o.replacements === 'number' ? `${o.replacements} replacement(s)` : 'applied';
+      return 'Edited';
     case 'list_dir':
-      return typeof o === 'string' ? o : 'done';
-    case 'grep': {
-      const matches = Array.isArray(o.matches) ? o.matches.length : null;
-      return matches != null ? `${matches} match(es)` : 'done';
-    }
-    case 'glob': {
-      const arr = o.files ?? o;
-      const files = Array.isArray(arr) ? (arr as unknown[]).length : null;
-      return files != null ? `${files} file(s)` : 'done';
-    }
+      return 'Done';
+    case 'grep':
+      return 'Done';
+    case 'glob':
+      return 'Done';
     case 'run_shell':
-      return 'done';
+      return 'Done';
     case 'ask_question':
-      return 'answered';
+      return 'Answered';
     case 'task_complete':
-      return 'complete';
+      return 'Complete';
     case 'apply_patch':
-      return 'done';
+      return 'Done';
     case 'create_memory':
-      return 'done';
+      return 'Done';
     case 'create_task':
-      return 'done';
+      return 'Done';
     case 'outline_file':
-      return 'done';
+      return 'Done';
     case 'find_symbol':
-      return 'done';
+      return 'Done';
     case 'find_references':
-      return 'done';
+      return 'Done';
     default:
-      return 'done';
+      return 'Done';
   }
 }

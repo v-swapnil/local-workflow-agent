@@ -15,6 +15,13 @@
       "when": 1787993038979,
       "tag": "0001_reference_id_to_integer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788013279902,
+      "tag": "0002_add_user_input_table",
+      "breakpoints": true
     }
   ]
 }

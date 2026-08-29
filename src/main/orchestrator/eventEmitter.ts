@@ -3,6 +3,7 @@ import { taskBus } from '../services/events.js';
 import type { ApprovalStatus, LogLevel, TaskStatus, ToolResultV2 } from '@shared/types.js';
 import { updateTask } from '@main/services/workspaces';
 import { TaskResult, ToolName } from '@shared/agent.js';
+import { summarizeToolCall, summarizeToolResult } from '@main/services/tools/toolSummary.js';
 
 export const emitTaskStarted = (taskId: number, agentOrWorkflowId?: number | null) => {
   updateTask(taskId, { status: 'running', startedAt: Date.now() });
@@ -49,7 +50,13 @@ export const emitToolCallStarted = (
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit({ type: 'tool_call.started', taskId, referenceId: row.id, status: 'pending' });
+  taskBus.emit({
+    type: 'tool_call.started',
+    taskId,
+    referenceId: row.id,
+    status: 'pending',
+    content: summarizeToolCall(toolName, args),
+  });
 };
 
 export const emitToolCallFinished = (
@@ -69,6 +76,7 @@ export const emitToolCallFinished = (
       taskId,
       referenceId: toolCall.id,
       status: toolCallResult.status,
+      content: summarizeToolResult(toolCall.toolName as ToolName),
     });
   }
 };
@@ -98,10 +106,15 @@ export const emitApprovalDecided = (taskId: number, approvalId: number, status: 
   taskBus.emit({ type: 'approval.decided', taskId, referenceId: approvalId, status });
 };
 
-export const emitUserInputRequested = (taskId: number, question: string) => {
-  taskBus.emit({ type: 'user_input.requested', taskId, content: question });
+export const emitUserInputRequested = (taskId: number, userInputId: number, question: string) => {
+  taskBus.emit({
+    type: 'user_input.requested',
+    taskId,
+    content: question,
+    referenceId: userInputId,
+  });
 };
 
-export const emitUserInputResponded = (taskId: number, answer: string) => {
-  taskBus.emit({ type: 'user_input.responded', taskId, content: answer });
+export const emitUserInputResponded = (taskId: number, userInputId: number, answer: string) => {
+  taskBus.emit({ type: 'user_input.responded', taskId, content: answer, referenceId: userInputId });
 };

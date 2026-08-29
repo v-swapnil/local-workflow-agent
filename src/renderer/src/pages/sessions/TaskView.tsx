@@ -42,30 +42,29 @@ export function TaskView({ taskId }: { taskId: number }) {
   trpc.task.events.useSubscription(
     { taskId },
     {
-      onData: (ev) => {
-        const e = ev as TaskEventRecord;
-        setEvents((prev) => getEvents(prev, e));
-        if (e.type === 'approval.requested') {
+      onData: (event) => {
+        setEvents((prev) => getEvents(prev, event));
+        if (event.type === 'approval.requested') {
           setPendingApprovals((prev) => [
             ...prev,
-            { id: e.approvalId, tool: e.tool, args: e.args, ts: e.ts },
+            { id: event.referenceId, tool: event.tool, args: event.args, ts: event.createdAt },
           ]);
-        } else if (e.type === 'approval.decided') {
-          setPendingApprovals((prev) => prev.filter((a) => a.id !== e.approvalId));
-        } else if (e.type === 'user_input.requested') {
+        } else if (event.type === 'approval.decided') {
+          setPendingApprovals((prev) => prev.filter((a) => a.id !== event.referenceId));
+        } else if (event.type === 'user_input.requested') {
           setPendingUserInputs((prev) => [
             ...prev,
             {
-              id: e.requestId,
-              question: e.question,
-              description: e.description,
-              choices: e.choices,
-              ts: e.ts,
+              id: event.referenceId,
+              question: event.question,
+              description: event.description,
+              choices: event.choices,
+              ts: event.createdAt,
             },
           ]);
-        } else if (e.type === 'user_input.responded') {
-          setPendingUserInputs((prev) => prev.filter((r) => r.id !== e.requestId));
-        } else if (e.type === 'task.finished') {
+        } else if (event.type === 'user_input.responded') {
+          setPendingUserInputs((prev) => prev.filter((r) => r.id !== event.referenceId));
+        } else if (event.type === 'task.finished') {
           setPendingApprovals([]);
           setPendingUserInputs([]);
         }

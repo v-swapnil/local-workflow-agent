@@ -73,7 +73,12 @@ export const runShellTool: Tool<
 
     // 4. Prompted commands → request approval (standard flow handles session allow-listing)
     if (classification.tier === 'prompt' && ctx.taskId) {
-      const decision = await requestApproval(ctx.taskId, ctx.toolCallId, 'run_shell', ctx.signal);
+      const decision = await requestApproval(
+        ctx.taskId,
+        ctx.toolCallId ?? null,
+        'run_shell',
+        ctx.signal,
+      );
       if (decision === 'denied') {
         throw new Error('ERROR: command denied by user');
       }

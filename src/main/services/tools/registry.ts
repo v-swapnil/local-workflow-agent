@@ -115,7 +115,12 @@ export async function invokeTool(
     const parsed = tool.schema.parse(rawArgs) as Record<string, unknown>;
 
     if (tool.needsApproval && opts.taskId) {
-      const decision = await requestApproval(opts.taskId, opts.toolCallId, name, opts.signal);
+      const decision = await requestApproval(
+        opts.taskId,
+        opts.toolCallId ?? null,
+        name,
+        opts.signal,
+      );
       if (decision === 'denied') {
         return {
           status: 'cancelled',
@@ -130,7 +135,6 @@ export async function invokeTool(
       workspacePath: opts.workspacePath ?? workspace.path,
       sessionId: opts.sessionId,
       taskId: opts.taskId,
-      toolCallId: opts.toolCallId,
       signal: opts.signal,
     };
     const output = await tool.run(parsed, toolContext);

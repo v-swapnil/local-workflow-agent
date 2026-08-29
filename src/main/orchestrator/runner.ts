@@ -1,18 +1,14 @@
 import {
-  getSession,
   getTask,
   getTaskTimeout,
-  getWorkspace,
+  resolveSessionWorkspace,
   updateTask,
 } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
 import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
-import { clearTaskApprovals } from '../services/approvals/index.js';
 import { createBranch } from '../services/git';
-import { getWorktreeForSession } from '../services/worktrees.js';
-import { existsSync } from 'node:fs';
 import { buildGraph } from './graph.js';
 import type { AgentState } from './state.js';
 
@@ -20,6 +16,7 @@ import { runWorkflow } from './workflow-runner.js';
 import type { TaskResult } from '@shared/agent';
 import type { TaskRecord } from '@shared/schema';
 import type { RunCtx } from './runCtx';
+import { pendingRegistry } from '@main/services/approvals/state';
 
 const log = logger.child({ mod: 'runner' });
 
@@ -29,133 +26,116 @@ interface RunHandle {
   promise: Promise<TaskResult>;
 }
 
-const inflight = new Map<number, RunHandle>();
+class TaskRunner {
+  private inflight = new Map<number, RunHandle>();
 
-export function isRunning(taskId: number): boolean {
-  return inflight.has(taskId);
-}
+  private async execute(taskId: number, ctrl: AbortController): Promise<TaskResult> {
+    const task = getTask(taskId);
+    const session = await resolveSessionWorkspace(task.sessionId);
 
-export function cancelTask(taskId: number): boolean {
-  const h = inflight.get(taskId);
-  if (!h) return false;
-  h.ctrl.abort();
-  return true;
-}
+    try {
+      const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
+      const model = task.model ?? globalModel;
 
-export async function runTask(taskId: number): Promise<TaskResult> {
-  const existing = inflight.get(taskId);
-  if (existing) return existing.promise;
-
-  const ctrl = new AbortController();
-  const promise = doRunInner(taskId, ctrl).finally(() => {
-    inflight.delete(taskId);
-  });
-  inflight.set(taskId, { taskId, ctrl, promise });
-  return promise;
-}
-
-async function doRunInner(taskId: number, ctrl: AbortController): Promise<TaskResult> {
-  const task = getTask(taskId);
-  const session = await loadSessionWorkspace(task);
-
-  try {
-    const globalModel = await getSetting(SETTING_KEYS.PRIMARY_MODEL, '');
-    const model = task.model ?? globalModel;
-
-    if (!model) {
-      return finish(task, {
-        status: 'failed',
-        reason: 'no active model configured (Settings → Models)',
-      });
-    }
-
-    emitTaskStarted(taskId, task.workflowId ?? task.agentId ?? null);
-
-    // Optional: auto-branch per task before any code is written.
-    // Skip branching if session has an active worktree (it already has its own branch).
-    const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
-    const autoBranch = gitAutoEnabled && !session.hasWorktree;
-
-    if (autoBranch) {
-      try {
-        const branchName = `ase/${taskId}`;
-        await createBranch(session.workspaceId, branchName);
-        emitLog(taskId, 'info', `[git] checked out branch ${branchName}`);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        log.warn({ taskId, err: msg }, 'auto-branch failed');
-        emitLog(taskId, 'error', `[git] auto-branch failed: ${msg}`);
+      if (!model) {
+        return this.finish(task, {
+          status: 'failed',
+          reason: 'no active model configured (Settings → Models)',
+        });
       }
-    }
 
-    const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
-    updateTask(taskId, { provider });
+      emitTaskStarted(taskId, task.workflowId ?? task.agentId ?? null);
 
-    const taskTimeout = await getTaskTimeout();
+      // Optional: auto-branch per task before any code is written.
+      // Skip branching if session has an active worktree (it already has its own branch).
+      const gitAutoEnabled = (await getSetting(SETTING_KEYS.GIT_AUTO_BRANCH)) === '1';
+      const autoBranch = gitAutoEnabled && !session.hasWorktree;
 
-    const ctx: RunCtx = {
-      taskId,
-      sessionId: task.sessionId,
-      workspaceId: session.workspaceId,
-      workspacePath: session.workspacePath,
-      model,
-      signal: ctrl.signal,
-      agentId: task.agentId ?? null,
-      timeoutMs: taskTimeout,
-    };
+      if (autoBranch) {
+        try {
+          const branchName = `ase/${taskId}`;
+          await createBranch(session.workspaceId, branchName);
+          emitLog(taskId, 'info', `[git] checked out branch ${branchName}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          log.warn({ taskId, err: message }, 'auto-branch failed');
+          emitLog(taskId, 'error', `[git] auto-branch failed: ${message}`);
+        }
+      }
 
-    let result: TaskResult;
-    if (task.workflowId) {
-      result = await runWorkflow(taskId, task.workflowId, ctx);
-    } else {
-      const graph = buildGraph(provider);
-      const initial: Partial<AgentState> = { prompt: task.prompt };
-      await graph.invoke(initial, {
-        configurable: { runCtx: ctx },
+      const provider = await getSetting(SETTING_KEYS.ACTIVE_PROVIDER, PROVIDERS.OLLAMA);
+      updateTask(taskId, { provider });
+
+      const taskTimeout = await getTaskTimeout();
+
+      const ctx: RunCtx = {
+        taskId,
+        sessionId: task.sessionId,
+        workspaceId: session.workspaceId,
+        workspacePath: session.workspacePath,
+        model,
         signal: ctrl.signal,
-        timeout: taskTimeout,
-      });
-
-      result = {
-        status: 'succeeded',
+        agentId: task.agentId ?? null,
+        timeoutMs: taskTimeout,
       };
+
+      let result: TaskResult;
+      if (task.workflowId) {
+        result = await runWorkflow(taskId, task.workflowId, ctx);
+      } else {
+        const graph = buildGraph(provider);
+        const initial: Partial<AgentState> = { prompt: task.prompt };
+        await graph.invoke(initial, {
+          configurable: { runCtx: ctx },
+          signal: ctrl.signal,
+          timeout: taskTimeout,
+        });
+
+        result = {
+          status: 'succeeded',
+        };
+      }
+
+      return this.finish(task, result);
+    } catch (err) {
+      const aborted = ctrl.signal.aborted;
+      const message = err instanceof Error ? err.message : String(err);
+      log.error({ taskId, err: message }, 'task failed');
+      return this.finish(task, {
+        status: aborted ? 'cancelled' : 'failed',
+        reason: message,
+      });
     }
+  }
 
-    return finish(task, result);
-  } catch (err) {
-    const aborted = ctrl.signal.aborted;
-    const msg = err instanceof Error ? err.message : String(err);
-    log.error({ taskId, err: msg }, 'task failed');
-    return finish(task, {
-      status: aborted ? 'cancelled' : 'failed',
-      reason: msg,
+  private finish(task: TaskRecord, result: TaskResult): TaskResult {
+    pendingRegistry.clearForTask(task.id);
+    emitTaskFinished(task.id, result.status, result, task.workflowId ?? task.agentId ?? null);
+    return result;
+  }
+
+  isRunning(taskId: number): boolean {
+    return this.inflight.has(taskId);
+  }
+
+  cancel(taskId: number): boolean {
+    const handle = this.inflight.get(taskId);
+    if (!handle) return false;
+    handle.ctrl.abort();
+    return true;
+  }
+
+  run(taskId: number): Promise<TaskResult> {
+    const existing = this.inflight.get(taskId);
+    if (existing) return existing.promise;
+
+    const ctrl = new AbortController();
+    const promise = this.execute(taskId, ctrl).finally(() => {
+      this.inflight.delete(taskId);
     });
+    this.inflight.set(taskId, { taskId, ctrl, promise });
+    return promise;
   }
 }
 
-function finish(task: TaskRecord, result: TaskResult): TaskResult {
-  clearTaskApprovals(task.id);
-  emitTaskFinished(task.id, result.status, result, task.workflowId ?? task.agentId ?? null);
-  return result;
-}
-
-async function loadSessionWorkspace(task: TaskRecord) {
-  const session = getSession(task.sessionId);
-  const ws = await getWorkspace(session.workspaceId);
-
-  // Use worktree path if one exists and is valid on disk
-  const worktree = getWorktreeForSession(task.sessionId);
-  if (worktree && existsSync(worktree.path)) {
-    return {
-      workspaceId: ws.id,
-      workspacePath: worktree.path,
-      hasWorktree: true,
-    };
-  }
-
-  return {
-    workspaceId: ws.id,
-    workspacePath: ws.path,
-    hasWorktree: false,
-  };
-}
+export const taskRunner = new TaskRunner();

@@ -1,6 +1,5 @@
 import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
-import { summarizeToolCall, summarizeToolResult } from './toolSummary';
 import { Play, Square, StepForward } from 'lucide-react';
 
 export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
@@ -63,9 +62,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
           <span className="text-ink-500">→</span>{' '}
           <span className="text-ink-400">{ev.referenceId}</span>
           <span className="text-ink-600"> · </span>
-          <span className="text-ink-300">
-            {summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}
-          </span>
+          <span className="text-ink-300">{ev.content}</span>
         </Line>
       );
     case 'tool_call.finished':
@@ -73,13 +70,9 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
         <Line ts={t} tone={ev.status === 'success' ? 'ink' : 'rose'}>
           <span className="text-ink-500">←</span>{' '}
           {ev.status === 'success' ? (
-            <span className="text-emerald-400">
-              ✓ {summarizeToolResult(ev.tool, true, ev.output)}
-            </span>
+            <span className="text-emerald-400">✓ {ev.content}</span>
           ) : (
-            <span className="text-rose-400">
-              ✗ {summarizeToolResult(ev.tool, false, undefined, ev.error)}
-            </span>
+            <span className="text-rose-400">✗ {ev.content}</span>
           )}
         </Line>
       );
@@ -96,7 +89,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
         <Line ts={t} tone="amber">
           <span className="inline-flex items-center gap-1">
             <StepForward className="h-3 w-3" fill="currentColor" strokeWidth={0} />
-            approval · <span className="text-ink-200">{summarizeToolCall(ev.tool, ev.args)}</span>
+            approval requested
           </span>
         </Line>
       );

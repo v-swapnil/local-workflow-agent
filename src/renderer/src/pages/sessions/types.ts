@@ -1,13 +1,13 @@
 // TODO: remove this
 export interface ApprovalReq {
-  id: string;
+  id: number;
   tool: string;
   args: unknown;
   ts: number;
 }
 
 export interface UserInputReq {
-  id: string;
+  id: number;
   question: string;
   description?: string;
   choices?: string[];
