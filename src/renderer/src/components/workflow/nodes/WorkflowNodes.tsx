@@ -6,14 +6,14 @@ import { Textarea } from '../../ui/textarea';
 import { cn } from '@renderer/lib/utils';
 import { useWorkflowEditor } from '../WorkflowEditorContext';
 
-export interface AgentNodeData {
+interface AgentNodeData {
   agentId?: string;
   agentName?: string;
   label?: string;
   [key: string]: unknown;
 }
 
-export interface ApprovalNodeData {
+interface ApprovalNodeData {
   question?: string;
   choices?: string[];
   [key: string]: unknown;

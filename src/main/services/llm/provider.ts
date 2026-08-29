@@ -1,5 +1,3 @@
-export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
-
 /** A tool call returned by the LLM, or sent back as a tool result header. */
 export interface ToolCall {
   /** Unique ID used to correlate assistant tool_calls with tool result messages. */
@@ -7,9 +5,6 @@ export interface ToolCall {
   name: string;
   arguments: Record<string, unknown>;
 }
-
-/** @deprecated Use ToolCall. */
-export type ToolCallResult = ToolCall;
 
 /**
  * Discriminated union covering all message roles.
@@ -56,13 +51,6 @@ export interface ModelInfo {
   name: string;
   sizeBytes?: number;
   modifiedAt?: string;
-}
-
-export interface PullProgress {
-  status: string; // e.g. "downloading", "verifying", "success"
-  digest?: string;
-  total?: number;
-  completed?: number;
 }
 
 export interface LLMProvider {

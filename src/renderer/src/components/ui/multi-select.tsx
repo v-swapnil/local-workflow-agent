@@ -8,13 +8,8 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu';
 
-export interface MultiSelectOption {
-  value: string;
-  label: string;
-}
-
 interface MultiSelectProps {
-  options: MultiSelectOption[];
+  options: Array<{ value: string; label: string }>;
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;

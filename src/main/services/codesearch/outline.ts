@@ -1,5 +1,13 @@
 import { getParser } from './language.js';
-import { walk, toLine, tryMakeSymbol, variableKind, isNodeExported } from './ast.js';
+import {
+  walk,
+  toLine,
+  tryMakeSymbol,
+  variableKind,
+  isNodeExported,
+  isTopLevelDeclaration,
+  extractSignature,
+} from './ast.js';
 import type { SyntaxNode } from './ast.js';
 import type { OutlineSymbol, Language } from './types.js';
 
@@ -11,35 +19,36 @@ export function parseOutline(source: string, lang: Language): OutlineSymbol[] {
     return [];
   }
 
+  const lines = source.split('\n');
   if (lang === 'python') {
-    return parsePythonOutline(tree.rootNode);
+    return parsePythonOutline(tree.rootNode, lines);
   }
-  return parseTsJsOutline(tree.rootNode);
+  return parseTsJsOutline(tree.rootNode, lines);
 }
 
-function parseTsJsOutline(root: SyntaxNode): OutlineSymbol[] {
+function parseTsJsOutline(root: SyntaxNode, lines: string[]): OutlineSymbol[] {
   const symbols: OutlineSymbol[] = [];
 
   walk(root, (node) => {
     let sym: OutlineSymbol | null = null;
     switch (node.type) {
       case 'function_declaration':
-        sym = tryMakeSymbol(node, 'function');
+        sym = tryMakeSymbol(node, 'function', lines);
         break;
       case 'class_declaration':
-        sym = tryMakeSymbol(node, 'class');
+        sym = tryMakeSymbol(node, 'class', lines);
         break;
       case 'interface_declaration':
-        sym = tryMakeSymbol(node, 'interface');
+        sym = tryMakeSymbol(node, 'interface', lines);
         break;
       case 'type_alias_declaration':
-        sym = tryMakeSymbol(node, 'type');
+        sym = tryMakeSymbol(node, 'type', lines);
         break;
       case 'enum_declaration':
-        sym = tryMakeSymbol(node, 'enum');
+        sym = tryMakeSymbol(node, 'enum', lines);
         break;
       case 'method_definition':
-        sym = tryMakeSymbol(node, 'method', false);
+        sym = tryMakeSymbol(node, 'method', lines, false);
         break;
       case 'variable_declarator': {
         const nameNode = node.childForFieldName('name');
@@ -50,17 +59,18 @@ function parseTsJsOutline(root: SyntaxNode): OutlineSymbol[] {
           exported: isNodeExported(node),
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),
+          signature: extractSignature(node, lines),
         };
         break;
       }
     }
-    if (sym) symbols.push(sym);
+    if (sym && isTopLevelDeclaration(node)) symbols.push(sym);
   });
 
   return symbols;
 }
 
-function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
+function parsePythonOutline(root: SyntaxNode, lines: string[]): OutlineSymbol[] {
   const symbols: OutlineSymbol[] = [];
 
   function visit(node: SyntaxNode, parentClassName: string | null): void {
@@ -81,6 +91,7 @@ function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
           exported: !parentClassName,
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),
+          signature: extractSignature(node, lines),
         });
       }
       return;
@@ -96,6 +107,7 @@ function parsePythonOutline(root: SyntaxNode): OutlineSymbol[] {
           exported: true,
           startLine: toLine(node.startPosition.row),
           endLine: toLine(node.endPosition.row),
+          signature: extractSignature(node, lines),
         });
       }
       const body = node.childForFieldName('body');

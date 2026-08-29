@@ -6,6 +6,7 @@ export interface OutlineSymbol {
   exported: boolean;
   startLine: number; // 1-based
   endLine: number; // 1-based
+  signature: string; // length-capped declaration header
 }
 
 export interface ImportEntry {
@@ -29,12 +30,6 @@ export interface ReferenceResult {
   path: string;
   line: number;
   content: string;
-}
-
-export interface CodeFile {
-  absPath: string;
-  relPath: string; // workspace-relative, forward slashes
-  lang: Language;
 }
 
 export interface FileOutline {

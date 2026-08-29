@@ -17,8 +17,3 @@ export interface Tool<I, O> {
   needsApproval: boolean;
   run: (input: I, ctx: ToolContext) => Promise<O>;
 }
-
-export interface ToolInvocation {
-  name: ToolName;
-  args: unknown;
-}

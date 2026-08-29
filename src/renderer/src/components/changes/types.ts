@@ -20,15 +20,13 @@ export interface ActiveChange {
   staged?: boolean;
 }
 
-export interface GitStatusFile {
-  path: string;
-  from?: string;
-  index: string;
-  working_dir: string;
-}
-
 export interface GitStatus {
-  files?: GitStatusFile[];
+  files?: Array<{
+    path: string;
+    from?: string;
+    index: string;
+    working_dir: string;
+  }>;
   clean?: boolean;
   staged?: string[];
   not_added?: string[];

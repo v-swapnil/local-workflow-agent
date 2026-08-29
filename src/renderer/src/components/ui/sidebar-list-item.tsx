@@ -1,10 +1,4 @@
 import { cn } from '@renderer/lib/utils';
-import { TreeStatusDot } from './tree-node';
-
-export interface SidebarListItemTag {
-  label: string;
-  tone?: 'neutral' | 'amber' | 'ok' | 'err';
-}
 
 export interface SidebarListItemProps {
   title: string;

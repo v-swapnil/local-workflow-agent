@@ -42,19 +42,41 @@ export function extractSignature(node: SyntaxNode, lines: string[]): string {
 
 /** Check if a node is wrapped in an export_statement. */
 export function isNodeExported(node: SyntaxNode): boolean {
-  let p: SyntaxNode | null = node.parent;
-  while (p) {
-    if (p.type === 'export_statement') return true;
-    if (p.type === 'program' || p.type === 'class_body') break;
-    p = p.parent;
+  let ancestor: SyntaxNode | null = node.parent;
+  while (ancestor) {
+    if (ancestor.type === 'export_statement') return true;
+    // Stop at a function body so nested declarations don't inherit the enclosing function's export.
+    if (
+      ancestor.type === 'program' ||
+      ancestor.type === 'class_body' ||
+      ancestor.type === 'statement_block'
+    ) {
+      break;
+    }
+    ancestor = ancestor.parent;
   }
   return false;
+}
+
+/**
+ * True when a declaration sits at module top level or is a class member,
+ * i.e. it is not nested inside a function/method body (`statement_block`).
+ */
+export function isTopLevelDeclaration(node: SyntaxNode): boolean {
+  let ancestor: SyntaxNode | null = node.parent;
+  while (ancestor) {
+    if (ancestor.type === 'statement_block') return false;
+    if (ancestor.type === 'program') return true;
+    ancestor = ancestor.parent;
+  }
+  return true;
 }
 
 /** Build an OutlineSymbol from a declaration node, or null if it has no name. */
 export function tryMakeSymbol(
   node: SyntaxNode,
   kind: OutlineSymbol['kind'],
+  lines: string[],
   exported?: boolean,
 ): OutlineSymbol | null {
   const nameNode = node.childForFieldName('name');
@@ -65,6 +87,7 @@ export function tryMakeSymbol(
     exported: exported ?? isNodeExported(node),
     startLine: toLine(node.startPosition.row),
     endLine: toLine(node.endPosition.row),
+    signature: extractSignature(node, lines),
   };
 }
 

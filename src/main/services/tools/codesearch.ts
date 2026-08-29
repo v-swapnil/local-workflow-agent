@@ -5,13 +5,11 @@ import { grep } from '../grep.js';
 import {
   detectLanguage,
   parseOutline,
-  parseImports,
-  parseExports,
   findSymbolNodes,
   findReferenceNodes,
 } from '../codesearch/parser.js';
 import type { Tool } from './types.js';
-import { DefinitionResult, FileOutline, ReferenceResult } from '../codesearch/types';
+import { DefinitionResult, ReferenceResult } from '../codesearch/types';
 import { ToolResultV2 } from '@shared/types';
 
 const MAX_DEFS = 10;
@@ -41,9 +39,6 @@ export const outlineFileTool: Tool<{ path: string }, ToolResultV2> = {
     'Summarize the structure of a single workspace file in one call. Returns:\n' +
     '- symbols: all named symbols (functions, classes, methods, interfaces, types, ' +
     'enums, exported variables) with kind, exported flag, and line range.\n' +
-    '- imports: ES import statements with source module and imported identifiers ' +
-    '(CommonJS require() is not parsed).\n' +
-    '- exports: exported symbols with kind, line, and whether each is a re-export.\n' +
     "Use this to understand a file's structure and dependencies without reading its " +
     'full content. Trace an import to its source module, then call outline_file on that ' +
     'module to see what it provides.',
@@ -53,18 +48,11 @@ export const outlineFileTool: Tool<{ path: string }, ToolResultV2> = {
     const ws = await getWorkspace(ctx.workspaceId);
     const lang = detectLanguage(path);
     const source = lang ? await readSourceFile(safeJoin(ws.path, path)) : null;
-    const outline =
-      lang && source
-        ? {
-            symbols: parseOutline(source, lang),
-            imports: parseImports(source, lang),
-            exports: parseExports(source, lang),
-          }
-        : { symbols: [], imports: [], exports: [] };
+    const symbols = lang && source ? parseOutline(source, lang) : [];
     return {
       status: 'success',
       truncated: false,
-      content: outline as unknown as Record<string, unknown>,
+      content: symbols as unknown as Record<string, unknown>,
     };
   },
 };
