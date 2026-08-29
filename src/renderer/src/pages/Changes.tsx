@@ -22,27 +22,29 @@ function DiffPanel({
   setActive,
 }: {
   workspaceId: number;
-  worktreeId?: string;
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;
 }) {
   const [worktreeId, setWorktreeId] = useState<string>('');
 
-  const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });
+  const status = trpc.git.status.useQuery(
+    { workspaceId, worktreeId: worktreeId ? Number(worktreeId) : undefined },
+    { refetchInterval: 5000 },
+  );
   const worktrees = trpc.worktree.list.useQuery();
 
   useEffect(() => {
     const activeIds = new Set(
       (worktrees.data ?? []).filter((w) => w.status === 'active').map((w) => w.id),
     );
-    if (worktreeId && !activeIds.has(worktreeId)) setWorktreeId('');
+    if (worktreeId && !activeIds.has(Number(worktreeId))) setWorktreeId('');
   }, [worktreeId, worktrees.data]);
 
   const worktreeOptions = [
     { label: 'workspace root', value: '__root__' },
     ...(worktrees.data ?? [])
       .filter((w) => w.status === 'active')
-      .map((w) => ({ label: w.branch, value: w.id })),
+      .map((w) => ({ label: w.branch, value: String(w.id) })),
   ];
 
   return (
@@ -68,7 +70,7 @@ function DiffPanel({
           ) : (
             <ChangesSidebar
               workspaceId={workspaceId}
-              worktreeId={worktreeId}
+              worktreeId={Number(worktreeId)}
               active={active}
               setActive={setActive}
             />
@@ -83,7 +85,7 @@ function DiffPanel({
           ) : active ? (
             <UnifiedDiffPanel
               workspaceId={workspaceId}
-              worktreeId={worktreeId}
+              worktreeId={Number(worktreeId)}
               staged={active.staged}
               activePath={active.path}
             />

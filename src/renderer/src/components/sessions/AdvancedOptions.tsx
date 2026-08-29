@@ -89,7 +89,7 @@ export function AdvancedOptions({
             <SelectLabel>Agents</SelectLabel>
             <SelectItem value="SYSTEM">System</SelectItem>
             {agents.map((agent) => (
-              <SelectItem key={agent.id} value={agent.id}>
+              <SelectItem key={agent.id} value={String(agent.id)}>
                 {agent.name} ({agent.role})
               </SelectItem>
             ))}
@@ -98,7 +98,7 @@ export function AdvancedOptions({
           <SelectGroup>
             <SelectLabel>Workflows</SelectLabel>
             {workflows.map((workflow) => (
-              <SelectItem key={workflow.id} value={workflow.id}>
+              <SelectItem key={workflow.id} value={String(workflow.id)}>
                 {workflow.name}
               </SelectItem>
             ))}

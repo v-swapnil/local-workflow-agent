@@ -4,21 +4,10 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Card } from '../ui/card';
 import { Separator } from '../ui/separator';
-
-type Skill = {
-  name: string;
-  description: string;
-  enabled: boolean;
-  source: 'user' | 'workspace';
-  whenToUse?: string | null;
-  allowedTools: string[];
-  path: string;
-  updatedAt: number;
-  body: string;
-};
+import { SkillRecord } from '@shared/schema';
 
 type SkillDetailProps = {
-  skill: Skill;
+  skill: SkillRecord;
   onToggle: (enabled: boolean) => void;
 };
 

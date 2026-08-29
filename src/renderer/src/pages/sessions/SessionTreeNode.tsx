@@ -22,7 +22,7 @@ export function SessionTreeNode({
   onDelete,
   onTaskSelect,
 }: {
-  session: { id: string; title: string; updatedAt: number };
+  session: { id: number; title: string; updatedAt: number };
   isActive: boolean;
   isExpanded: boolean;
   focusedTaskId: number | null;

@@ -19,11 +19,11 @@ function WorkflowList({
   onNew,
   onDelete,
 }: {
-  workflows: { id: string; name: string; description?: string | null }[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  workflows: { id: number; name: string; description?: string | null }[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
   onNew: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }) {
   return (
     <aside className="flex overflow-y-auto w-60 shrink-0 flex-col border-r border-ink-800/60 group/sidebar p-4">
@@ -81,7 +81,7 @@ export function Workflows() {
   const { data: workflows = [] } = trpc.workflow.list.useQuery();
   const { data: agents = [] } = trpc.agent.list.useQuery();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [currentDef, setCurrentDef] = useState<WorkflowDefinition | null>(null);
@@ -132,7 +132,7 @@ export function Workflows() {
     { enabled: !!currentDef },
   );
 
-  function selectWorkflow(id: string) {
+  function selectWorkflow(id: number) {
     const w = workflows.find((x) => x.id === id);
     if (!w) return;
     setSelectedId(id);

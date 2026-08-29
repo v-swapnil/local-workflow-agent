@@ -19,8 +19,8 @@ export function SessionDetail({
   onTaskFocus,
 }: {
   sessionId: number;
-  focusedTaskId: string | null;
-  onTaskFocus: (id: string | null) => void;
+  focusedTaskId: number | null;
+  onTaskFocus: (id: number | null) => void;
 }) {
   const utils = trpc.useUtils();
   const session = trpc.session.get.useQuery({ id: sessionId });
@@ -47,8 +47,8 @@ export function SessionDetail({
       sessionId,
       prompt: prompt.trim(),
       model: modelOverride || undefined,
-      agentId: agentId || undefined,
-      workflowId: workflowId || undefined,
+      agentId: Number(agentId) || undefined,
+      workflowId: Number(workflowId) || undefined,
     });
   };
 
@@ -65,7 +65,7 @@ export function SessionDetail({
             {session.data?.title ?? '...'}
           </h1>
           <div className="mt-1 flex items-center gap-2 font-mono text-ui-2xs text-ink-500">
-            <span>{session.data?.id.slice(0, 8)}</span>
+            <span>{session.data?.id}</span>
             <span className="text-ink-400">·</span>
             <span>{tasks.data?.length ?? 0} tasks</span>
           </div>

@@ -8,7 +8,7 @@ import { trpc } from '../trpc';
 export function useActiveWorkspace(): {
   workspaceId: number | null;
   isLoading: boolean;
-  setActive: (id: string) => Promise<void>;
+  setActive: (id: number) => Promise<void>;
 } {
   const utils = trpc.useUtils();
   const list = trpc.workspace.list.useQuery();
@@ -27,7 +27,7 @@ export function useActiveWorkspace(): {
   return {
     workspaceId: active.data ?? null,
     isLoading: active.isLoading || list.isLoading,
-    setActive: async (id: string) => {
+    setActive: async (id: number) => {
       await setActive.mutateAsync({ id });
     },
   };

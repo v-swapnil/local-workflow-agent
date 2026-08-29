@@ -55,7 +55,7 @@ export function SessionChanges({
   worktreeId,
 }: {
   workspaceId: number;
-  worktreeId?: string;
+  worktreeId?: number;
 }) {
   const [open, setOpen] = useState(false);
   const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });

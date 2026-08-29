@@ -10,7 +10,7 @@ interface NotePatch {
 const AUTOSAVE_DELAY_MS = 600;
 
 /** Debounced autosave for a note. Cancels pending saves when the note changes. */
-export function useNoteAutosave(noteId: string, patch: NotePatch) {
+export function useNoteAutosave(noteId: number, patch: NotePatch) {
   const utils = trpc.useUtils();
   const update = trpc.notes.update.useMutation({
     onSuccess: () => utils.notes.list.invalidate(),

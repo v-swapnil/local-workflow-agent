@@ -11,7 +11,7 @@ import { ToolName } from '@shared/agent.js';
  */
 export const executeToolCalls = async (
   ctx: RunCtx,
-  messageId: string | null,
+  messageId: number | null,
   toolCalls: ToolCall[],
 ): Promise<ToolExecutionResult[]> => {
   const invokeOne = async (tc: ToolCall): Promise<ToolExecutionResult> => {

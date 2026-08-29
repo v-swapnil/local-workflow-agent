@@ -26,7 +26,6 @@ async function runExecutorLoop(
   temperature?: number,
 ): Promise<string> {
   const conv = new Conversation({ system: systemPrompt });
-  addMessage({ taskId: ctx.taskId, role: 'system', content: systemPrompt, agentId: ctx.agentId });
 
   const promptContext = await buildPromptContext(ctx);
   const goalLine = `**GOAL**: ${state.prompt}`;
@@ -47,6 +46,9 @@ async function runExecutorLoop(
       thinking: response.thinking ?? null,
       agentId: ctx.agentId,
       toolCalls: response.toolCalls?.length ? JSON.stringify(response.toolCalls) : null,
+      toolCallId: null,
+      toolName: null,
+      createdAt: Date.now(),
     });
 
     if (response.done || !response.toolCalls?.length) break;
@@ -59,14 +61,6 @@ async function runExecutorLoop(
       const r = results[i]!;
       const tc = response.toolCalls[i]!;
       conv.addToolResult(tc.id, r.toolName, r.content);
-      addMessage({
-        taskId: ctx.taskId,
-        role: 'tool',
-        content: r.content,
-        toolCallId: tc.id,
-        toolName: r.toolName,
-        agentId: ctx.agentId,
-      });
     }
 
     if (results.some((r) => r.status === 'success' && r.toolName === 'task_complete')) {
@@ -94,12 +88,12 @@ export async function executorNode(
   }
 
   try {
-    emitStepStarted(ctx.taskId, ctx.agentId || 'executor');
+    emitStepStarted(ctx.taskId, ctx.agentId);
     const result = await runExecutorLoop(ctx, systemPrompt, state, temperature);
-    emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'succeeded');
+    emitStepFinished(ctx.taskId, ctx.agentId, 'succeeded');
     return { result };
   } catch (err) {
-    emitStepFinished(ctx.taskId, ctx.agentId || 'executor', 'failed');
+    emitStepFinished(ctx.taskId, ctx.agentId, 'failed');
     throw err;
   }
 }

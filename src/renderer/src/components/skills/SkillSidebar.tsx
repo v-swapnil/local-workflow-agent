@@ -1,14 +1,8 @@
+import { SkillRecord } from '@shared/schema';
 import { SidebarListItem } from '../ui/sidebar-list-item';
 
-type Skill = {
-  name: string;
-  description: string;
-  enabled: boolean;
-  source: 'user' | 'workspace';
-};
-
 type SkillSidebarProps = {
-  skills: Skill[];
+  skills: SkillRecord[];
   focusedName: string | null;
   onSelect: (name: string) => void;
 };

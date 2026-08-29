@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 
 export interface WorkflowAgentOption {
-  id: string;
+  id: number;
   name: string;
   role: string;
 }

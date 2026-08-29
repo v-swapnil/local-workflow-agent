@@ -5,7 +5,7 @@ import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
 import { getTask } from './workspaces/tasks.js';
 
 export function addMessage(input: Omit<MessageRecord, 'id'>) {
-  getDb().insert(messages).values(input).run();
+  const result = getDb().insert(messages).values(input).returning().get();
 
   // Bump the owning session's updatedAt via the message's task
   const owningTask = getTask(input.taskId);
@@ -16,6 +16,8 @@ export function addMessage(input: Omit<MessageRecord, 'id'>) {
       .where(eq(sessions.id, owningTask.sessionId))
       .run();
   }
+
+  return result;
 }
 
 export function listMessages(sessionId: number): MessageRecord[] {

@@ -7,7 +7,7 @@ import { NewNoteModal } from './NewNoteModal';
 export function Notes() {
   const utils = trpc.useUtils();
   const notesQuery = trpc.notes.list.useQuery();
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   const createNote = trpc.notes.create.useMutation({

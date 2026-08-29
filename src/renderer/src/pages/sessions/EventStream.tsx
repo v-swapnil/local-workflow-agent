@@ -42,7 +42,8 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
     case 'step.started':
       return (
         <Line ts={t} tone="ink">
-          <span className="text-ink-500">→</span> <span className="text-ink-400">{ev.agentId}</span>
+          <span className="text-ink-500">→</span>{' '}
+          <span className="text-ink-400">{ev.referenceId}</span>
         </Line>
       );
     case 'step.finished':
@@ -60,7 +61,7 @@ export function EventRow({ ev }: { ev: TaskEventRecord & { ts: number } }) {
       return (
         <Line ts={t} tone="ink">
           <span className="text-ink-500">→</span>{' '}
-          <span className="text-ink-400">{ev.toolCallId}</span>
+          <span className="text-ink-400">{ev.referenceId}</span>
           <span className="text-ink-600"> · </span>
           <span className="text-ink-300">
             {summarizeToolCall(ev.tool, ev.input as Record<string, unknown>)}

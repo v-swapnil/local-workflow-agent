@@ -1,14 +1,14 @@
 import { Plus, FileText, X } from 'lucide-react';
 import { SidebarListItem } from '../../components/ui/sidebar-list-item';
-import type { Note } from '@shared/types';
 import { Button } from '@renderer/components/ui/button';
+import { NoteRecord } from '@shared/schema';
 
 interface NotesSidebarProps {
-  notes: Note[];
-  selectedNoteId: string | null;
-  onSelectNote: (id: string) => void;
+  notes: NoteRecord[];
+  selectedNoteId: number | null;
+  onSelectNote: (id: number) => void;
   onCreateNote: () => void;
-  onDeleteNote: (id: string) => void;
+  onDeleteNote: (id: number) => void;
 }
 
 export function NotesSidebar({
@@ -33,7 +33,7 @@ export function NotesSidebar({
             <li key={note.id}>
               <SidebarListItem
                 title={note.title || 'Untitled'}
-                description={note.tags.join(', ')}
+                description={note.tags}
                 isActive={note.id === selectedNoteId}
                 onSelect={() => onSelectNote(note.id)}
                 actions={

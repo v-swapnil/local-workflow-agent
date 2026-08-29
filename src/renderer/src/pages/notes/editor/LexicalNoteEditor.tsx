@@ -13,7 +13,7 @@ import { MarkdownMode } from './MarkdownMode';
 export type NoteEditorMode = 'wysiwyg' | 'markdown';
 
 interface LexicalNoteEditorProps {
-  noteId: string;
+  noteId: number;
   mode: NoteEditorMode;
   initialValue: string;
   onChange: (markdown: string) => void;

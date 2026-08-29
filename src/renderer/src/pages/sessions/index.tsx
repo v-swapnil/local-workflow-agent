@@ -16,9 +16,9 @@ export function Sessions() {
     { workspaceId: workspaceId ?? undefined },
     { enabled: !!workspaceId },
   );
-  const [sessionId, setSessionId] = useState<string | null>(searchParams.get('id'));
-  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
-  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const [sessionId, setSessionId] = useState<number | null>(searchParams.get('id') ? Number(searchParams.get('id')) : null);
+  const [focusedTaskId, setFocusedTaskId] = useState<number | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Set<number>>(new Set());
   const [showNewModal, setShowNewModal] = useState(false);
   const create = trpc.session.create.useMutation({
     onSuccess: async (s) => {
@@ -56,7 +56,7 @@ export function Sessions() {
     if (sessionId) setExpandedSessions((prev) => new Set(prev).add(sessionId));
   }, [sessionId]);
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (id: number) => {
     setExpandedSessions((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);

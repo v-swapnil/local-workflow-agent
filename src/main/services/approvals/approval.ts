@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import { pendingApprovals, pendingUserInputs } from './state.js';
 import { ApprovalStatus } from '@shared/types.js';
 import { ApprovalRecord } from '@shared/schema.js';
+import { getToolCallByToolCallId } from '../store.js';
 
 export const isAutoApprove = async (): Promise<boolean> => {
   return (await getSetting(SETTING_KEYS.AUTO_APPPROVE_TOOLS)) === 'true';
@@ -42,13 +43,18 @@ const updateApprovalDecision = (id: number, decision: ApprovalStatus) => {
  */
 export const requestApproval = async (
   taskId: number,
-  toolCallId: number,
+  toolCallId: string | null | undefined,
   toolName: ToolName,
   signal?: AbortSignal,
 ): Promise<ApprovalStatus> => {
   if (await isAutoApprove()) return 'approved';
 
-  const result = createPendingApproval(taskId, toolCallId, toolName);
+  // @ts-expect-error - FIXME
+  const toolCall = getToolCallByToolCallId(taskId, toolCallId);
+
+  if (!toolCall) return 'denied';
+
+  const result = createPendingApproval(taskId, toolCall.id, toolName);
 
   updateTask(taskId, { status: 'awaiting_approval' });
 

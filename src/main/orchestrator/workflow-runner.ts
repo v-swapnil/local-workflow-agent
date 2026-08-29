@@ -72,7 +72,7 @@ export async function runWorkflow(
     } else if (node.type === 'approval') {
       graph.addNode(node.id, async (_state: WorkflowState) => {
         emitLog(taskId, 'info', `[workflow] approval requested by node "${node.id}"`);
-        const decision = await requestApproval(taskId, ctx.toolCallId, 'ask_question', ctx.signal);
+        const decision = await requestApproval(taskId, null, 'ask_question', ctx.signal);
         if (decision === 'denied') {
           throw new Error(`Approval denied at node "${node.id}"`);
         }

@@ -4,17 +4,36 @@ import type { ApprovalStatus, LogLevel, TaskStatus, ToolResultV2 } from '@shared
 import { updateTask } from '@main/services/workspaces';
 import { TaskResult, ToolName } from '@shared/agent.js';
 
-export const emitStepStarted = (taskId: number, agentId: string) => {
-  taskBus.emit({ type: 'step.started', taskId, agentId, status: 'running' });
+export const emitTaskStarted = (taskId: number, agentOrWorkflowId?: number | null) => {
+  updateTask(taskId, { status: 'running', startedAt: Date.now() });
+  taskBus.emit({ type: 'task.started', taskId, status: 'running', referenceId: agentOrWorkflowId });
 };
 
-export const emitStepFinished = (taskId: number, agentId: string, status: TaskStatus) => {
-  taskBus.emit({ type: 'step.finished', taskId, agentId, status });
+export const emitTaskFinished = (
+  taskId: number,
+  status: TaskStatus,
+  result?: TaskResult,
+  agentOrWorkflowId?: number | null,
+) => {
+  updateTask(taskId, {
+    status,
+    result: result ? JSON.stringify(result) : null,
+    finishedAt: Date.now(),
+  });
+  taskBus.emit({ type: 'task.finished', taskId, status, referenceId: agentOrWorkflowId });
+};
+
+export const emitStepStarted = (taskId: number, agentId: number | null) => {
+  taskBus.emit({ type: 'step.started', taskId, referenceId: agentId, status: 'running' });
+};
+
+export const emitStepFinished = (taskId: number, agentId: number | null, status: TaskStatus) => {
+  taskBus.emit({ type: 'step.finished', taskId, referenceId: agentId, status });
 };
 
 export const emitToolCallStarted = (
   taskId: number,
-  messageId: string | null,
+  messageId: number | null,
   toolCallId: string,
   toolName: ToolName,
   args: Record<string, unknown>,
@@ -30,7 +49,7 @@ export const emitToolCallStarted = (
     startedAt: Date.now(),
     finishedAt: null,
   });
-  taskBus.emit({ type: 'tool_call.started', taskId, toolCallId: row.id, status: 'pending' });
+  taskBus.emit({ type: 'tool_call.started', taskId, referenceId: row.id, status: 'pending' });
 };
 
 export const emitToolCallFinished = (
@@ -48,24 +67,14 @@ export const emitToolCallFinished = (
     taskBus.emit({
       type: 'tool_call.finished',
       taskId,
-      toolCallId: toolCall.id,
+      referenceId: toolCall.id,
       status: toolCallResult.status,
     });
   }
 };
 
-export const emitTaskStarted = (taskId: number) => {
-  updateTask(taskId, { status: 'running', startedAt: Date.now() });
-  taskBus.emit({ type: 'task.started', taskId, status: 'running' });
-};
-
-export const emitTaskFinished = (taskId: number, status: TaskStatus, result?: TaskResult) => {
-  updateTask(taskId, {
-    status,
-    result: result ? JSON.stringify(result) : null,
-    finishedAt: Date.now(),
-  });
-  taskBus.emit({ type: 'task.finished', taskId, status });
+export const emitMessagePrompt = (taskId: number, content: string) => {
+  taskBus.emit({ type: 'llm.prompt', taskId, content });
 };
 
 export const emitMessageDelta = (taskId: number, content: string) => {
@@ -82,11 +91,11 @@ export const emitLog = (taskId: number, logLevel: LogLevel, content: string) => 
 };
 
 export const emitApprovalRequested = (taskId: number, approvalId: number) => {
-  taskBus.emit({ type: 'approval.requested', taskId, approvalId, status: 'pending' });
+  taskBus.emit({ type: 'approval.requested', taskId, referenceId: approvalId, status: 'pending' });
 };
 
 export const emitApprovalDecided = (taskId: number, approvalId: number, status: ApprovalStatus) => {
-  taskBus.emit({ type: 'approval.decided', taskId, approvalId, status });
+  taskBus.emit({ type: 'approval.decided', taskId, referenceId: approvalId, status });
 };
 
 export const emitUserInputRequested = (taskId: number, question: string) => {

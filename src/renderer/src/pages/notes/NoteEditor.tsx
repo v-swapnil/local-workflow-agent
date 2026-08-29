@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { Input } from '../../components/ui/input';
 import { LexicalNoteEditor, type NoteEditorMode } from './editor/LexicalNoteEditor';
 import { useNoteAutosave } from './useNoteAutosave';
-import type { Note } from '@shared/types';
 import { Switch } from '@renderer/components/ui/switch';
 import { Label } from '@renderer/components/ui/label';
+import { NoteRecord } from '@shared/schema';
 
 /** Mounted with `key={note.id}` by the caller so switching notes fully remounts
  * this component — local state always starts from the correct note and any
  * pending autosave timer for the previous note is cancelled on unmount. */
-export function NoteEditor({ note }: { note: Note }) {
+export function NoteEditor({ note }: { note: NoteRecord }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
-  const [tags, setTags] = useState<string[]>(note.tags);
+  const [tags, setTags] = useState<string[]>(
+    typeof note.tags === 'string' ? note.tags.split(',') : note.tags,
+  );
   const [tagInput, setTagInput] = useState('');
   const [mode, setMode] = useState<NoteEditorMode>('wysiwyg');
 

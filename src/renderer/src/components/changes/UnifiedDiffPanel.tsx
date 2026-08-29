@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface UnifiedDiffPanelProps {
   workspaceId: number;
-  worktreeId?: string;
+  worktreeId?: number;
   staged?: boolean;
   activePath: string;
 }

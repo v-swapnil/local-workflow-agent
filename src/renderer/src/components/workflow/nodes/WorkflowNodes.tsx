@@ -163,7 +163,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
             value={d.agentId || '__none__'}
             onValueChange={(v) => {
               const val = v === '__none__' ? '' : v;
-              const agent = agents.find((x) => x.id === val);
+              const agent = agents.find((x) => String(x.id) === val);
               updateNodeData(id, { agentId: val, agentName: agent?.name ?? '' });
             }}
           >
@@ -173,7 +173,7 @@ export function AgentNode({ id, data, selected }: NodeProps) {
             <SelectContent>
               <SelectItem value="__none__">— pick agent —</SelectItem>
               {agents.map((agent) => (
-                <SelectItem key={agent.id} value={agent.id}>
+                <SelectItem key={agent.id} value={String(agent.id)}>
                   {agent.name}
                   <span className="ml-1 text-ink-500">({agent.role})</span>
                 </SelectItem>

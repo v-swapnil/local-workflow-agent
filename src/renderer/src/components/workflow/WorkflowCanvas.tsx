@@ -32,7 +32,7 @@ const DEFAULT_NODES: Node[] = [
 
 interface WorkflowCanvasProps {
   initialDefinition?: WorkflowDefinition | null;
-  agents: { id: string; name: string; role: string }[];
+  agents: { id: number; name: string; role: string }[];
   onChange?: (def: WorkflowDefinition) => void;
 }
 

@@ -69,7 +69,7 @@ async function doRunInner(taskId: number, ctrl: AbortController): Promise<TaskRe
       });
     }
 
-    emitTaskStarted(taskId);
+    emitTaskStarted(taskId, task.workflowId ?? task.agentId ?? null);
 
     // Optional: auto-branch per task before any code is written.
     // Skip branching if session has an active worktree (it already has its own branch).
@@ -135,7 +135,7 @@ async function doRunInner(taskId: number, ctrl: AbortController): Promise<TaskRe
 
 function finish(task: TaskRecord, result: TaskResult): TaskResult {
   clearTaskApprovals(task.id);
-  emitTaskFinished(task.id, result.status, result);
+  emitTaskFinished(task.id, result.status, result, task.workflowId ?? task.agentId ?? null);
   return result;
 }
 

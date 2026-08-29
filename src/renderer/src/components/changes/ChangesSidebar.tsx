@@ -8,7 +8,7 @@ import { GitStatus } from '@pierre/trees';
 
 interface ChangesSidebarProps {
   workspaceId: number;
-  worktreeId: string;
+  worktreeId: number;
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;
 }
