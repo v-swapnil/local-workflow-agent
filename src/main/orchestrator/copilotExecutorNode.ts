@@ -5,7 +5,6 @@ import { llmChat } from './llmChat.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { buildPromptContext } from './prompts-context.js';
 import { getAgent } from '../services/agents.js';
-import { addMessage } from '../services/store.js';
 import { ctxOf } from './runCtx.js';
 import type { AgentState } from './state.js';
 
@@ -28,15 +27,22 @@ export async function copilotExecutorNode(
   try {
     emitStepStarted(ctx.taskId, ctx.agentId);
 
-    const conv = new Conversation({ system: systemPrompt });
+    const conv = new Conversation({ taskId: ctx.taskId, agentId: ctx.agentId });
+
+    conv.addSystemMessage(systemPrompt);
+
     const promptContext = await buildPromptContext(ctx);
-    conv.addUserMessage([promptContext, state.prompt].join('\n'));
+
+    conv.addUserMessage([promptContext, '---', state.prompt].join('\n'));
 
     // CopilotProvider.chat() handles the full agentic session (tools, permissions, events).
     // It returns done:true since toolCalls is always [] (SDK manages tools internally).
     const response = await llmChat(ctx, conv.getMessages(), agent?.temperature);
 
     emitStepFinished(ctx.taskId, ctx.agentId, 'succeeded');
+
+    conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
+
     return { result: response.text };
   } catch (err) {
     emitStepFinished(ctx.taskId, ctx.agentId, 'failed');

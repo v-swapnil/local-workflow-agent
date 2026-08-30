@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
 import { sessions, messages, tasks, toolCalls } from '../db/schema.js';
 import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
@@ -29,6 +29,16 @@ export function listMessages(sessionId: number): MessageRecord[] {
     .all()
     .map((row) => row.messages)
     .sort((first, second) => first.createdAt - second.createdAt) as MessageRecord[];
+}
+
+/** Messages for a single task, in insertion order (conversation order). */
+export function listTaskMessages(taskId: number): MessageRecord[] {
+  return getDb()
+    .select()
+    .from(messages)
+    .where(eq(messages.taskId, taskId))
+    .orderBy(asc(messages.id))
+    .all() as MessageRecord[];
 }
 
 export function addToolCall(input: Omit<ToolCallRecord, 'id'>): ToolCallRecord {

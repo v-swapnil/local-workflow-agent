@@ -7,7 +7,6 @@ import { executeToolCalls } from './toolExecution.js';
 import { emitStepStarted, emitStepFinished } from './eventEmitter.js';
 import { ctxOf } from './runCtx.js';
 import { getAgent } from '../services/agents.js';
-import { addMessage } from '../services/store.js';
 import type { RunCtx } from './runCtx.js';
 import type { AgentState } from './state.js';
 import { buildPromptContext } from './prompts-context.js';
@@ -25,11 +24,14 @@ async function runExecutorLoop(
   state: AgentState,
   temperature?: number,
 ): Promise<string> {
-  const conv = new Conversation({ system: systemPrompt });
+  const conv = new Conversation({ taskId: ctx.taskId, agentId: ctx.agentId });
+
+  conv.addSystemMessage(systemPrompt);
 
   const promptContext = await buildPromptContext(ctx);
   const goalLine = `**GOAL**: ${state.prompt}`;
-  conv.addUserMessage([promptContext, goalLine].join('\n'));
+
+  conv.addUserMessage([promptContext, '---', goalLine].join('\n'));
 
   let finalText = '';
 
@@ -39,21 +41,13 @@ async function runExecutorLoop(
     const response = await llmChat(ctx, conv.getMessages(), temperature);
     finalText = response.text;
 
-    const assistantMessage = addMessage({
-      taskId: ctx.taskId,
-      role: 'assistant',
-      content: response.text,
-      thinking: response.thinking ?? null,
-      agentId: ctx.agentId,
-      toolCalls: response.toolCalls?.length ? JSON.stringify(response.toolCalls) : null,
-      toolCallId: null,
-      toolName: null,
-      createdAt: Date.now(),
-    });
+    const assistantMessage = conv.addAssistantMessage(
+      response.text,
+      response.thinking,
+      response.toolCalls,
+    );
 
     if (response.done || !response.toolCalls?.length) break;
-
-    conv.addAssistantMessage(response.text, response.thinking, response.toolCalls);
 
     const results = await executeToolCalls(ctx, assistantMessage.id, response.toolCalls);
 
