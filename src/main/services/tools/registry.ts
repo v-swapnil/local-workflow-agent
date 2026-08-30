@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getWorkspace } from '../workspaces';
 import {
   readFileTool,
@@ -56,7 +55,7 @@ export function listTools(): {
     description: t.description,
     needsApproval: t.needsApproval,
     readOnly: READ_ONLY_TOOLS.includes(t.name),
-    argsSchema: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
+    argsSchema: z.toJSONSchema(t.schema, { target: 'draft-7' }) as Record<string, unknown>,
   }));
 }
 
@@ -70,7 +69,7 @@ export function listToolsForLLM(): ChatToolDef[] {
     function: {
       name: t.name,
       description: t.description,
-      parameters: zodToJsonSchema(t.schema, { target: 'jsonSchema7' }) as Record<string, unknown>,
+      parameters: z.toJSONSchema(t.schema, { target: 'draft-7' }) as Record<string, unknown>,
     },
   }));
 }

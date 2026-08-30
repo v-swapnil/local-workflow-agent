@@ -1,5 +1,5 @@
 import { COPILOT_CLI_URL, DEFAULT_COPILOT_MODEL } from '@shared/constants';
-import { CopilotClient, type SessionEvent } from '@github/copilot-sdk';
+import { CopilotClient, RuntimeConnection, type SessionEvent } from '@github/copilot-sdk';
 import { BaseLLMProvider } from './provider.js';
 import type { ChatOptions, ChatResult, ModelInfo } from './provider.js';
 import { getSetting, SETTING_KEYS } from '../settings.js';
@@ -28,7 +28,7 @@ export class CopilotProvider extends BaseLLMProvider {
     try {
       log.info('connecting to Copilot CLI server...');
       const client = new CopilotClient({
-        cliUrl: url,
+        connection: RuntimeConnection.forUri(url),
         logLevel: 'warning',
       });
       log.info('starting Copilot CLI client...');

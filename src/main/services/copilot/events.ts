@@ -22,7 +22,13 @@ export async function bridgeEvent(taskId: number, event: SessionEvent): Promise<
 
     case 'tool.execution_start': {
       const tool = event.data.toolName as ToolName;
-      emitToolCallStarted(taskId, null, event.data.toolCallId, tool, event.data.arguments || {});
+      const toolArguments =
+        event.data.arguments &&
+        typeof event.data.arguments === 'object' &&
+        !Array.isArray(event.data.arguments)
+          ? (event.data.arguments as Record<string, unknown>)
+          : {};
+      emitToolCallStarted(taskId, null, event.data.toolCallId, tool, toolArguments);
       break;
     }
 

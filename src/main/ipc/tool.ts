@@ -11,7 +11,7 @@ export const toolRouter = router({
       z.object({
         workspaceId: z.number(),
         name: z.enum(listToolNames() as [ToolName, ...ToolName[]]),
-        args: z.record(z.unknown()),
+        args: z.record(z.string(), z.unknown()),
       }),
     )
     .mutation(({ input }) =>
