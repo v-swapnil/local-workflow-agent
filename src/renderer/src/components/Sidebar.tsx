@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { trpc } from '../trpc';
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const ICON_CLASS = 'h-3.5 w-3.5';
-const ICONS: Record<string, JSX.Element> = {
+const ICONS: Record<string, ReactElement> = {
   sessions: <LayoutList className={ICON_CLASS} strokeWidth={1.3} />,
   board: <Columns3 className={ICON_CLASS} strokeWidth={1.3} />,
   changes: <GitCompareArrows className={ICON_CLASS} strokeWidth={1.3} />,

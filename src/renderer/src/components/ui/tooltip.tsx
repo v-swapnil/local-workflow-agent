@@ -28,7 +28,7 @@ const TooltipContent = React.forwardRef<
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
 interface SimpleTooltipProps
-  extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> {
+  extends Omit<React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>, "content"> {
   content: React.ReactNode
   children: React.ReactNode
   delayDuration?: number

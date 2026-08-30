@@ -25,20 +25,17 @@ export function FileTree({ paths, gitStatus, activePath, onOpen }: FileTreeProps
     icons: 'standard',
     gitStatus,
     flattenEmptyDirectories: true,
+    onSelectionChange: (selected) => {
+      const selectedPath = selected?.[0];
+      if (!selectedPath) return;
+      if (model.getItem(selectedPath)?.isDirectory()) return;
+      onOpen(selectedPath);
+    },
   });
-
-  const selectedPaths = useFileTreeSelection(model);
 
   useEffect(() => {
     model.resetPaths(cleanPaths);
   }, [model, cleanPaths]);
-
-  useEffect(() => {
-    const selectedPath = selectedPaths[0];
-    if (!selectedPath) return;
-    const item = model.getItem(selectedPath);
-    if (item && !item.isDirectory()) onOpen(selectedPath);
-  }, [selectedPaths, model, onOpen]);
 
   return <PierreFileTree model={model} style={{ ...styles, height: '100%' }} />;
 }

@@ -15,7 +15,7 @@ export function useNoteAutosave(noteId: number, patch: NotePatch) {
   const update = trpc.notes.update.useMutation({
     onSuccess: () => utils.notes.list.invalidate(),
   });
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { title, content, tags } = patch;
 
   useEffect(() => {
