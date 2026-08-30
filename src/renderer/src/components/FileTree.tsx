@@ -19,11 +19,12 @@ export function FileTree({ paths, gitStatus, activePath, onOpen }: FileTreeProps
 
   const { model } = useFileTree({
     paths: cleanPaths,
-    initialExpansion: 'open',
+    initialExpansion: 'closed',
     search: true,
     initialSelectedPaths: activePath ? [activePath] : undefined,
     icons: 'standard',
     gitStatus,
+    flattenEmptyDirectories: true,
   });
 
   const selectedPaths = useFileTreeSelection(model);

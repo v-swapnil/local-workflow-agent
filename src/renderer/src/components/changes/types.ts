@@ -17,7 +17,6 @@ export interface ActiveChange {
   path: string;
   kind: ChangeKind;
   originalPath?: string;
-  staged?: boolean;
 }
 
 export interface GitStatus {

@@ -58,13 +58,9 @@ export const gitRouter = router({
       showFileAtHeadAtPath(await resolveGitPath(input.workspaceId, input.worktreeId), input.path),
     ),
   fileDiff: publicProcedure
-    .input(workspaceIn.extend({ path: z.string().min(1), staged: z.boolean().optional() }))
+    .input(workspaceIn.extend({ path: z.string().min(1) }))
     .query(async ({ input }) =>
-      fileDiffAtPath(
-        await resolveGitPath(input.workspaceId, input.worktreeId),
-        input.path,
-        !!input.staged,
-      ),
+      fileDiffAtPath(await resolveGitPath(input.workspaceId, input.worktreeId), input.path),
     ),
   currentBranch: publicProcedure
     .input(workspaceIn)

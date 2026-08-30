@@ -1,14 +1,12 @@
 import { trpc } from '@renderer/trpc';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useChangedFiles } from './useChangedFiles';
 import { FileTree } from '../FileTree';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { GitStatus } from '@pierre/trees';
-import { ActiveChange, ChangeKind } from './types';
+import { ActiveChange, ChangedFile, ChangeKind } from './types';
 
 interface ChangesSidebarProps {
   workspaceId: number;
-  worktreeId: number;
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;
 }
@@ -28,47 +26,48 @@ function toGitStatus(kind: ChangeKind): GitStatus {
   }
 }
 
-export function ChangesSidebar({
-  workspaceId,
-  worktreeId,
-  active,
-  setActive,
-}: ChangesSidebarProps) {
-  const [activeTab, setActiveTab] = useState<'staged' | 'unstaged'>('unstaged');
-
-  const status = trpc.git.status.useQuery({ workspaceId, worktreeId }, { refetchInterval: 5000 });
+export function ChangesSidebar({ workspaceId, active, setActive }: ChangesSidebarProps) {
+  const status = trpc.git.status.useQuery({ workspaceId }, { refetchInterval: 5000 });
 
   const filesBySection = useChangedFiles(status.data);
 
-  const stagedFiles = filesBySection.staged;
-  const unStagedFiles = filesBySection.others;
+  // Merge staged + unstaged into a single deduped list keyed by path.
+  const changedFiles = useMemo<ChangedFile[]>(() => {
+    const byPath = new Map<string, ChangedFile>();
+    for (const file of [...filesBySection.staged, ...filesBySection.others]) {
+      if (!byPath.has(file.path)) byPath.set(file.path, file);
+    }
+    return [...byPath.values()];
+  }, [filesBySection.staged, filesBySection.others]);
 
-  const activeFiles = activeTab === 'staged' ? stagedFiles : unStagedFiles;
+  // Stable references so FileTree does not reset its expansion state on every render.
+  const treePaths = useMemo(() => changedFiles.map((file) => file.path), [changedFiles]);
+  const treeGitStatus = useMemo(
+    () => changedFiles.map((file) => ({ path: file.path, status: toGitStatus(file.kind) })),
+    [changedFiles],
+  );
 
   useEffect(() => {
     if (!active) return;
-    const exists = [...filesBySection.staged, ...filesBySection.others].some(
-      (f) => f.path === active.path,
-    );
+    const exists = changedFiles.some((file) => file.path === active.path);
     if (!exists) setActive(null);
-  }, [active, filesBySection.staged, filesBySection.others, setActive]);
+  }, [active, changedFiles, setActive]);
 
-  const handleSelect = (filePath: string, isStaged: boolean) => {
-    const files = isStaged ? stagedFiles : unStagedFiles;
-    const selected = files.find((f) => f.path === filePath);
+  const handleSelect = (filePath: string) => {
+    const selected = changedFiles.find((file) => file.path === filePath);
     if (selected) {
       setActive({
         path: selected.path,
         kind: selected.kind,
         originalPath: selected.originalPath,
-        staged: isStaged,
       });
     }
   };
 
   if (status.data && !status.data.isRepo) {
     return <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">Not a git repository</div>;
-  } else if (status.data?.clean) {
+  }
+  if (status.data?.clean) {
     return (
       <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">
         Working tree clean - no changes
@@ -78,33 +77,15 @@ export function ChangesSidebar({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as 'staged' | 'unstaged')}
-        className="shrink-0 px-2 pb-2"
-      >
-        <TabsList className="grid h-8 w-full grid-cols-2 bg-ink-900/40 p-0.5 font-mono text-ui-2xs">
-          <TabsTrigger value="unstaged" className="h-full data-[state=active]:bg-ink-800">
-            unstaged ({unStagedFiles.length})
-          </TabsTrigger>
-          <TabsTrigger value="staged" className="h-full data-[state=active]:bg-ink-800">
-            staged ({stagedFiles.length})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {activeFiles.length === 0 ? (
-        <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">No {activeTab} changes</div>
+      {changedFiles.length === 0 ? (
+        <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">No changes</div>
       ) : (
         <div className="min-h-0 flex-1">
           <FileTree
-            paths={activeFiles.map((file) => file.path)}
+            paths={treePaths}
             activePath={active?.path ?? null}
-            gitStatus={activeFiles.map((file) => ({
-              path: file.path,
-              status: toGitStatus(file.kind),
-            }))}
-            onOpen={(filePath) => handleSelect(filePath, activeTab === 'staged')}
+            gitStatus={treeGitStatus}
+            onOpen={handleSelect}
           />
         </div>
       )}

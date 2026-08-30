@@ -23,7 +23,6 @@ type TextField = { key: keyof AgentFormState; label: string; placeholder: string
 const TEXT_FIELDS: TextField[] = [
   { key: 'name', label: 'name *', placeholder: 'my-agent' },
   { key: 'role', label: 'role *', placeholder: 'backend-engineer' },
-  { key: 'description', label: 'description', placeholder: 'what does this agent do?' },
 ];
 
 export function AgentFormPanel({
@@ -49,6 +48,18 @@ export function AgentFormPanel({
               />
             </FormField>
           ))}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-x-5 gap-y-4">
+          <FormField label="tools">
+            <MultiSelect
+              options={availableTools.map((t) => ({ value: t.name, label: t.name }))}
+              value={form.tools.filter(Boolean)}
+              onChange={(tools) => setForm((f) => ({ ...f, tools }))}
+              placeholder="all tools enabled"
+            />
+          </FormField>
+
           <FormField label="temperature">
             <div className="flex items-center gap-3 h-10">
               <Slider
@@ -69,24 +80,25 @@ export function AgentFormPanel({
         </div>
 
         <div className="mt-5">
-          <FormField label="system prompt *">
+          <FormField label="description">
             <Textarea
-              value={form.systemPrompt}
-              onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
-              rows={12}
-              placeholder="You are a skilled backend engineer..."
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              rows={4}
+              placeholder="what does this agent do?"
               className="resize-y leading-relaxed font-mono text-ui-sm"
             />
           </FormField>
         </div>
 
         <div className="mt-5">
-          <FormField label="allowed tools">
-            <MultiSelect
-              options={availableTools.map((t) => ({ value: t.name, label: t.name }))}
-              value={form.tools.filter(Boolean)}
-              onChange={(tools) => setForm((f) => ({ ...f, tools }))}
-              placeholder="all tools enabled"
+          <FormField label="system prompt *">
+            <Textarea
+              value={form.systemPrompt}
+              onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
+              rows={16}
+              placeholder="You are a skilled backend engineer..."
+              className="resize-y leading-relaxed font-mono text-ui-sm"
             />
           </FormField>
         </div>

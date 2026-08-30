@@ -1,16 +1,26 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { trpc } from '../trpc';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
 import { SidebarListItem } from '../components/ui/sidebar-list-item';
 import { NewWorkflowModal } from '../components/workflow/NewWorkflowModal';
-import { Plus, Network, X } from 'lucide-react';
+import { SimpleTooltip } from '../components/ui/tooltip';
+import { Plus, Network, X, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import type { WorkflowDefinition } from '@main/services/workflows';
 
 // Lazy-load the heavy React Flow canvas
 const WorkflowCanvas = lazy(() =>
   import('../components/workflow/WorkflowCanvas').then((m) => ({ default: m.WorkflowCanvas })),
 );
+
+// Stable serialization of a workflow's saveable state, used to detect real changes.
+function snapshot(name: string, description: string, def: WorkflowDefinition | null): string {
+  return JSON.stringify({
+    name: name.trim(),
+    description: description ?? '',
+    nodes: def?.nodes ?? [],
+    edges: def?.edges ?? [],
+  });
+}
 
 function WorkflowList({
   workflows,
@@ -85,22 +95,20 @@ export function Workflows() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [currentDef, setCurrentDef] = useState<WorkflowDefinition | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
-  const [validationResult, setValidationResult] = useState<{
-    valid: boolean;
-    errors: string[];
-  } | null>(null);
 
-  const selectedWorkflow = workflows.find((w) => w.id === selectedId);
+  // Snapshot of the last successfully persisted state, to avoid redundant auto-saves.
+  const savedRef = useRef<string | null>(null);
 
   const upsert = trpc.workflow.upsert.useMutation({
     onSuccess: async (saved) => {
+      savedRef.current = snapshot(saved.name, saved.description ?? '', {
+        nodes: saved.nodes,
+        edges: saved.edges,
+      });
       await utils.workflow.list.invalidate();
       setSelectedId(saved.id);
-      setSaveError(null);
     },
-    onError: (err) => setSaveError(err.message),
   });
 
   const createWorkflow = trpc.workflow.upsert.useMutation({
@@ -110,11 +118,12 @@ export function Workflows() {
       setName(saved.name);
       setDescription(saved.description ?? '');
       setCurrentDef({ nodes: saved.nodes, edges: saved.edges });
-      setSaveError(null);
-      setValidationResult(null);
+      savedRef.current = snapshot(saved.name, saved.description ?? '', {
+        nodes: saved.nodes,
+        edges: saved.edges,
+      });
       setShowNewModal(false);
     },
-    onError: (err) => setSaveError(err.message),
   });
 
   const del = trpc.workflow.delete.useMutation({
@@ -124,6 +133,7 @@ export function Workflows() {
       setName('');
       setDescription('');
       setCurrentDef(null);
+      savedRef.current = null;
     },
   });
 
@@ -139,8 +149,7 @@ export function Workflows() {
     setName(w.name);
     setDescription(w.description ?? '');
     setCurrentDef({ nodes: w.nodes, edges: w.edges });
-    setSaveError(null);
-    setValidationResult(null);
+    savedRef.current = snapshot(w.name, w.description ?? '', { nodes: w.nodes, edges: w.edges });
   }
 
   // Auto-select the first workflow when the list loads and nothing is selected.
@@ -152,23 +161,14 @@ export function Workflows() {
     setName(firstWorkflow.name);
     setDescription(firstWorkflow.description ?? '');
     setCurrentDef({ nodes: firstWorkflow.nodes, edges: firstWorkflow.edges });
-    setSaveError(null);
-    setValidationResult(null);
+    savedRef.current = snapshot(firstWorkflow.name, firstWorkflow.description ?? '', {
+      nodes: firstWorkflow.nodes,
+      edges: firstWorkflow.edges,
+    });
   }, [workflows, selectedId]);
 
   function newWorkflow() {
     setShowNewModal(true);
-  }
-
-  function save() {
-    if (!name.trim()) return;
-    upsert.mutate({
-      id: selectedId ?? undefined,
-      name: name.trim(),
-      description: description || undefined,
-      nodes: currentDef?.nodes ?? [],
-      edges: currentDef?.edges ?? [],
-    });
   }
 
   const agentList = agents.map((a) => ({
@@ -179,6 +179,25 @@ export function Workflows() {
 
   const errors = validate.data?.errors ?? [];
   const isValid = !validate.data || validate.data.valid;
+
+  // Auto-save: debounced, and only when the workflow is valid and actually changed.
+  useEffect(() => {
+    if (!selectedId || !currentDef || !name.trim()) return;
+    if (!isValid) return;
+    if (snapshot(name, description, currentDef) === savedRef.current) return;
+
+    const timer = setTimeout(() => {
+      upsert.mutate({
+        id: selectedId,
+        name: name.trim(),
+        description: description || undefined,
+        nodes: currentDef.nodes,
+        edges: currentDef.edges,
+      });
+    }, 800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, name, description, currentDef, isValid]);
 
   return (
     <div className="flex h-full min-h-0">
@@ -194,35 +213,51 @@ export function Workflows() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Toolbar */}
-        <div className="flex items-center gap-3 border-b border-ink-800 px-4 py-2">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="workflow name"
-            className="w-52"
-          />
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="description (optional)"
-            className="flex-1"
-          />
-          {!isValid && errors.length > 0 && (
-            <span className="font-mono text-ui-xs text-signal-warn" title={errors.join('; ')}>
-              ⚠ {errors.length} error{errors.length > 1 ? 's' : ''}
-            </span>
-          )}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={save}
-            disabled={upsert.isPending || !name.trim()}
-          >
-            {upsert.isPending ? 'saving...' : 'save'}
-          </Button>
-          {saveError && <span className="font-mono text-ui-xs text-signal-err">{saveError}</span>}
-        </div>
+        {/* Header */}
+        {name && (
+          <header className="flex items-center justify-between gap-4 border-b border-ink-800/60 px-5 py-3">
+            <div className="min-w-0">
+              <h1 className="truncate font-mono text-ui-sm text-ink-100">{name}</h1>
+              {description ? (
+                <p className="truncate font-mono text-ui-xs text-ink-500">{description}</p>
+              ) : null}
+            </div>
+
+            <div className="flex shrink-0 items-center">
+              {errors.length > 0 ? (
+                <SimpleTooltip
+                  side='bottom'
+                  className="max-w-xs"
+                  content={
+                    <ul className="space-y-1">
+                      {errors.map((err, i) => (
+                        <li key={i} className="flex gap-1.5 font-mono text-ui-xs text-ink-300">
+                          <span className="text-ink-500">•</span>
+                          <span>{err}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  }
+                >
+                  <span className="flex cursor-default items-center gap-1.5 font-mono text-ui-xs text-signal-err">
+                    <AlertTriangle className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    {errors.length} error{errors.length > 1 ? 's' : ''}
+                  </span>
+                </SimpleTooltip>
+              ) : upsert.isPending ? (
+                <span className="flex items-center gap-1.5 font-mono text-ui-xs text-ink-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />
+                  saving
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 font-mono text-ui-xs text-signal-ok">
+                  <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  saved
+                </span>
+              )}
+            </div>
+          </header>
+        )}
 
         {/* Canvas */}
         <div className="min-h-0 flex-1">

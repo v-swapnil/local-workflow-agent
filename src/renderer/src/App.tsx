@@ -15,6 +15,7 @@ import { Changes } from './pages/Changes';
 import { Workflows } from './pages/Workflows';
 import { Notes } from './pages/notes';
 import { Workspace } from './pages/Workspace';
+import { TooltipProvider } from './components/ui/tooltip';
 
 const NAV_ROUTES = [
   '/board',
@@ -114,27 +115,29 @@ export function App() {
   }, [navigate, setTheme, setThemeLocal, theme]);
 
   return (
-    <div className="flex h-full flex-col bg-ink-950 text-ink-100">
-      <TitleBar />
-      <div className="flex min-h-0 flex-1">
-        <Sidebar />
-        <main className="relative min-h-0 flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={<Navigate to="/sessions" replace />} />
-            <Route path="/sessions" element={<Sessions />} />
-            <Route path="/board" element={<KanbanBoard />} />
-            <Route path="/changes" element={<Changes />} />
-            <Route path="/workspace" element={<Workspace />} />
-            <Route path="/notes" element={<Notes />} />
-            <Route path="/skills" element={<Skills />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/workflows" element={<Workflows />} />
-            <Route path="/schedules" element={<Schedules />} />
-            <Route path="/tools" element={<Tools />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </main>
+    <TooltipProvider delayDuration={200}>
+      <div className="flex h-full flex-col bg-ink-950 text-ink-100">
+        <TitleBar />
+        <div className="flex min-h-0 flex-1">
+          <Sidebar />
+          <main className="relative min-h-0 flex-1 overflow-y-auto">
+            <Routes>
+              <Route path="/" element={<Navigate to="/sessions" replace />} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/board" element={<KanbanBoard />} />
+              <Route path="/changes" element={<Changes />} />
+              <Route path="/workspace" element={<Workspace />} />
+              <Route path="/notes" element={<Notes />} />
+              <Route path="/skills" element={<Skills />} />
+              <Route path="/agents" element={<Agents />} />
+              <Route path="/workflows" element={<Workflows />} />
+              <Route path="/schedules" element={<Schedules />} />
+              <Route path="/tools" element={<Tools />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

@@ -47,15 +47,10 @@ export async function showFileAtHeadAtPath(
   }
 }
 
-export async function fileDiffAtPath(
-  basePath: string,
-  filePath: string,
-  staged = false,
-): Promise<string> {
+// Combined diff for a single file: staged + unstaged changes against HEAD.
+export async function fileDiffAtPath(basePath: string, filePath: string): Promise<string> {
   if (!(await isRepo(basePath))) return '';
   const git = gitFor(basePath);
-  if (staged) return git.diff(['--cached', '--', filePath]);
-
   const status = await git.status();
   const fileEntry = status.files.find((entry) => entry.path === filePath);
   const isUntracked = fileEntry?.working_dir === '?' || status.not_added.includes(filePath);
@@ -68,7 +63,7 @@ export async function fileDiffAtPath(
       return gitErr.git ?? gitErr.message ?? '';
     }
   }
-  return git.diff(['--', filePath]);
+  return git.diff(['HEAD', '--', filePath]);
 }
 
 /**

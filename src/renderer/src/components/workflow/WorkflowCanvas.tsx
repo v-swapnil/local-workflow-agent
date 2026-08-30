@@ -40,12 +40,14 @@ export function WorkflowCanvas({ initialDefinition, agents, onChange }: Workflow
   const savedTheme = trpc.settings.theme.useQuery();
 
   const initNodes: Node[] =
-    initialDefinition?.nodes.map((n) => ({
-      id: n.id,
-      type: n.type,
-      position: n.position,
-      data: n.data,
-    })) ?? DEFAULT_NODES;
+    initialDefinition && initialDefinition.nodes.length > 0
+      ? initialDefinition.nodes.map((n) => ({
+          id: n.id,
+          type: n.type,
+          position: n.position,
+          data: n.data,
+        }))
+      : DEFAULT_NODES;
 
   const initEdges: Edge[] =
     initialDefinition?.edges.map((e) => ({

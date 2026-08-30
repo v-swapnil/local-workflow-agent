@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { trpc } from '../trpc';
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
-import { UnifiedDiffPanel } from '@renderer/components/changes/UnifiedDiffPanel';
-import { CustomSelect } from '@renderer/components/CustomSelect';
+import { FileDiffPanel } from '@renderer/components/changes/FileDiffPanel';
 import { ChangesSidebar } from '@renderer/components/changes/ChangesSidebar';
 import { ActiveChange } from '@renderer/components/changes/types';
 
@@ -25,42 +24,12 @@ function DiffPanel({
   active: ActiveChange | null;
   setActive: (change: ActiveChange | null) => void;
 }) {
-  const [worktreeId, setWorktreeId] = useState<string>('');
-
-  const status = trpc.git.status.useQuery(
-    { workspaceId, worktreeId: worktreeId ? Number(worktreeId) : undefined },
-    { refetchInterval: 5000 },
-  );
-  const worktrees = trpc.worktree.list.useQuery();
-
-  useEffect(() => {
-    const activeIds = new Set(
-      (worktrees.data ?? []).filter((w) => w.status === 'active').map((w) => w.id),
-    );
-    if (worktreeId && !activeIds.has(Number(worktreeId))) setWorktreeId('');
-  }, [worktreeId, worktrees.data]);
-
-  const worktreeOptions = [
-    { label: 'workspace root', value: '__root__' },
-    ...(worktrees.data ?? [])
-      .filter((w) => w.status === 'active')
-      .map((w) => ({ label: w.branch, value: String(w.id) })),
-  ];
+  const status = trpc.git.status.useQuery({ workspaceId }, { refetchInterval: 5000 });
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink-950">
       <div className="flex min-h-0 flex-1">
         <aside className="flex w-72 shrink-0 flex-col gap-4 p-2 border-r border-ink-800/40 bg-ink-900/15">
-          <CustomSelect
-            placeholder="Select a worktree"
-            value={worktreeId || '__root__'}
-            onChange={(v) => {
-              setWorktreeId(v === '__root__' ? '' : v);
-              setActive(null);
-            }}
-            options={worktreeOptions}
-          />
-
           {status.data && !status.data.isRepo ? (
             <div className="px-3 py-3 font-mono text-ui-xs text-ink-500">Not a git repository</div>
           ) : status.data?.clean ? (
@@ -68,12 +37,7 @@ function DiffPanel({
               Working tree clean - no changes
             </div>
           ) : (
-            <ChangesSidebar
-              workspaceId={workspaceId}
-              worktreeId={Number(worktreeId)}
-              active={active}
-              setActive={setActive}
-            />
+            <ChangesSidebar workspaceId={workspaceId} active={active} setActive={setActive} />
           )}
         </aside>
 
@@ -83,12 +47,7 @@ function DiffPanel({
           ) : status.data?.clean ? (
             <Empty>working tree clean - no changes</Empty>
           ) : active ? (
-            <UnifiedDiffPanel
-              workspaceId={workspaceId}
-              worktreeId={Number(worktreeId)}
-              staged={active.staged}
-              activePath={active.path}
-            />
+            <FileDiffPanel workspaceId={workspaceId} activePath={active.path} />
           ) : (
             <Empty>select a file to view changes.</Empty>
           )}
