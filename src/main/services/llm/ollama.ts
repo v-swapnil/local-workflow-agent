@@ -46,7 +46,7 @@ export class OllamaProvider extends BaseLLMProvider {
     return (data.models ?? []).map((m) => ({
       name: m.name,
       sizeBytes: m.size,
-      modifiedAt: m.modified_at?.toISOString(),
+      modifiedAt: new Date(m.modified_at).toISOString(),
     }));
   }
 
