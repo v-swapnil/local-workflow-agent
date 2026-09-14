@@ -2,6 +2,9 @@ import type { TaskEventRecord } from '@shared/schema';
 import { cn } from '../../lib/utils';
 import { Play, Square, StepForward } from 'lucide-react';
 
+import { Streamdown } from 'streamdown';
+import { MarkdownRenderer } from './MarkdownRenderer';
+
 export function EventRow({ event }: { event: TaskEventRecord }) {
   const t = new Date(event.timestamp).toLocaleTimeString([], {
     hour12: false,
@@ -99,16 +102,22 @@ export function EventRow({ event }: { event: TaskEventRecord }) {
           approval {event.status}
         </Line>
       );
+    case 'llm.prompt':
+      return (
+        <Line ts={t} tone="ink">
+          <MarkdownRenderer markdown={event.content} />
+        </Line>
+      );
     case 'llm.delta':
       return (
         <Line ts={t} tone="emerald" dim>
-          {event.content}
+          <Streamdown>{event.content}</Streamdown>
         </Line>
       );
     case 'llm.thinking_delta':
       return (
         <Line ts={t} tone="purple" dim>
-          {event.content}
+          <MarkdownRenderer markdown={event.content} />
         </Line>
       );
     case 'user_input.requested':

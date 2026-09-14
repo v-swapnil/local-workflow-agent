@@ -51,22 +51,6 @@ class TaskBus {
     this.bus.on('*', listener);
     return () => this.bus.off('*', listener);
   }
-
-  // TODO: drop this and use listTaskEvents instead
-  /** Read all persisted events for a task from the database. */
-  replayEvents(taskId: number): TaskEventRecord[] {
-    try {
-      const rows = getDb()
-        .select({ payloadJson: taskEvents.payloadJson })
-        .from(taskEvents)
-        .where(eq(taskEvents.taskId, taskId))
-        .orderBy(asc(taskEvents.id))
-        .all();
-      return rows.map((r) => JSON.parse(r.payloadJson) as TaskEventRecord);
-    } catch {
-      return [];
-    }
-  }
 }
 
 export const taskBus = new TaskBus();

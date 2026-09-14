@@ -1,4 +1,4 @@
-import { Ollama } from 'ollama';
+import { Message, Ollama } from 'ollama';
 import { nanoid } from 'nanoid';
 import { OLLAMA_URL } from '@shared/constants';
 import { logger } from '../logger.js';
@@ -77,7 +77,7 @@ export class OllamaProvider extends BaseLLMProvider {
       if (opts.signal?.aborted) client.abort();
 
       if (chunk.message?.thinking) {
-        const text = chunk.message.content;
+        const text = chunk.message.thinking;
         thinking += text;
         emitThinkingDelta(opts.taskId, text);
       }
@@ -128,12 +128,7 @@ export class OllamaProvider extends BaseLLMProvider {
  * - assistant messages: camelCase toolCalls → snake_case tool_calls
  * - tool result messages: include tool_name field
  */
-function toOllamaMessage(msg: ChatMessage): {
-  role: string;
-  content: string;
-  tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[];
-  tool_name?: string;
-} {
+function toOllamaMessage(msg: ChatMessage): Message {
   if (msg.role === 'assistant' && msg.toolCalls?.length) {
     return {
       role: 'assistant',

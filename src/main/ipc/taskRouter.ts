@@ -59,7 +59,7 @@ export const taskRouter = router({
   events: publicProcedure.input(z.object({ taskId: z.number() })).subscription(({ input }) => {
     return observable<TaskEventRecord>((emit) => {
       // Replay persisted events so late subscribers see full history
-      const past = taskBus.replayEvents(input.taskId);
+      const past = taskBus.listTaskEvents(input.taskId);
       for (const e of past) emit.next(e as TaskEventRecord);
 
       // Then attach live listener for new events
