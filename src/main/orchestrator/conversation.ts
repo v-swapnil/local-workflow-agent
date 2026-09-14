@@ -7,8 +7,8 @@ import { addMessage, listTaskMessages } from '../services/store.js';
  *
  * Every message is persisted to the `messages` table, keyed by `taskId`, so the
  * database is the single source of truth for the loop's context. `getMessages()`
- * reads the persisted rows back and prepends the (non-persisted, config-derived)
- * system prompt before handing the array to a provider.
+ * reads the persisted rows back and hoists system messages before handing the
+ * array to a provider.
  *
  * The assistant↔tool_call_id correlation chain is preserved because assistant
  * `toolCalls` and tool `toolCallId`/`toolName` are stored on their rows.
@@ -48,7 +48,7 @@ export class Conversation {
     return addMessage(payload);
   }
 
-  // Append the system prompt (non-persisted) to the conversation. This is prepended
+  /** Append the system prompt to the conversation. */
   addSystemMessage(content: string): void {
     this.persist({ role: 'system', content });
   }
@@ -56,6 +56,10 @@ export class Conversation {
   /** Append the initial (or follow-up) user message. */
   addUserMessage(content: string): void {
     this.persist({ role: 'user', content });
+  }
+
+  hasMessages(): boolean {
+    return listTaskMessages(this.taskId).length > 0;
   }
 
   /**

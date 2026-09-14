@@ -108,8 +108,14 @@ export const emitToolCallFinished = (
   }
 };
 
-export const emitMessagePrompt = (taskId: number, content: string) => {
-  taskBus.emit({ timestamp: Date.now(), type: 'llm.prompt', taskId, content, referenceId: null });
+export const emitUserMessage = (taskId: number, content: string) => {
+  taskBus.emit({
+    timestamp: Date.now(),
+    type: 'llm.prompt',
+    taskId,
+    content,
+    referenceId: null,
+  });
 };
 
 export const emitMessageDelta = (taskId: number, content: string) => {

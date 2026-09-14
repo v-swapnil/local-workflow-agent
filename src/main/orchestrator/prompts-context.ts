@@ -5,26 +5,19 @@ import { MemoryRecord } from '@shared/schema';
 
 function formatEnvContext(env: EnvironmentContext): string {
   const lines = [
-    `<env>`,
-    `  Working directory: ${env.directory}`,
-    `  Workspace root folder: ${env.worktree}`,
-    `  Is directory a git repo: ${env.isGitRepo ? 'yes' : 'no'}`,
-    `  Platform: ${env.platform}`,
-    `  Shell: ${env.shell ?? 'unknown'}`,
-    `  Model: ${env.model}`,
-    `  Today's date: ${new Date().toDateString()}`,
+    `# Environment`,
+    ` - Working directory: ${env.directory}`,
+    ` - Platform: ${env.platform}`,
+    ` - Shell: ${env.shell ?? 'unknown'}`,
+    ` - Model: ${env.model}`,
+    ` - Today's date: ${new Date().toDateString()}`,
   ];
   if (env.isGitRepo) {
-    lines.push(`  Git branch: ${env.git.branch ?? 'HEAD detached'}`);
+    lines.push(` - Git branch: ${env.git.branch ?? 'HEAD detached'}`);
     if (env.git.changedFiles.length) {
-      const capped = env.git.changedFiles.slice(0, 30);
-      lines.push(`  Changed files (${env.git.changedFiles.length}):`);
-      for (const f of capped) lines.push(`    ${f}`);
-      if (env.git.changedFiles.length > 30)
-        lines.push(`    ... and ${env.git.changedFiles.length - 30} more`);
+      lines.push(` - Changed files: ${env.git.changedFiles.join(', ')}`);
     }
   }
-  lines.push(`</env>`);
   return lines.join('\n');
 }
 

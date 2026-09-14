@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { getDb } from '../db/index.js';
-import { sessions, messages, tasks, toolCalls } from '../db/schema.js';
+import { sessions, messages, toolCalls } from '../db/schema.js';
 import type { MessageRecord, ToolCallRecord } from '@shared/schema.js';
 import { getTask } from './workspaces/tasks.js';
 
@@ -18,17 +18,6 @@ export function addMessage(input: Omit<MessageRecord, 'id'>) {
   }
 
   return result;
-}
-
-export function listMessages(sessionId: number): MessageRecord[] {
-  return getDb()
-    .select()
-    .from(messages)
-    .innerJoin(tasks, eq(messages.taskId, tasks.id))
-    .where(eq(tasks.sessionId, sessionId))
-    .all()
-    .map((row) => row.messages)
-    .sort((first, second) => first.createdAt - second.createdAt) as MessageRecord[];
 }
 
 /** Messages for a single task, in insertion order (conversation order). */

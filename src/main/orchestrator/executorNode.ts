@@ -26,12 +26,10 @@ async function runExecutorLoop(
 ): Promise<string> {
   const conv = new Conversation({ taskId: ctx.taskId, agentId: ctx.agentId });
 
-  conv.addSystemMessage(systemPrompt);
-
-  const promptContext = await buildPromptContext(ctx);
-  const goalLine = `**GOAL**: ${state.prompt}`;
-
-  conv.addUserMessage([promptContext, '---', goalLine].join('\n'));
+  if (!conv.hasMessages()) {
+    conv.addSystemMessage(systemPrompt);
+    conv.addUserMessage(state.prompt);
+  }
 
   let finalText = '';
 
@@ -72,12 +70,13 @@ export async function executorNode(
 ): Promise<Partial<AgentState>> {
   const ctx = ctxOf(config);
   const agent = ctx.agentId ? getAgent(ctx.agentId) : null;
+  const promptContext = await buildPromptContext(ctx);
 
-  let systemPrompt = EXECUTOR_SYSTEM;
+  let systemPrompt = [EXECUTOR_SYSTEM, '---', promptContext].join('\n');
   let temperature: number | undefined;
 
   if (agent) {
-    systemPrompt = [EXECUTOR_SYSTEM, '---', agent.systemPrompt].join('\n');
+    systemPrompt = [systemPrompt, '---', agent.systemPrompt].join('\n');
     temperature = agent.temperature;
   }
 

@@ -6,7 +6,7 @@ import {
 } from '../services/workspaces';
 import { getSetting, SETTING_KEYS } from '../services/settings.js';
 import { PROVIDERS } from '@shared/constants';
-import { emitTaskStarted, emitTaskFinished, emitLog, emitMessagePrompt } from './eventEmitter.js';
+import { emitTaskStarted, emitTaskFinished, emitLog } from './eventEmitter.js';
 import { logger } from '../services/logger.js';
 import { createBranch } from '../services/git';
 import { buildGraph } from './graph.js';
@@ -45,8 +45,6 @@ class TaskRunner {
       }
 
       emitTaskStarted(taskId, task.workflowId ?? task.agentId ?? null);
-
-      emitMessagePrompt(taskId, task.prompt);
 
       // Optional: auto-branch per task before any code is written.
       // Skip branching if session has an active worktree (it already has its own branch).
